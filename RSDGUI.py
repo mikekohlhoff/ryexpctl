@@ -12,7 +12,7 @@ from matplotlib.figure import Figure
 import random
 
 
-# hardware 
+# hardware controller modules
 from Instruments.PCI7300ADIOCard import *
 from Instruments.LeCroyScopeController import *
 
