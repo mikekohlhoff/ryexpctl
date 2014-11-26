@@ -1,0 +1,148 @@
+# -*- coding: utf8 -*-
+"""
+Functions for time varying potentials for a number of electrodes for PCB RSD. \n\
+Output for 10bit D/A channel.
+"""
+
+from numpy import *
+import textwrap
+import matplotlib.pyplot as plt
+import math
+
+# Build ELECTRODE POTENTIALS piece-wise for incoupling, chirp, outcoupling ported form Matlab 
+# Oscillation frequency omega building phase, constant (inc/outc) or non-constant 
+# over time (chirp); t0=0, t1=incplTime, t2=incplTime+decelTime, t3=relative time(end)-outcplTime, 
+# t4=time(end)
+# timeInRev in order to ensure that position of targeted minimum is always at same position after set
+# incoupling time
+# chirp chosen to end at fixed position before field minima diverges
+
+class WaveformPotentials21Elec:
+    
+    """
+    Generate (chirped) waveform potentials for decelerator.
+    Potentials need to be generated before plotted.
+    """
+
+    def generate(self,timeStep,vInit,vFinal,decelDist,incplTime,outcplTime,outDist):
+        
+        # 10 bit resolution per channel
+        maxAmp = 1023/2.0
+        # Distance between field minima, 3*center-to-center spacing of electrodes
+        dmin = 3E-3
+        # to be transposed
+        phaseOffset = array([[0], [2], [1], [0], [2], [1]])*(2*pi/3.0)
+        incplTime = incplTime*1E-6
+        outcplTime = outcplTime*1E-6
+        outcplTime = outDist*1E-3/vFinal;
+        decelDist = decelDist*1E-3
+        # 11 electrodes assumed with 0.5mm width and 0.5mm apart
+        chipLength = 21.5*1E-3
+        # 23 electrodes assumed with 0.5mm width and 0.5mm apart w/o margins
+        chipLength = (23.5)*1E-3;
+
+
+        # Check available deceleration path length over chip
+        distanceTotal = vInit*incplTime + vFinal*outcplTime + decelDist
+        # Time passed during a-/decceleration for given length decelDist
+        decelTime = 2*decelDist/(vInit+vFinal)
+        
+        incplTime = floor(incplTime*1E9)/1E9;
+        outcplTime = floor(outcplTime*1E9)/1E9;
+        decelTime = ceil(decelTime*1E9)/1E9;
+        timeTotal = decelTime + outcplTime;
+
+        #self.__time = arange(0, int(self.entryEndTime.get_text())*1E-6  + self.__timeStep, self.__timeStep)
+        time = arange(0, timeTotal+timeStep, timeStep)
+
+        if distanceTotal > chipLength:
+            mes = """
+            Chip length possibly insufficient for combination of in- and outcoupling \n\
+            times and/or intended deceleration path length in z-direction, required \n\
+            flightpath = {0:.2f}mm
+            """.format(distanceTotal*1E3)
+            print textwrap.dedent(mes)
+
+        # 1. INCOUPLING, linear increase in amplitude, constant omega
+        # compare in ns to avoid rounding errors
+        timeInRev = time[time*1E9 <= incplTime*1E9];
+        timeIn = -flipud(time[time*1E9 <= incplTime*1E9]);
+        omegaConst = 2*pi*vInit/dmin
+        phaseIn = omegaConst*timeIn
+        ampIn = maxAmp*(tile(timeInRev, (6,1))/incplTime)
+        ampIn[ampIn > maxAmp] = 0
+        phaseIn = tile(phaseIn, (6,1)) + tile(phaseOffset, (1,len(timeIn)))
+        newPotIn = ampIn*tile(array([[-1],[1],[-1],[1],[-1],[1]]), (1,len(timeIn)))*(cos(phaseIn)+1)
+
+        # 2. electrode potentials with LINEAR CHIRP
+        # decelTime + incpltime = t2, t=(ti-t1)
+        timeChirp = time[time*1E9 <= decelTime*1E9]
+        freqSlope = (pi/(2*decelDist*dmin)*(vFinal**2-vInit**2))
+        phaseChirp = (freqSlope*(timeChirp) + 2*pi*vInit/dmin)*(timeChirp)
+        chirpOffset = 2*pi/dmin*vInit*(incplTime + 1*timeStep)
+        # keep minimum at position for elec 1/4 = Umax (instead of phase=phaseChirp+chirpOffset)
+        phase = phaseChirp
+        phase = tile(phase, (6,1)) + tile(phaseOffset, (1,len(timeChirp)))
+        newPotChirp = maxAmp*tile(array([[-1],[1],[-1],[1],[-1],[1]]), (1,len(timeChirp)))*(cos(phase)+1)
+        
+        # 3. CONSTANT frequency after chirp completed 
+        timePostChirp = time[time*1E9 < (time[-1]*1E9 - incplTime*1E9 - decelTime*1E9 - 1*timeStep)]
+        # don't account for incoupling time
+        timePostChirp = time[time*1E9 < (time[-1]*1E9 - decelTime*1E9 - 1*timeStep)]
+        postOffset = 2*pi/dmin*(vInit*(incplTime*0 + decelTime + 2*timeStep) + \
+                    (vFinal**2-vInit**2)/(4*decelDist)*(decelTime)**2)
+        phasePostChirp = 2*pi/dmin*vFinal*timePostChirp + postOffset
+        phasePostChirp = tile(phasePostChirp, (6,1)) + tile(phaseOffset, (1,len(timePostChirp)))
+        newPotPostChirp = maxAmp*tile([[-1],[1],[-1],[1],[-1],[1]], (1,len(timePostChirp)))*(cos(phasePostChirp)+1)
+
+        # 4. OUTCOUPLING, linear decrease in amplitude for omega1
+        timeOut = timePostChirp + decelTime + incplTime + 1*timeStep
+        timeOut = timePostChirp + decelTime + 1*timeStep
+        ampOut = tile(time[-1] -timeStep -  timeOut, (6,1))/outcplTime
+        ampOut[ampOut > 1] = 1
+        newPotPostChirp = newPotPostChirp*ampOut
+        
+        self.maxAmp = maxAmp
+        timeTotalPlot = incplTime + decelTime + outcplTime
+        #self.plotTime = time*1E6
+        self.incplTime = incplTime*1E6
+        self.outcplTime = outcplTime*1E6
+        self.decelTime = decelTime*1E6
+        
+        # concatenate intervals and round to integers
+        self.potentialsOut = around(hstack((newPotIn, newPotChirp, newPotPostChirp)))
+        self.plotTime = 1E6*timeStep*arange(0,max(shape(self.potentialsOut)))
+        mes = """
+        Time of flight for completion of acceleration stage (excluding TOF incoupling): {0:.2f}mus
+        """.format(decelTime*1E6)
+        print textwrap.dedent(mes)        
+
+    def plot(self):
+        if hasattr(self, 'plotTime'):
+            argX = self.plotTime
+            argY = self.potentialsOut#/self.maxAmp
+            plt.plot(1)
+            plt.plot(argX, argY[0,:], 'b', label="1", linewidth=1.5)
+            plt.plot(argX, argY[1,:], 'r', label="2", linewidth=1.5)
+            plt.plot(argX, argY[2,:], 'g', label="3", linewidth=1.5)
+            plt.plot(argX, argY[3,:], 'b--', label="4", linewidth=1.5)
+            plt.plot(argX, argY[4,:], 'r--', label="5", linewidth=1.5)
+            plt.plot(argX, argY[5,:], 'g--', label="6", linewidth=1.5)
+            plt.axis([-2, self.plotTime[-1]+0.5, self.maxAmp*-2-10, self.maxAmp*2+10])
+            plt.grid(True)
+            plt.title("Calculated potential waveforms")
+            plt.xlabel("Time ($\mu$s)")
+            plt.ylabel("Electrode Potentials (max resolution of DIO card)")
+            plt.legend(loc="lower left")
+            # mark different phases in potential generation 
+            plt.plot([self.incplTime,self.incplTime],[(self.maxAmp*2+10),(self.maxAmp*(-2)-10)], 'k--', linewidth=1)
+            plt.plot([self.plotTime[-1]-self.outcplTime,self.plotTime[-1]-self.outcplTime],\
+            [self.maxAmp*-2-1,self.maxAmp*2+1], 'k--', linewidth=1)
+            plt.plot([self.incplTime+self.decelTime,self.incplTime+self.decelTime],[self.maxAmp*-2-1,self.maxAmp*2+1], \
+            'k--', linewidth=1)
+            plt.ion()
+            plt.show(block=True)
+        else:
+            print "No potentials generated"
+        
+

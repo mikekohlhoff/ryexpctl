@@ -1,0 +1,87 @@
+-87P4
+
+port 7
+baud 115200
+uint16_t Open_Com(uint8_t cPort, uint32_t dwBaudRate, uint8_t cData, uint8_t cParity, uint8_t cStop);
+uint16_t Close_Com(uint8_t cPort);
+
+int16_t DCON_Write_AO(uint8_t cComPort, int16_t iAddress, int16_t iSlot, int16_t iChannel, int16_t iAOTotalCh, 
+float fValue, int16_t iCheckSum, int16_t iTimeOut);
+
+comport 7
+address 2
+slot -1
+checksum 0
+timeout 100
+
+extraction: totchl 4, chl 0, value+2/500
+optics: totchl 4, chl 1, value ==
+mcp: ==, chl 2, == if value_change <= 5
+phos: ==, chl 3, ==
+
+-mcp/phos startup - daq2501
+
+int32_t LV_AIRange(int16_t devNumber, uint16_t subType, uint16_t arraysize, const float *highLimitArray, 
+const float *lowLimitArray, int16_t *ai_rangeArray);
+
+int32_t LV_AISampleChannel(int16_t devNumber, uint16_t subType, uint16_t channel, int16_t ai_range, 
+int16_t InputConfig, float *sample);
+
+int32_t LV_ErrorHandle(int32_t code, const CStr Src, uint16_t type);
+
+read mcp 
+
+device 1
+channel 2
+high lim 10
+low lim 0
+
+read phos 
+
+channel 3
+
+sample*0.525
+
+-Laser Syrah
+
+Create - ConfigGetInt - ConfigGetInt
+C:\Users\TPSgroup\Documents\RSE Control\Sirah Control UV\Sirah Laser.ini, FileName
+
+C:\Users\TPSgroup\Documents\RSE Control\LabVIEW\Main Code\SC Laser Library 2.6.0\SirahLaserObject.dll
+
+int16_t LaserCreate(const CStr FileName, uint32_t *ObjPtr); ObjPtr=0
+
+int16_t LaserConfigurationGetInt(uint32_t ObjPtr, const CStr Valuename, const CStr Keyname, int32_t *Result);
+Value Status Key Version !=2? or Value Status Key Revision !=14? => error
+
+int16_t LaserGet(uint32_t ObjPtr, int16_t nPositionMode, double *dPosition); 
+fundamental, wavelength / nm =0
+SHG, wavelength/nm = 3
+
+int16_t LaserGoto(uint32_t ObjPtr, int16_t nPositionMode, double dPosition, int16_t dBacklashMode);
+backlash = 0
+
+int16_t LaserScanBurstStart(uint32_t ObjPtr);
+before:
+int16_t LaserConfigurationSetDouble(uint32_t ObjPtr, const CStr Section, const CStr Key, double Value);
+
+section 
+BurstScan
+keys 
+FromPosition 
+ToPosition
+Increment
+Points - 0, open
+ScanMode - 0, open
+PositionMode - 
+
+after waveform acquired:
+int16_t LaserScanBurstNext(uint32_t ObjPtr, int16_t nPositionMode, double *dPosition, int16_t *bContinue?);
+dPosition - 0.00
+bContinue - 0
+if return != 0 continue, if == 0 stop scan
+
+if queue empty - int16_t LaserScanBurstCancel(uint32_t ObjPtr);
+
+after scan goto old position
+int16_t LaserDestroy(uint32_t arg1); arg = reference
