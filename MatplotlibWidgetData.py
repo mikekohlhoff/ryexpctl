@@ -16,7 +16,7 @@ class MplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class MatplotlibWidgetWFPot(QtGui.QWidget):
+class MatplotlibWidgetData(QtGui.QWidget):
 
     def __init__(self, parent = None):
         QtGui.QWidget.__init__(self, parent)
@@ -24,9 +24,9 @@ class MatplotlibWidgetWFPot(QtGui.QWidget):
         self.vbl = QtGui.QVBoxLayout()
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
-        self.canvas.ax.set_title('Calculated PCB Potentials')
-        self.canvas.ax.set_xlabel(r'Time ($\mu$s)')
-        self.canvas.ax.set_ylabel('Amplitude (bits)')
+        #self.canvas.ax.set_title('Calculated PCB Potentials')
+        #self.canvas.ax.set_xlabel(r'Time ($\mu$s)')
+        #self.canvas.ax.set_ylabel('Amplitude (bits)')
         self.canvas.fig.patch.set_alpha(0)
         self.canvas.fig.tight_layout()
         #font = FontProperties().copy()
