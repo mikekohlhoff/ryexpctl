@@ -31,5 +31,9 @@ class MatplotlibWidgetScope(QtGui.QWidget):
         self.canvas.fig.tight_layout()
         #font = FontProperties().copy()
         
-
-
+    def plot(self, data):
+        self.canvas.ax.clear()
+        self.canvas.ax.plot(data)
+        self.canvas.fig.patch.set_alpha(0)
+        self.canvas.fig.tight_layout()
+        self.canvas.draw()

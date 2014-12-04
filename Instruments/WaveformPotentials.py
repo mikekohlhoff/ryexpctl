@@ -49,11 +49,9 @@ class WaveformPotentials21Elec:
         time = arange(0, timeTotalInt+1, 1)*timeStep
 
         if distanceTotal > chipLength:
-            mes = """
-            Chip length possibly insufficient for combination of in- and outcoupling \n\
+            mes = """Chip length possibly insufficient for combination of in- and outcoupling \n\
             times and/or intended deceleration path length in z-direction, required \n\
-            flightpath = {0:.2f}mm
-            """.format(distanceTotal*1E3)
+            flightpath = {0:.2f}mm""".format(distanceTotal*1E3)
             print textwrap.dedent(mes)
 
         # 1. INCOUPLING, linear increase in amplitude, constant omega
@@ -106,9 +104,7 @@ class WaveformPotentials21Elec:
         self.plotTime = 1E6*timeStep*arange(0,max(shape(potentialsOut)),1)
         # if any entry is NaN replace with 0
         self.potentialsOut = nan_to_num(potentialsOut)
-        mes = """
-        Time of flight for completion of acceleration stage (excluding TOF incoupling): {0:.2f}mus
-        """.format(decelTime*1E6)
+        mes = """Time of flight for completion of acceleration stage (excluding TOF incoupling): {0:.2f}mus""".format(decelTime*1E6)
         print textwrap.dedent(mes)        
         
     def plot(self):

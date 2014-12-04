@@ -16,7 +16,7 @@ class DIOCardSimulator:
                         Terminator, O_Cntrl_Pol, FifoThreshold): pass
     def DO_ContWritePort(self, CardNumber, Port, Buffer, WriteCount, Iterations,
         SampleRate, SyncMode): 
-        return 'No error, simulator mode'
+        return 'No error, DIO card simulator mode'
     def DO_ReadPort(self, CardNumber, Port, value): pass
     def Release_Card(self, CardNumber): pass
 
@@ -46,15 +46,13 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
             if sys.platform == 'darwin':
                 raise OSError
             self.__DIOCard = ctypes.windll.LoadLibrary("C:\WINDOWS\system32\PCI-Dask.dll")
-            mode = "Hardware driver .dll found"
+            mode = "Hardware driver .dll for DIO card found"
         except OSError:
             self.__DIOCard = DIOCardSimulator()
-            mode = 'OSError, enter simulation mode'
+            mode = 'OSError, enter simulation mode for DIO card'
         except AttributeError:
             self.__DIOCard = DIOCardSimulator()
-            mode = "Hardware not present, enter simulation mode"
-        
-        self.configureCard(True)
+            mode = "Hardware not present, enter simulation mode for DIO card"
         print mode
 
     def configureCard(self, extTrigger):
@@ -103,7 +101,7 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         self.timeStep = 1/float(self.SampleRate)
         # mode A/B: 30, mode B/A: 15
         self.__clockBit = 15
-        print 'DIO card (re)-configured'
+        print 'DIO card configured'
 
     def changeSampleRate(self, SampleRateIn):
         self.SampleRate = SampleRateIn

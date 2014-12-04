@@ -532,6 +532,19 @@
      </item>
     </layout>
    </widget>
+   <widget class="QCheckBox" name="chk_readScope">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>190</y>
+      <width>89</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Read Scope</string>
+    </property>
+   </widget>
   </widget>
   <widget class="Line" name="line">
    <property name="geometry">
@@ -587,7 +600,7 @@
     <string>Waveform potential control</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="btn_startAcq">
+  <widget class="QPushButton" name="btn_startDataAcq">
    <property name="geometry">
     <rect>
      <x>980</x>
@@ -605,7 +618,7 @@
     <string>Start Acquistion</string>
    </property>
   </widget>
-  <widget class="MatplotlibWidgetData" name="dataDisplay">
+  <widget class="MatplotlibWidgetData" name="DataDisplay">
    <property name="geometry">
     <rect>
      <x>1020</x>

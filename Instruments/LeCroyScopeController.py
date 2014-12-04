@@ -30,7 +30,7 @@ class LeCroyScopeSimulator:
             return data
 
         elif self.lastCommand == 'ARM;WAIT;C1:WF? DAT1':
-            time.sleep(0.01)
+            time.sleep(0.1)
             data = (np.random.rand(1016) - 0.5)*512
             data = data.astype(np.int16)
             string = struct.pack('1016h', *data) + '\0'
@@ -48,7 +48,7 @@ class LeCroyScopeController:
             self.__scope = visa.instrument("VICP::169.254.201.2::inst0", timeout = 1, values_format = 1)
             print "Scope connection established"
         except ImportError:
-            print "can't load visa/scope driver, using simulator"
+            print "Can't load visa/scope driver, using simulator for scope"
             self.__scope = LeCroyScopeSimulator()
 
 
@@ -63,9 +63,11 @@ class LeCroyScopeController:
 
     def dispOff(self):
         self.__scope.write('DISP OFF')
+        print 'Turn scope display off'
         
     def dispOn(self):
         self.__scope.write('DISP ON')
+        print 'Turn scope display on'
                 
     def setSweeps(self, numberSweeps):
         '''set number of sweeps for averaging'''
@@ -76,14 +78,14 @@ class LeCroyScopeController:
         self.__scope.write('ARM;WAIT;C1:WF? DESC;')
         data = self.__scope.read_raw()
         WAVEDESC = data[16:346+16]
-        print struct.unpack(wdf, WAVEDESC)
+        #print struct.unpack(wdf, WAVEDESC)
         return wft._make(struct.unpack(wdf, WAVEDESC))
 
     def setScales(self):
         wfd = self.getDescription()
         self.yscale = wfd.VERTICAL_GAIN
         self.yoff = wfd.VERTICAL_OFFSET
-        print self.yscale, self.yoff
+        #print self.yscale, self.yoff
 
     def armwaitread(self):
         self.__scope.write('ARM;WAIT;C1:WF? DAT1')
