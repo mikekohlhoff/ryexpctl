@@ -5,8 +5,6 @@ from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 from pylab import *
 
-import inspect
-
 class MplCanvas(FigureCanvas):
 
     def __init__(self):

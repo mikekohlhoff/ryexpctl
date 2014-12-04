@@ -65,6 +65,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.btn_wfOutput.setEnabled(False)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
+        self.inp_voltExtract.editingFinished.connect(self.inp_voltExtract_changed)
 
         self.setWindowTitle('RSD Control Electronics Test')    
         self.centerWindow()
@@ -160,6 +161,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                     break
                 elif msg[0] == 'MONITOR SCOPE':
                     acquireData = msg[1]
+                elif msg[0] == 'DATA ACQ':
+                    acquireData = msg[1]
+                else:
+                    print 'unknown command'
 
             if acquireData:
                 data = self.scope.armwaitread()
@@ -168,34 +173,55 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 time.sleep(.1)
 
     def chk_readScope_clicked(self):
-        self.scanMode = self.chk_readScope.isChecked()
+        self.scanMode = False
         self.startAcquisition()
 
-    def btn_startDataAcq_clicked(self): pass
-   #     self.btn_startAcq.setEnabled(False)
-   #     self.scanMode = True
-   #     self.chk_readScope.setEnabled(False)
-   #     self.inp_aveSweeps.setValue(1)
-
+    def btn_startDataAcq_clicked(self):
+        self.scanMode = True
+        # reset recorded data
+        self.DataDisplay.canvas.ax.clear()
+        self.DataDisplay.intgrTrace = []
+        if self.chk_readScope.checkState():
+            self.scopeActive = False
+            self.chk_readScope.setCheckState(QtCore.Qt.Unchecked)
+        self.startAcquisition()
+        
     def startAcquisition(self):
-        if ~self.scanMode and self.scopeActive:
+        if not(self.scanMode) and self.scopeActive:
             self.pipe.send(['MONITOR SCOPE', False])
             self.timer.stop()
-            self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+            self.disconnect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
             self.scopeActive = False
-        elif ~self.scanMode and ~self.scopeActive:
+        elif not(self.scanMode) and not(self.scopeActive):
             self.pipe.send(['MONITOR SCOPE', True])
             self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
             self.timer.start(100)
             self.scopeActive = True
-        else:
-            print 'else'
-
+        elif self.scanMode and self.scopeActive:
+            self.pipe.send(['DATA ACQ', False])
+            self.timer.stop()
+            self.disconnect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+            self.btn_startDataAcq.setText('Start Data Acq')
+            self.chk_readScope.setEnabled(True)
+            self.scopeActive = False
+        elif self.scanMode and not(self.scopeActive):
+            self.pipe.send(['DATA ACQ', True])
+            self.inp_aveSweeps.setValue(1)
+            self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+            self.btn_startDataAcq.setText('Stop Data Acq')
+            self.chk_readScope.setEnabled(False)
+            self.timer.start(100)
+            self.scopeActive = True
+        
     def acquisitionCtl(self):
         if self.pipe.poll():
             data = self.pipe.recv()
             self.ScopeDisplay.plot(data)
+            if self.scanMode:
+                self.DataDisplay.plot(data)
         return True
+
+    def inp_voltExtract_changed(self):pass
     
     def shutDownExperiment(self):
         print 'Release controllers'

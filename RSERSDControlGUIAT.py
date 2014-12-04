@@ -14,10 +14,11 @@ from multiprocessing import Pipe, Process
 # Add project root directory (enable symlink and trunk execution)
 PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
 # add parent directory to search path for modules, for including the things in labcontrol without installing them. this is of course an ugly hack.
-#print PROJECT_ROOT_DIRECTORY
+print PROJECT_ROOT_DIRECTORY
 sys.path.append(os.path.join(os.path.split(PROJECT_ROOT_DIRECTORY)[0], 'RSERSDControl/labcontrol'))
-#print sys.path
-from Instruments.LeCroyScopeController import LeCroyScopeController
+print sys.path
+from labcontrol import LeCroyScopeController
+
 
 try:
     import pygtk
@@ -30,29 +31,28 @@ try:
 except:
     sys.exit(1)
 
-#def acquisitionLoop(pipe):
-#    scope = LeCroyScopeController()
-#    scope.initialize()
-#    scope.setScales()
-#    acquire = False
-#    while True:
-#        # process potential messages coming in
-#        if pipe.poll():
-#            msg = pipe.recv()
-#            print 'received message', msg
-#            if msg[0] == 'QUIT':
-#                break
-#            elif msg[0] == 'ACTIVATE':
-#                acquire = msg[1]
-#            else:
-#                print 'UNKNOWN COMMAND received!'
-#        
-#        if acquire:
-#            data = scope.armwaitread()
-#            print data
-#            pipe.send(data)
-#        else:
-#            time.sleep(.1)
+def acquisitionLoop(pipe):
+    scope = LeCroyScopeController.LeCroyScopeController()
+    scope.initialize()
+    scope.setScales()
+    acquire = False
+    while True:
+        # process potential messages coming in
+        if pipe.poll():
+            msg = pipe.recv()
+            print 'received message', msg
+            if msg[0] == 'QUIT':
+                break
+            elif msg[0] == 'ACTIVATE':
+                acquire = msg[1]
+            else:
+                print 'UNKNOWN COMMAND received!'
+        
+        if acquire:
+            data = scope.armwaitread()
+            pipe.send(data)
+        else:
+            time.sleep(.1)
         
 class rydec(object):
     def __init__(self):
@@ -82,13 +82,9 @@ class rydec(object):
         
         self.active = False
         self.tagTimers = {}
-
-        self.scope = LeCroyScopeController()
-        self.scope.initialize()
-        self.scope.setScales()
         
         self.pipe, pipe = Pipe()
-        self.acqLoop = Process(target=self.acquisitionLoop, args=(pipe, ))
+        self.acqLoop = Process(target=acquisitionLoop, args=(pipe, ))
         self.acqLoop.daemon = True
         self.acqLoop.start()
         
@@ -110,31 +106,12 @@ class rydec(object):
             logger.error("Could not create data directory")
         self.datadir = os.getcwd()
 
-    def acquisitionLoop(self,pipe):
-        acquire = False
-        while True:
-            # process potential messages coming in
-            if pipe.poll():
-                msg = pipe.recv()
-                print 'received message', msg
-                if msg[0] == 'QUIT':
-                    break
-                elif msg[0] == 'ACTIVATE':
-                    acquire = msg[1]
-                else:
-                    print 'UNKNOWN COMMAND received!'
-        
-            if acquire:
-                data = self.scope.armwaitread()
-                pipe.send(data)
-            else:
-                time.sleep(.1)
-
+    
     def on_btn_StartAcquisition_clicked(self, widget):
         if self.active:
             self.pipe.send(['ACTIVATE', False])
-            #gobject.source_remove(self.tagTimers['ACQ'])
-            #del self.tagTimers['ACQ']
+            gobject.source_remove(self.tagTimers['ACQ'])
+            del self.tagTimers['ACQ']
             widget.set_label('Start')
             self.active = False
         else:
