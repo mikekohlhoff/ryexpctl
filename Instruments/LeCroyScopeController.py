@@ -122,4 +122,10 @@ class LeCroyScopeController:
 
 		
 if __name__ == '__main__':	
-    pass
+    scope = LeCroyScopeController()
+    scope.initialize()
+    scope.dispOff()
+    print 'foo'
+    time.sleep(5)
+    print 'bar'
+    scope.dispOn()

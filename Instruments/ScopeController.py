@@ -121,4 +121,9 @@ class ScopeController:
 
 		
 if __name__ == '__main__':	
-    pass
+    scope = ScopeController()
+    scope.initialize()
+    scope.dispOff()
+    print 'foo'
+    time.sleep(2)
+    scope.dispOn()
