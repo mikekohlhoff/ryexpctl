@@ -31,7 +31,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.initHardware()
         self.initUI()
         # connect to acq loop, parent connection, child connection
-        self.timer = QtCore.QTimer();
+        #self.timer = QtCore.QTimer();
         self.scopeActive = False
         self.scanMode = False
         self.tagEvSrc = {}
