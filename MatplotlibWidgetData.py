@@ -39,13 +39,16 @@ class MatplotlibWidgetData(QtGui.QWidget):
         intTrace = sum(data) 
         return intTrace
     
-    def plot(self,data):
+    def plot(self,data, radioMode):
         plotData = self.integrator(data)
         self.intgrTrace = np.append(self.intgrTrace, plotData)
         self.canvas.ax.clear()
         self.canvas.ax.plot(self.intgrTrace, 'b.-')
         self.canvas.ax.set_title('Integrated traces')
-        self.canvas.ax.set_xlabel('Quant')
+        if radioMode == 'volt':
+            self.canvas.ax.set_xlabel('Extraction Voltage (V)')
+        else:
+            self.canvas.ax.set_xlabel(r'2nd Wavelength (\lambda)')
         self.canvas.ax.set_ylabel('Amplitude (arb.u.)')
         if len(self.intgrTrace) > 1:
             self.canvas.ax.axis([-0.02*len(self.intgrTrace), len(self.intgrTrace)*1.02, min(self.intgrTrace)*1.2, max(self.intgrTrace)*1.2])

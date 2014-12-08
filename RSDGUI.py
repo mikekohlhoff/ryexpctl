@@ -218,7 +218,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             data = self.pipe.recv()
             self.ScopeDisplay.plot(data)
             if self.scanMode:
-                self.DataDisplay.plot(data)
+                if self.radio_voltMode:
+                    radioMode = 'volt'
+                else:
+                    radioMode = 'wl'
+                self.DataDisplay.plot(data, radioMode)
         return True
 
     def inp_voltExtract_changed(self):pass

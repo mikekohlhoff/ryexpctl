@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1592</width>
-    <height>1144</height>
+    <width>1607</width>
+    <height>1082</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -43,13 +43,53 @@
    <bool>true</bool>
   </property>
   <property name="styleSheet">
-   <string notr="true"/>
+   <string notr="true">#PCBTest
+{
+    background-image: url(bg.png);
+}
+
+QGraphicsView{
+	background-color: rgba(247, 247, 247, 235);
+	border: 1.5px solid gray;
+	border-radius: 6px;
+}
+
+QPushButton
+{
+    color: rgb(255, 255, 255);
+    background-color: rgb(142, 142, 142);
+    border-radius: 6;
+    padding: 4px;
+    font-size: 13px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+QPushButton:pressed
+{
+    background-color: rgb(108, 108, 108);
+}
+
+
+QGroupBox{	
+	border: 1.5px solid gray;
+	border-radius: 6px;
+	background-color: rgba(247, 247, 247, 235);
+}
+QLabel{
+	background-color: rgba(247, 247, 247, 235);
+	background-color: rgba(0,0,0,0);
+}
+QRadioButton{
+	font-size: 13px
+
+}</string>
   </property>
   <widget class="MatplotlibWidgetScope" name="ScopeDisplay">
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>30</y>
+     <y>20</y>
      <width>667</width>
      <height>500</height>
     </rect>
@@ -65,7 +105,7 @@
    <property name="geometry">
     <rect>
      <x>30</x>
-     <y>610</y>
+     <y>560</y>
      <width>667</width>
      <height>500</height>
     </rect>
@@ -97,9 +137,9 @@
    <property name="geometry">
     <rect>
      <x>700</x>
-     <y>650</y>
+     <y>560</y>
      <width>211</width>
-     <height>421</height>
+     <height>451</height>
     </rect>
    </property>
    <property name="font">
@@ -117,7 +157,7 @@
     <property name="geometry">
      <rect>
       <x>4</x>
-      <y>10</y>
+      <y>30</y>
       <width>196</width>
       <height>241</height>
      </rect>
@@ -153,11 +193,11 @@
          </property>
          <property name="font">
           <font>
-           <family>Helvetica Neue</family>
+           <pointsize>-1</pointsize>
           </font>
          </property>
          <property name="text">
-          <string>Man Set PCB Pot</string>
+          <string>Man Set Pot</string>
          </property>
         </widget>
        </item>
@@ -455,9 +495,9 @@
    <property name="geometry">
     <rect>
      <x>700</x>
-     <y>70</y>
-     <width>201</width>
-     <height>121</height>
+     <y>20</y>
+     <width>211</width>
+     <height>171</height>
     </rect>
    </property>
    <property name="title">
@@ -470,14 +510,24 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>10</y>
+      <y>30</y>
       <width>156</width>
-      <height>69</height>
+      <height>81</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
+      <widget class="QCheckBox" name="chk_readScope">
+       <property name="text">
+        <string>Read Scope</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="spacing">
+        <number>3</number>
+       </property>
        <item>
         <widget class="QSpinBox" name="inp_aveSweeps">
          <property name="maximumSize">
@@ -528,7 +578,7 @@
        </property>
        <property name="font">
         <font>
-         <family>Helvetica Neue</family>
+         <pointsize>-1</pointsize>
         </font>
        </property>
        <property name="text">
@@ -538,17 +588,24 @@
      </item>
     </layout>
    </widget>
-   <widget class="QCheckBox" name="chk_readScope">
+   <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>90</y>
-      <width>121</width>
-      <height>20</height>
+      <y>0</y>
+      <width>138</width>
+      <height>26</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Helvetica Neue</family>
+      <pointsize>18</pointsize>
+      <kerning>true</kerning>
+     </font>
+    </property>
     <property name="text">
-     <string>Read Scope</string>
+     <string>Scope control</string>
     </property>
    </widget>
   </widget>
@@ -556,7 +613,7 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>560</y>
+     <y>530</y>
      <width>1611</width>
      <height>20</height>
     </rect>
@@ -568,30 +625,11 @@
     <enum>Qt::Horizontal</enum>
    </property>
   </widget>
-  <widget class="QLabel" name="label_2">
-   <property name="geometry">
-    <rect>
-     <x>700</x>
-     <y>40</y>
-     <width>138</width>
-     <height>26</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Helvetica Neue</family>
-     <pointsize>20</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Scope control</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
-     <x>700</x>
-     <y>620</y>
+     <x>710</x>
+     <y>560</y>
      <width>265</width>
      <height>26</height>
     </rect>
@@ -599,18 +637,18 @@
    <property name="font">
     <font>
      <family>Helvetica Neue</family>
-     <pointsize>20</pointsize>
+     <pointsize>18</pointsize>
     </font>
    </property>
    <property name="text">
-    <string>Waveform potential control</string>
+    <string>PCB potential control</string>
    </property>
   </widget>
   <widget class="MatplotlibWidgetData" name="DataDisplay">
    <property name="geometry">
     <rect>
-     <x>910</x>
-     <y>40</y>
+     <x>920</x>
+     <y>20</y>
      <width>667</width>
      <height>500</height>
     </rect>
@@ -622,32 +660,13 @@
     </sizepolicy>
    </property>
   </widget>
-  <widget class="QLabel" name="label_10">
-   <property name="geometry">
-    <rect>
-     <x>700</x>
-     <y>200</y>
-     <width>138</width>
-     <height>26</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Helvetica Neue</family>
-     <pointsize>20</pointsize>
-    </font>
-   </property>
-   <property name="text">
-    <string>Exp control</string>
-   </property>
-  </widget>
   <widget class="QGroupBox" name="groupBox_4">
    <property name="geometry">
     <rect>
      <x>700</x>
-     <y>230</y>
-     <width>201</width>
-     <height>301</height>
+     <y>200</y>
+     <width>211</width>
+     <height>321</height>
     </rect>
    </property>
    <property name="title">
@@ -660,14 +679,14 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>260</y>
+      <y>250</y>
       <width>112</width>
       <height>21</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <family>Helvetica Neue</family>
+      <pointsize>-1</pointsize>
      </font>
     </property>
     <property name="text">
@@ -678,7 +697,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>10</y>
+      <y>60</y>
       <width>40</width>
       <height>24</height>
      </rect>
@@ -718,7 +737,7 @@
     <property name="geometry">
      <rect>
       <x>60</x>
-      <y>10</y>
+      <y>60</y>
       <width>71</width>
       <height>24</height>
      </rect>
@@ -727,6 +746,116 @@
      <string>Extraction</string>
     </property>
    </widget>
+   <widget class="QLabel" name="label_10">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>0</y>
+      <width>138</width>
+      <height>26</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Helvetica Neue</family>
+      <pointsize>18</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Exp control</string>
+    </property>
+   </widget>
+   <widget class="QSpinBox" name="inp_voltOptic1">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>90</y>
+      <width>40</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>40</width>
+      <height>16777215</height>
+     </size>
+    </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
+    <property name="wrapping">
+     <bool>false</bool>
+    </property>
+    <property name="frame">
+     <bool>true</bool>
+    </property>
+    <property name="buttonSymbols">
+     <enum>QAbstractSpinBox::NoButtons</enum>
+    </property>
+    <property name="keyboardTracking">
+     <bool>true</bool>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <number>2000</number>
+    </property>
+    <property name="value">
+     <number>700</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_12">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>90</y>
+      <width>71</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Optic1</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>150</y>
+      <width>95</width>
+      <height>42</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_6">
+     <property name="spacing">
+      <number>10</number>
+     </property>
+     <item>
+      <widget class="QRadioButton" name="radio_voltMode">
+       <property name="text">
+        <string>Voltage</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QRadioButton" name="radio_wlMode">
+       <property name="text">
+        <string>Wavelength</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <zorder>btn_startDataAcq</zorder>
+   <zorder>inp_voltExtract</zorder>
+   <zorder>label_11</zorder>
+   <zorder>radio_voltMode</zorder>
+   <zorder>radio_wlMode</zorder>
+   <zorder>label_10</zorder>
+   <zorder>radio_wlMode</zorder>
+   <zorder>inp_voltOptic1</zorder>
+   <zorder>label_12</zorder>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
