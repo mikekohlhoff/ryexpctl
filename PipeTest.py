@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 import sys
 from multiprocessing import Pipe, Process
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 
 ##class pipetest():
 ##    def __init__(self):
@@ -18,31 +18,42 @@ from PyQt4 import QtCore
 ##    def f(self, conn):
 ##        conn.send([42, None, 'hello'])
 ##        conn.close()
+#timer = QtCore.QTimer();
+#def startTimer():
+#    timer.start()
 
+
+def f(self, conn):
+    print 'foo'
+    conn.send([42, None, 'hello'])
+    conn.close()
+    conn.join()
+
+#class pipetest(QtCore.QObject):
 class pipetest():
-    def __init__(self):
-        # connect to acq loop, parent connection, child connection
-        self.timer = QtCore.QTimer();
+    def __init__(self,parent=None):
+        #super(pipetest).__init__(parent)
+        self.mainTimer = QtCore.QTimer(parent=None)
+        self.mainTimer.start()
         self.pipe, pipe = Pipe()
-        self.acqLoop = Process(target=self.f, args=(pipe,))
+        self.acqLoop = Process(target=f, args=(pipe,))
         self.acqLoop.daemon = True
         self.acqLoop.start()
         self.pipe.send(['foobar'])
+        #timer.singleShot(2000,self.acLoop)
         
+    def acLoop(self):
         if self.pipe.poll():
             out = self.pipe.recv()
             print out
         self.pipe.close()
-        self.acqLoop.join(1)
-
-    def f(self, conn):
-        print 'foo'
-        conn.send([42, None, 'hello'])
-        conn.close()
+        
 
 if __name__ == '__main__':
+    app = QtGui.QApplication(sys.argv)
+    app.exec_()
     tp = pipetest()
-    sys.exit()
+    #sys.exit()
 
 ##    
 ##    def acquisitionLoop(self,pipe):
