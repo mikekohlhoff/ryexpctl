@@ -23,22 +23,42 @@ from Instruments.WaveformPotentials import WaveformPotentials21Elec
 from multiprocessing import Pipe, Process
 import gobject
 
+# inherit form QObject rather than QThread
+class WorkerThread(QtCore.QObject):
+
+    finished = QtCore.pyqtSignal()
+
+    @QtCore.pyqtSlot()
+    def processA(self):
+        print 'WorkThread'
+        #time.sleep(1)
+        #self.finished.emit()
+
 class RSDControl(QtGui.QMainWindow, ui_form):
+#class RSDControl(QtGui.QApplication, ui_form):
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
+        #QtGui.QApplication.__init__(self, parent)
         self.setupUi(self)
         self.initHardware()
         self.initUI()
+        
         # connect to acq loop, parent connection, child connection
         #self.timer = QtCore.QTimer();
         self.scopeActive = False
         self.scanMode = False
         self.tagEvSrc = {}
-        self.pipe, pipe = Pipe()
-        self.acqLoop = Process(target=self.acquisitionLoop, args=(pipe,))
-        self.acqLoop.daemon = True
-        self.acqLoop.start()
+        #self.pipe, pipe = Pipe()
+        #self.acqLoop = Process(target=self.acquisitionLoop, args=(pipe,))
+        #self.acqLoop.daemon = True
+        #self.acqLoop.start()
+        # implement threading
+        self.workerThread = QtCore.QThread()
+        self.workerObj = WorkerThread()
+        self.workerObj.moveToThread(self.workerThread)
+        self.workerThread.started.connect(self.workerObj.processA)
+
 
     def initUI(self):
         # iniatilize program with guiding mode parameters
@@ -174,6 +194,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def chk_readScope_clicked(self):
         self.scanMode = False
+        self.workerThread.start()
         self.startAcquisition()
 
     def btn_startDataAcq_clicked(self):
@@ -185,11 +206,38 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeActive = False
             self.chk_readScope.setCheckState(QtCore.Qt.Unchecked)
         self.startAcquisition()
-        
+
     def startAcquisition(self):
+         self.workerThread.start()
+     #   if not(self.scanMode) and self.scopeActive:
+     #       self.pipe.send(['MONITOR SCOPE', False])
+     #       self.timer.stop()
+     #       self.disconnect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+     #       self.scopeActive = False
+     #   elif not(self.scanMode) and not(self.scopeActive):
+     #       self.pipe.send(['MONITOR SCOPE', True])
+     #       self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+     #       self.timer.start(100)
+     #       self.scopeActive = True
+     #   elif self.scanMode and self.scopeActive:
+     #       self.pipe.send(['DATA ACQ', False])
+     #       self.timer.stop()
+     #       self.disconnect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+     #       self.btn_startDataAcq.setText('Start Data Acq')
+     #       self.chk_readScope.setEnabled(True)
+     #       self.scopeActive = False
+     #   elif self.scanMode and not(self.scopeActive):
+     #       self.pipe.send(['DATA ACQ', True])
+     #       self.inp_aveSweeps.setValue(1)
+     #       self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+     #       self.btn_startDataAcq.setText('Stop Data Acq')
+     #       self.chk_readScope.setEnabled(False)
+     #       self.timer.start(100)
+     #       self.scopeActive = True
+        
+    def startAcquisitionThread(self):
         if not(self.scanMode) and self.scopeActive:
             self.pipe.send(['MONITOR SCOPE', False])
-            self.timer.stop()
             self.disconnect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
             self.scopeActive = False
         elif not(self.scanMode) and not(self.scopeActive):
@@ -225,11 +273,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     
     def shutDownExperiment(self):
         print 'Release controllers'
-        self.pipe.send(["QUIT SCOPE READ"])
-        if self.scopeActive:
-            self.pipe.recv()
-            self.pipe.close()
-            self.acqLoop.join()
+        self.workerThread.terminate() # vs exit() vs quit()
+        #self.pipe.send(["QUIT SCOPE READ"])
+        #if self.scopeActive:
+        #    self.pipe.recv()
+        #    self.pipe.close()
+        #    self.acqLoop.join()
 
 
 
@@ -238,8 +287,7 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     
     myapp = RSDControl()
-    #myapp.initHardware()
-
-    sys.exit(app.exec_())
+    app.exec_()
+#    sys.exit(app.exec_())
 
 
