@@ -2,3 +2,8 @@ DS_Store
 *.sw*
 *.pyc
 Instruments/*.pyc
+Instruments/LeCroyScopeController.pyc
+*.pyc
+Instruments/PCI7300ADIOCard.pyc
+Instruments/WaveformPotentials.pyc
+Instruments/__init__.pyc
