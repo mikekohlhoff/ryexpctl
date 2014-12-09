@@ -25,23 +25,51 @@ import gobject
 
 # inherit form QObject rather than QThread
 class WorkerThread(QtCore.QObject):
+    
+    #def __init__(self):
+    #    self.workerTimer = QtCore.QTimer()
 
+    # emit by workerthread
     finished = QtCore.pyqtSignal()
     dataReady = QtCore.pyqtSignal(list)
-    intTrace
+    intTrace = QtCore.pyqtSignal(list)
+   #self.scope.armScope()
+   #self.scope.setScales()
 
-    @QtCore.pyqtSlot(QtCore.QObject, QtCore.QObject)
-    def acqLoop(self, thread, scope):
+#    @QtCore.pyqtSlot(QtCore.QObject, QtCore.QObject)
+#    def acqLoop(self, thread, scope):
+    def acqLoop(self, scopeActive, scanMode):
         print 'WorkThread AcqLoop'
-        self.scope.armScope()
-        self.scope.setScales()
-        while thread.isRunning():
-            data = scopearmwaitread()
-            print data
-            self.dataReady.emit(['test', 'data'])
-            if scanMode:
-                self.intTrace.emit(['test', 'data'])
-            time.sleep(0.1)
+        #print scanMode
+        #print scopeActive
+        if not(scanMode) and scopeActive:
+            print 'Monitor scope on'
+            self.readScope()
+            #self.timer.start(95)
+        #elif not(self.scanMode) and not(self.scopeActive):
+        #    self.pipe.send(['MONITOR SCOPE', True])
+        #    self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+        #    self.timer.start(100)
+        #    self.scopeActive = True
+       # elif self.scanMode and self.scopeActive:
+       #     self.pipe.send(['DATA ACQ', False])
+       #     self.timer.stop()
+       #     self.disconnect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+       #     self.btn_startDataAcq.setText('Start Data Acq')
+       #     self.chk_readScope.setEnabled(True)
+       #     self.scopeActive = False
+       # elif self.scanMode and not(self.scopeActive):
+       #     self.pipe.send(['DATA ACQ', True])
+       #     self.inp_aveSweeps.setValue(1)
+       #     self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+       #     self.btn_startDataAcq.setText('Stop Data Acq')
+       #     self.chk_readScope.setEnabled(False)
+       #     self.timer.start(100)
+       #     self.scopeActive = True
+
+
+    def readScope(self):
+        print 'scope data'
 
 
 class RSDControl(QtGui.QMainWindow, ui_form):
@@ -55,18 +83,20 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.initUI()
         
         # connect to acq loop, parent connection, child connection
-        #self.timer = QtCore.QTimer();
+        #self.timer = QtCore.QTimer()
         self.scopeActive = False
         self.scanMode = False
         #self.pipe, pipe = Pipe()
         #self.acqLoop = Process(target=self.acquisitionLoop, args=(pipe,))
         #self.acqLoop.daemon = True
         #self.acqLoop.start()
+        
         # implement threading
         self.workerThread = QtCore.QThread()
         self.workerObj = WorkerThread()
         self.workerObj.moveToThread(self.workerThread)
-        self.workerThread.started.connect(self.workerObj.acqLoop)
+#        self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
+        self.workerThread.start()
 
 
     def initUI(self):
@@ -102,10 +132,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def chk_readScope_clicked(self):
         self.scanMode = False
-        self.workerThread.start()
-        QtCore.QMetaObject.invokeMethod(self.workerObj, 'acqLoop', QtCore.Qt.DirectConnection, QtCore.Q_ARG(QtCore.QObject, self.workerThread), \
-                                        QtCore.Q_ARG(QtCore.QObject, self.scope))
-        #self.startAcquisition()
+        self.scopeActive = self.chk_readScope.isChecked()
+        self.workerObj.acqLoop(self.scopeActive, self.scanMode)
 
     def btn_startDataAcq_clicked(self):
         self.scanMode = True
