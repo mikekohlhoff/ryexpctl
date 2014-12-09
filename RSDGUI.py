@@ -45,6 +45,9 @@ class WorkerThread(QtCore.QObject):
         if not(scanMode) and scopeActive:
             print 'Monitor scope on'
             self.readScope()
+        while scopeActive:
+            self.readScope()
+            time.sleep(.5)
             #self.timer.start(95)
         #elif not(self.scanMode) and not(self.scopeActive):
         #    self.pipe.send(['MONITOR SCOPE', True])
