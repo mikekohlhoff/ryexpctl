@@ -54,8 +54,9 @@ class MyApp(QtGui.QWidget):
   self.workThread.runBool = True
   self.connect( self.workThread, QtCore.SIGNAL("update(QString)"), self.add )
   self.workThread.start()
-  time.sleep(3)
-  self.workThread.runBool = False
+
+  #time.sleep(3)
+  #self.workThread.runBool = False
   
 # run
 app = QtGui.QApplication(sys.argv)

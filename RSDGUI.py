@@ -20,8 +20,8 @@ import random
 from Instruments.PCI7300ADIOCard import *
 from Instruments.LeCroyScopeController import LeCroyScopeController
 from Instruments.WaveformPotentials import WaveformPotentials21Elec
-from multiprocessing import Pipe, Process
-import gobject
+#from multiprocessing import Pipe, Process
+#import gobject
 
 # inherit form QObject rather than QThread
 #class WorkerThread(QtCore.QObject):
@@ -312,8 +312,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # card configured with 20MHz (sampleRate)
         self.DIOCard.configureCard(self.chk_extTrig.checkState())
         # scope
-        self.scope = LeCroyScopeController()
-        self.scope.initialize()
+        #self.scope = LeCroyScopeController()
+        #self.scope.initialize()
 
     def inp_voltExtract_changed(self):pass
     
