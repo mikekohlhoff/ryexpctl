@@ -10,9 +10,10 @@ class WorkThread(QtCore.QThread):
   self.wait()
  
  def run(self):
-  for i in range(6):
-   time.sleep(0.3) # artificial time delay
-   self.emit( QtCore.SIGNAL('update(QString)'), "from work thread " + str(i) )
+#  for i in range(6):
+  while self.runBool:
+   time.sleep(0.5) # artificial time delay
+   self.emit( QtCore.SIGNAL('update(QString)'), "from work thread ")
   return
 
 class MyApp(QtGui.QWidget):
@@ -50,8 +51,11 @@ class MyApp(QtGui.QWidget):
 
   # adding by emitting signal in different thread
   self.workThread = WorkThread()
+  self.workThread.runBool = True
   self.connect( self.workThread, QtCore.SIGNAL("update(QString)"), self.add )
   self.workThread.start()
+  time.sleep(3)
+  self.workThread.runBool = False
   
 # run
 app = QtGui.QApplication(sys.argv)

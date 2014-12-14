@@ -24,27 +24,27 @@ from multiprocessing import Pipe, Process
 import gobject
 
 # inherit form QObject rather than QThread
-class WorkerThread(QtCore.QObject):
-    
+#class WorkerThread(QtCore.QObject):
+class WorkerThread(QtCore.QThread):
     #def __init__(self):
     #    self.workerTimer = QtCore.QTimer()
 
     # emit by workerthread
-    finished = QtCore.pyqtSignal()
-    dataReady = QtCore.pyqtSignal(list)
-    intTrace = QtCore.pyqtSignal(list)
+   # finished = QtCore.pyqtSignal()
+   # dataReady = QtCore.pyqtSignal(list)
+   # intTrace = QtCore.pyqtSignal(list)
    #self.scope.armScope()
    #self.scope.setScales()
 
 #    @QtCore.pyqtSlot(QtCore.QObject, QtCore.QObject)
 #    def acqLoop(self, thread, scope):
-    def acqLoop(self, scopeActive, scanMode):
-        print 'WorkThread AcqLoop'
+   # def acqLoop(self, scopeActive, scanMode#):
+ #       print 'WorkThread AcqLoop'
         #print scanMode
         #print scopeActive
-        if not(scanMode) and scopeActive:
-            print 'Monitor scope on'
-            self.readScope()
+ #       if not(scanMode) and scopeActive:
+ #           print 'Monitor scope on'
+ #           self.readScope()
             #self.timer.start(95)
         #elif not(self.scanMode) and not(self.scopeActive):
         #    self.pipe.send(['MONITOR SCOPE', True])
@@ -66,9 +66,22 @@ class WorkerThread(QtCore.QObject):
        #     self.chk_readScope.setEnabled(False)
        #     self.timer.start(100)
        #     self.scopeActive = True
-        print 'loop'
-        time.sleep(6)
+  #      print 'loop'
+  #      time.sleep(6)
 
+    def __init__(self):
+        QtCore.QThread.__init__(self)
+        
+    # override
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        while self.scopeActive:
+            print 'read scope'
+            time.sleep(1)
+        #self.terminate()
+        return
 
     def readScope(self):
         print 'scope data'
@@ -94,12 +107,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         #self.acqLoop.start()
         
         # implement threading
-        self.workerThread = QtCore.QThread()
-        self.workerObj = WorkerThread()
-        self.workerObj.moveToThread(self.workerThread)
+        #self.workerThread = QtCore.QThread()
+        #self.workerObj = WorkerThread()
+        #self.workerObj.moveToThread(self.workerThread)
 #        self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
-        self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
-        self.workerThread.start()
+        #self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
+        #self.workerThread.start()
 
 
     def initUI(self):
@@ -136,7 +149,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def chk_readScope_clicked(self):
         self.scanMode = False
         self.scopeActive = self.chk_readScope.isChecked()
-        self.workerObj.acqLoop(self.scopeActive, self.scanMode)
+        #self.workerObj.acqLoop(self.scopeActive, self.scanMode)
+        self.startAcquisition()
 
     def btn_startDataAcq_clicked(self):
         self.scanMode = True
@@ -149,9 +163,22 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.startAcquisition()
 
     def startAcquisition(self):
-        if not(self.scanMode) and self.scopeActive:
-            self.workerThread.start()
-            d(['MONITOR SCOPE', False])
+        if self.scopeActive:
+            self.workThread = WorkerThread()
+            self.workThread.scopeActive = True
+            #self.connect( self.workThread, QtCore.SIGNAL("update(QString)"), self.add )
+            self.workThread.start()
+        else:
+            self.workThread.scopeActive = False
+        #self.workerObj.moveToThread(self.workerThread)
+#        self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
+        #self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
+        #self.workerThread.start()
+
+
+     #   if not(self.scanMode) and self.scopeActive:
+     #       self.workerThread.start()
+     #       d(['MONITOR SCOPE', False])
      #       self.timer.stop()
      #       self.disconnect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
      #       self.scopeActive = False
