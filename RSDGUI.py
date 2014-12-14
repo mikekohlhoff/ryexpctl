@@ -45,9 +45,6 @@ class WorkerThread(QtCore.QObject):
         if not(scanMode) and scopeActive:
             print 'Monitor scope on'
             self.readScope()
-        while scopeActive:
-            self.readScope()
-            time.sleep(.5)
             #self.timer.start(95)
         #elif not(self.scanMode) and not(self.scopeActive):
         #    self.pipe.send(['MONITOR SCOPE', True])
@@ -69,6 +66,8 @@ class WorkerThread(QtCore.QObject):
        #     self.chk_readScope.setEnabled(False)
        #     self.timer.start(100)
        #     self.scopeActive = True
+        print 'loop'
+        time.sleep(6)
 
 
     def readScope(self):
@@ -99,6 +98,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.workerObj = WorkerThread()
         self.workerObj.moveToThread(self.workerThread)
 #        self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
+        self.chk_readScope.clicked.connect(self.workerObj.acqLoop)
         self.workerThread.start()
 
 
