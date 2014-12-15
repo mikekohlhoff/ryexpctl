@@ -2,3 +2,4 @@ DS_Store
 *.sw*
 *.pyc
 Instruments/*.pyc
+*.pyc

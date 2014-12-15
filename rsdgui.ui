@@ -846,6 +846,8 @@ QRadioButton{
       </widget>
      </item>
     </layout>
+    <zorder>radio_wlMode</zorder>
+    <zorder>radio_voltMode</zorder>
    </widget>
    <zorder>btn_startDataAcq</zorder>
    <zorder>inp_voltExtract</zorder>
