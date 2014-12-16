@@ -52,8 +52,9 @@ class USB87P4Controller:
             if str(devReturn) != '0':
                 raise IOError
         except IOError:
-            print 'Error opening device: ' + str(devReturn)
-            sys.exit()
+            print 'Error opening USB87P4 device: ' + str(devReturn)
+            #sys.exit()
+            return
         print 'Connection to analog output device USB-84P4 established'
 
     def closeDevice(self):

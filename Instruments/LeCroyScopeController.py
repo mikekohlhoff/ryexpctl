@@ -30,7 +30,7 @@ class LeCroyScopeSimulator:
             return data
 
         elif self.lastCommand == 'ARM;WAIT;C1:WF? DAT1':
-            time.sleep(0.1)
+            time.sleep(.5)
             data = (np.random.rand(1016) - 0.5)*512
             data = data.astype(np.int16)
             string = struct.pack('1016h', *data) + '\0'
@@ -59,7 +59,7 @@ class LeCroyScopeController:
         self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,WORD,BIN;CHDR OFF;CORD HI')
         # clear screen, sweepes and turn of auto cal and leave scope in normal trigger mode
         self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
-        self.__scope.write('DISP OFF')
+        #self.__scope.write('DISP OFF')
 
     def dispOff(self):
         self.__scope.write('DISP OFF')

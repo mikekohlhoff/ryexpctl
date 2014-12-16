@@ -48,7 +48,7 @@ class MatplotlibWidgetData(QtGui.QWidget):
         if radioMode == 'volt':
             self.canvas.ax.set_xlabel('Extraction Voltage (V)')
         else:
-            self.canvas.ax.set_xlabel(r'2nd Wavelength (\lambda)')
+            self.canvas.ax.set_xlabel(r'2nd Wavelength ($\lambda$)')
         self.canvas.ax.set_ylabel('Amplitude (arb.u.)')
         if len(self.intgrTrace) > 1:
             self.canvas.ax.axis([-0.02*len(self.intgrTrace), len(self.intgrTrace)*1.02, min(self.intgrTrace)*1.2, max(self.intgrTrace)*1.2])

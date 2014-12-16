@@ -20,7 +20,7 @@ import random
 from Instruments.PCI7300ADIOCard import *
 from Instruments.LeCroyScopeController import LeCroyScopeController
 from Instruments.WaveformPotentials import WaveformPotentials21Elec
-
+from Instruments.DCONUSB87P4 import USB87P4Controller
 
 # subclass qthread (not recommended officially, old style)
 class scopeThread(QtCore.QThread):
@@ -30,6 +30,7 @@ class scopeThread(QtCore.QThread):
         self.scopeActive = scopeActive
         self.scope = scope
         self.scope.setScales()
+        print 'SCOPE THREAD INITIALISED'
 
     dataReady = QtCore.pyqtSignal(object)
     # override
@@ -40,9 +41,8 @@ class scopeThread(QtCore.QThread):
         while self.scopeActive:
             data = self.scope.armwaitread()
             self.dataReady.emit(data)
-            time.sleep(.09)
+        #self.quit()
         return
-
 
 class RSDControl(QtGui.QMainWindow, ui_form):
 
@@ -52,8 +52,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.initHardware()
         self.initUI()
         
-        # connect to acq loop, parent connection, child connection
-        self.scopeActive = False
+        self.scopeMon = False
         self.scanMode = False
 
     def initUI(self):
@@ -78,66 +77,67 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_sampleRate.editingFinished.connect(self.reconfigureDIOCard)
         self.btn_wfOutput.clicked.connect(self.btn_wfOutput_clicked)
         self.chk_extTrig.stateChanged.connect(self.chk_extTrig_changed)
-        self.btn_wfOutput.setEnabled(False)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
-        self.inp_voltExtract.editingFinished.connect(self.inp_voltExtract_changed)
+        # function in module as slot
+        self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
+        self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
+        self.inp_voltMCP.editingFinished.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
+        self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
+        # dafaults
+        self.radio_voltMode.setChecked(True)
+        self.btn_wfOutput.setEnabled(False)
 
         self.setWindowTitle('RSD Control Electronics Test')    
         self.centerWindow()
         self.show()
 
     def chk_readScope_clicked(self):
-        self.scanMode = False
-        self.scopeActive = self.chk_readScope.isChecked()
-        self.startAcquisition()
+        self.scopeMon = self.chk_readScope.isChecked()
+        if self.scanMode:
+            return
+        else:    
+            if self.scopeMon:
+                self.startAcquisitionThread()
+            else:
+                self.scopeThread.scopeActive = False
 
     def btn_startDataAcq_clicked(self):
-        self.scanMode = True
-        # reset recorded data
-        self.DataDisplay.canvas.ax.clear()
-        self.DataDisplay.intgrTrace = []
-        if self.chk_readScope.checkState():
-            self.scopeActive = False
-            self.chk_readScope.setCheckState(QtCore.Qt.Unchecked)
-        self.startAcquisition()
-
-    def startAcquisition(self):
-        if not(self.scanMode) and self.scopeActive:
-            self.startAcquisitonThread()
-            print 'MONITOR SCOPE ON'
-        elif not(self.scanMode) and not(self.scopeActive):
-            self.scopeActive = False
+        self.scanMode = not(self.scanMode)
+        if self.scopeMon and hasattr(self, 'scopeThread'):
             self.scopeThread.scopeActive = False
-            print 'MONITOR SCOPE OFF'
-        elif self.scanMode and self.scopeActive:
-            self.scopeActive = False
-
-            print 'DATA ACQ ON'
-        elif self.scanMode and not(self.scopeActive):
-            self.scopeActive = True
-        
-            print 'DATA ACQ OFF'
-            
-            self.btn_startDataAcq.setText('Start Data Acq')
-            self.chk_readScope.setEnabled(True)
-            self.scopeActive = False
-        elif self.scanMode and not(self.scopeActive):
-            self.pipe.send(['DATA ACQ', True])
+        if self.scanMode:
             self.inp_aveSweeps.setValue(1)
-            self.connect(self.timer,QtCore.SIGNAL("timeout()"), self.acquisitionCtl)
+            self.scope.armScope()
+            # reset recorded data
+            self.DataDisplay.canvas.ax.clear()
+            self.DataDisplay.intgrTrace = []
             self.btn_startDataAcq.setText('Stop Data Acq')
+            self.scopeMon = True
+            self.chk_readScope.setChecked(True)
+            self.startAcquisitionThread()
+            print 'DATA ACQ ON'
+        else:
+            self.scopeThread.scopeActive = False
+            self.btn_startDataAcq.setText('Start Data Acq')
+            self.scopeMon = False
+            self.chk_readScope.setChecked(False)
+            print 'DATA ACQ OFF'
 
-    def startAcquisitonThread(self):
+    def startAcquisitionThread(self):
         self.scopeThread = scopeThread(True,self.scope)
         self.scopeThread.scopeActive = True
         self.scopeThread.dataReady.connect(self.acquisitionCtl)
         self.scopeThread.start()
 
     def acquisitionCtl(self, data):
-        self.ScopeDisplay.plot(data)
+        if self.scopeMon:
+            self.ScopeDisplay.plot(data)
         if self.scanMode:
-            self.DataDisplay.plot(data)
+            if self.radio_voltMode.isChecked():
+                self.DataDisplay.plot(data, 'volt')
+            elif self.radio_wlMode.isChecked():
+                self.DataDisplay.plot(data, 'wl')
 
     def setPCBPotentials(self):
         # 10bit resolution per channel
@@ -215,28 +215,15 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # scope
         self.scope = LeCroyScopeController()
         self.scope.initialize()
+        # USB analog input/output
+        self.analogIO = USB87P4Controller()
+        self.analogIO.openDevice()
 
-    def chk_readScope_clicked(self):
-        self.scanMode = False
-        self.startAcquisition()
-
-    def btn_startDataAcq_clicked(self):
-        self.scanMode = True
-        # reset recorded data
-        self.DataDisplay.canvas.ax.clear()
-        self.DataDisplay.intgrTrace = []
-        if self.chk_readScope.checkState():
-            self.scopeActive = False
-            self.chk_readScope.setCheckState(QtCore.Qt.Unchecked)
-        self.startAcquisition()
-        
-    def inp_voltExtract_changed(self):pass
-    
     def shutDownExperiment(self):
         print 'Release controllers'
-        self.scopeThread.terminate() # vs exit() vs quit()
-        #self.pipe.send(["QUIT SCOPE READ"])
-
+        self.analogIO.closeDevice()
+        if hasattr(self, 'scopeThread'):
+            self.scopeThread.terminate() # vs exit() vs quit()
 
 
 if __name__ == "__main__":

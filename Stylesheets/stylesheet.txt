@@ -23,3 +23,47 @@ max-width: 100px;
 min-height: 13px;
 max-height: 13px;
 }
+
+*/ the following worked, here for archiving
+
+#PCBTest
+{
+    background-image: url(bg.png);
+}
+
+QGraphicsView{
+	background-color: rgba(247, 247, 247, 235);
+	border: 1.5px solid gray;
+	border-radius: 6px;
+}
+
+QPushButton
+{
+    color: rgb(255, 255, 255);
+    background-color: rgb(142, 142, 142);
+    border-radius: 6;
+    padding: 4px;
+    font-size: 13px;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+QPushButton:pressed
+{
+    background-color: rgb(108, 108, 108);
+}
+
+
+QGroupBox{	
+	border: 1.5px solid gray;
+	border-radius: 6px;
+	background-color: rgba(247, 247, 247, 235);
+}
+QLabel{
+	background-color: rgba(247, 247, 247, 235);
+	background-color: rgba(0,0,0,0);
+}
+QRadioButton{
+	font-size: 13px
+
+}
