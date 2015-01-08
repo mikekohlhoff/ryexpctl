@@ -17,7 +17,6 @@ class MplCanvas(FigureCanvas):
         FigureCanvas.setSizePolicy(self, QtGui.QSizePolicy.Expanding,QtGui.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
-
 class MatplotlibWidgetScope(QtGui.QWidget):
 
     def __init__(self, parent = None):
@@ -27,11 +26,7 @@ class MatplotlibWidgetScope(QtGui.QWidget):
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
         self.canvas.ax.set_title('Scope trace signal')
-        self.canvas.ax.set_xlabel(r'Time ($\mu$s)')
-        self.canvas.ax.set_ylabel('Amplitude (V)')
         self.canvas.fig.patch.set_alpha(0)
-        self.canvas.fig.tight_layout()
-        #font = FontProperties().copy()
         
     def plot(self, data):
         self.canvas.ax.clear()

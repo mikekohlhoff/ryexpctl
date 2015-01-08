@@ -79,6 +79,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_extTrig.stateChanged.connect(self.chk_extTrig_changed)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
+        self.chk_editWF.clicked.connect(self.showWFDisplay)
         # function in module as slot
         self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
@@ -158,7 +159,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         
         # build waveform potentials
         self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, maxAmp, self.decelDist)
-        if self.chk_plotWF.checkState():
+        if self.chk_editWF.checkState():
             self.plotWFPotentials()
 
     def reconfigureDIOCard(self):
@@ -166,6 +167,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.DIOCard.configureCard(self.chk_extTrig.checkState())
         self.setPCBPotentials()
 
+    def showWFDisplay(self):
+        if self.chk_editWF.checkState():
+            self.resize(1178, 770)
+        else:
+            self.resize(1178, 406)
+    
     def plotWFPotentials(self):
         self.WaveformDisplay.plot(self.wfPotentials)
            
@@ -184,7 +191,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             print 'No waveform potentials created'
             return
 
-        if self.chk_plotWF.checkState():
+        if self.chk_editWF.checkState():
             print self.DIOCard.writeWaveformPotentials(self.wfPotentials.potentialsOut)
         else:
            pass
@@ -232,6 +239,7 @@ if __name__ == "__main__":
     
     myapp = RSDControl()
     app.exec_()
+    app.setStyle('cleanLooks')
 #    sys.exit(app.exec_())
 
 

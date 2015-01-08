@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1178</width>
-    <height>784</height>
+    <height>770</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -43,47 +43,7 @@
    <bool>true</bool>
   </property>
   <property name="styleSheet">
-   <string notr="true">#PCBTest
-{
-    background-image: url(bg.png);
-}
-
-QGraphicsView{
-	background-color: rgba(247, 247, 247, 235);
-	border: 1.5px solid gray;
-	border-radius: 6px;
-}
-
-QPushButton
-{
-    color: rgb(255, 255, 255);
-    background-color: rgb(142, 142, 142);
-    border-radius: 6;
-    padding: 4px;
-    font-size: 13px;
-    padding-left: 5px;
-    padding-right: 5px;
-}
-
-QPushButton:pressed
-{
-    background-color: rgb(108, 108, 108);
-}
-
-
-QGroupBox{	
-	border: 1.5px solid gray;
-	border-radius: 6px;
-	background-color: rgba(247, 247, 247, 235);
-}
-QLabel{
-	background-color: rgba(247, 247, 247, 235);
-	background-color: rgba(0,0,0,0);
-}
-QRadioButton{
-	font-size: 13px
-
-}</string>
+   <string notr="true"/>
   </property>
   <widget class="MatplotlibWidgetScope" name="ScopeDisplay">
    <property name="geometry">
@@ -105,7 +65,7 @@ QRadioButton{
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>390</y>
+     <y>410</y>
      <width>441</width>
      <height>331</height>
     </rect>
@@ -137,7 +97,7 @@ QRadioButton{
    <property name="geometry">
     <rect>
      <x>460</x>
-     <y>390</y>
+     <y>410</y>
      <width>211</width>
      <height>331</height>
     </rect>
@@ -166,21 +126,6 @@ QRadioButton{
      <item>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QCheckBox" name="chk_plotWF">
-         <property name="font">
-          <font>
-           <family>Helvetica Neue</family>
-          </font>
-         </property>
-         <property name="text">
-          <string>Plot WF</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QPushButton" name="btn_wfOutput">
          <property name="enabled">
           <bool>true</bool>
@@ -192,9 +137,7 @@ QRadioButton{
           </size>
          </property>
          <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-          </font>
+          <font/>
          </property>
          <property name="text">
           <string>Man Set Pot</string>
@@ -596,9 +539,7 @@ QRadioButton{
         </size>
        </property>
        <property name="font">
-        <font>
-         <pointsize>-1</pointsize>
-        </font>
+        <font/>
        </property>
        <property name="text">
         <string>Save Trace</string>
@@ -932,9 +873,7 @@ QRadioButton{
      </rect>
     </property>
     <property name="font">
-     <font>
-      <pointsize>-1</pointsize>
-     </font>
+     <font/>
     </property>
     <property name="text">
      <string>Start Data Acq</string>
@@ -969,6 +908,27 @@ QRadioButton{
      </item>
     </layout>
    </widget>
+  </widget>
+  <widget class="QCheckBox" name="chk_editWF">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>380</y>
+     <width>190</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Helvetica Neue</family>
+    </font>
+   </property>
+   <property name="text">
+    <string>Edit WF potential</string>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

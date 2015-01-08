@@ -27,11 +27,7 @@ class MatplotlibWidgetData(QtGui.QWidget):
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
         self.canvas.ax.set_title('Integrated traces')
-        self.canvas.ax.set_xlabel('')
-        self.canvas.ax.set_ylabel('Amplitude (arb.u.)')
         self.canvas.fig.patch.set_alpha(0)
-        self.canvas.fig.tight_layout()
-        #font = FontProperties().copy()
         self.intgrTrace = []
         
     def integrator(self, data):
