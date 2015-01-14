@@ -25,11 +25,7 @@ class MatplotlibWidgetWFPot(QtGui.QWidget):
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
         self.canvas.ax.set_title('Calculated PCB Potentials')
-        self.canvas.ax.set_xlabel(r'Time ($\mu$s)')
-        self.canvas.ax.set_ylabel('Amplitude (bits)')
         self.canvas.fig.patch.set_alpha(0)
-        self.canvas.fig.tight_layout()
-        #font = FontProperties().copy()
         
     def plot(self, wfPotentials):
         if hasattr(wfPotentials, 'plotTime'):

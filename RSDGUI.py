@@ -80,17 +80,24 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
         self.chk_editWF.clicked.connect(self.showWFDisplay)
+        self.inp_gate1Start.editingFinished.connect(self.redrawScopeWidget)
+        self.inp_gate1Stop.editingFinished.connect(self.redrawScopeWidget)
+        self.inp_gate2Start.editingFinished.connect(self.redrawScopeWidget)
+        self.inp_gate2Stop.editingFinished.connect(self.redrawScopeWidget)
         # function in module as slot
         self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.editingFinished.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
-        # dafaults
+        # defaults
         self.radio_voltMode.setChecked(True)
         self.btn_wfOutput.setEnabled(False)
-
+        self.cursorPosOld =[0,0,0,0]
+        self.cursorPos = self.cursorPosOld
+        
         self.setWindowTitle('RSD Control Electronics Test')    
         self.centerWindow()
+        self.resize(1235, 406)
         self.show()
 
     def chk_readScope_clicked(self):
@@ -100,8 +107,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         else:    
             if self.scopeMon:
                 self.startAcquisitionThread()
+                self.enableControlsScope(False)
             else:
                 self.scopeThread.scopeActive = False
+                self.enableControlsScope(True)
 
     def btn_startDataAcq_clicked(self):
         self.scanMode = not(self.scanMode)
@@ -117,12 +126,16 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeMon = True
             self.chk_readScope.setChecked(True)
             self.startAcquisitionThread()
+            self.radio_voltMode.setEnabled(False)
+            self.radio_wlMode.setEnabled(False)
             print 'DATA ACQ ON'
         else:
             self.scopeThread.scopeActive = False
             self.btn_startDataAcq.setText('Start Data Acq')
             self.scopeMon = False
             self.chk_readScope.setChecked(False)
+            self.radio_voltMode.setEnabled(True)
+            self.radio_wlMode.setEnabled(True)
             print 'DATA ACQ OFF'
 
     def startAcquisitionThread(self):
@@ -133,12 +146,18 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def acquisitionCtl(self, data):
         if self.scopeMon:
-            self.ScopeDisplay.plot(data)
+            self.ScopeDisplay.plot(data, self.cursorPos)
         if self.scanMode:
             if self.radio_voltMode.isChecked():
                 self.DataDisplay.plot(data, 'volt')
             elif self.radio_wlMode.isChecked():
                 self.DataDisplay.plot(data, 'wl')
+
+    def enableControlsScope(self, boolEnbl):
+        self.inp_gate1Start.setEnabled(boolEnbl)
+        self.inp_gate1Stop.setEnabled(boolEnbl)
+        self.inp_gate2Start.setEnabled(boolEnbl)
+        self.inp_gate2Stop.setEnabled(boolEnbl)
 
     def setPCBPotentials(self):
         # 10bit resolution per channel
@@ -162,6 +181,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if self.chk_editWF.checkState():
             self.plotWFPotentials()
 
+    def redrawScopeWidget(self):
+        self.cursorPos = [self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
+                     self.inp_gate2Start.value(), self.inp_gate2Stop.value()]
+        if self.cursorPos != self.cursorPosOld:
+            self.ScopeDisplay.redraw(self.cursorPos)
+        self.cursorPosOld = self.cursorPos
+
     def reconfigureDIOCard(self):
         self.DIOCard.changeSampleRate(self.inp_sampleRate.value()*1E6)
         self.DIOCard.configureCard(self.chk_extTrig.checkState())
@@ -169,9 +195,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def showWFDisplay(self):
         if self.chk_editWF.checkState():
-            self.resize(1178, 770)
+            self.resize(1235, 748)
         else:
-            self.resize(1178, 406)
+            self.resize(1235, 406)
     
     def plotWFPotentials(self):
         self.WaveformDisplay.plot(self.wfPotentials)
@@ -238,8 +264,8 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     
     myapp = RSDControl()
+    app.setStyle('plastique')
     app.exec_()
-    app.setStyle('cleanLooks')
 #    sys.exit(app.exec_())
 
 
