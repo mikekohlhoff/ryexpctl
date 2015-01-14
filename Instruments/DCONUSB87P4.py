@@ -105,6 +105,5 @@ if __name__ == '__main__':
     analogOut.writeAOMCP(j*100)
     analogOut.writeAOExtraction(j*100)
     analogOut.writeAOPhos(j*100)
-    analogOut.writeAOIonOptic1
-    (j*100)
+    analogOut.writeAOIonOptic1(0)
     analogOut.closeDevice()
