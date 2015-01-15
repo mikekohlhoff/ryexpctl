@@ -15,6 +15,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import random
+import numpy as np
 
 # hardware controller modules
 from Instruments.PCI7300ADIOCard import *
@@ -91,13 +92,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
         # defaults
         self.radio_voltMode.setChecked(True)
-        self.btn_wfOutput.setEnabled(False)
-        self.cursorPosOld =[0,0,0,0]
+        self.chk_extTrig.setChecked(True)
+        self.cursorPosOld = np.array([0,0,0,0])
         self.cursorPos = self.cursorPosOld
         
         self.setWindowTitle('RSD Control Electronics Test')    
         self.centerWindow()
-        self.resize(1235, 406)
+        self.resize(736, 620)
         self.show()
 
     def chk_readScope_clicked(self):
@@ -108,9 +109,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             if self.scopeMon:
                 self.startAcquisitionThread()
                 self.enableControlsScope(False)
+                self.scope.dispOff()
             else:
                 self.scopeThread.scopeActive = False
                 self.enableControlsScope(True)
+                self.scope.dispOn()
 
     def btn_startDataAcq_clicked(self):
         self.scanMode = not(self.scanMode)
@@ -128,6 +131,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.startAcquisitionThread()
             self.radio_voltMode.setEnabled(False)
             self.radio_wlMode.setEnabled(False)
+            self.scope.dispOff()
             print 'DATA ACQ ON'
         else:
             self.scopeThread.scopeActive = False
@@ -136,6 +140,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.chk_readScope.setChecked(False)
             self.radio_voltMode.setEnabled(True)
             self.radio_wlMode.setEnabled(True)
+            self.scope.dispOn()
             print 'DATA ACQ OFF'
 
     def startAcquisitionThread(self):
@@ -182,9 +187,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.plotWFPotentials()
 
     def redrawScopeWidget(self):
-        self.cursorPos = [self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
-                     self.inp_gate2Start.value(), self.inp_gate2Stop.value()]
-        if self.cursorPos != self.cursorPosOld:
+        self.cursorPos = np.array([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
+                     self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
+        if (self.cursorPos != self.cursorPosOld).all():
             self.ScopeDisplay.redraw(self.cursorPos)
         self.cursorPosOld = self.cursorPos
 
@@ -195,9 +200,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def showWFDisplay(self):
         if self.chk_editWF.checkState():
-            self.resize(1235, 748)
+            self.resize(736,958)
         else:
-            self.resize(1235, 406)
+            self.resize(736,620)
     
     def plotWFPotentials(self):
         self.WaveformDisplay.plot(self.wfPotentials)
@@ -242,6 +247,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def initHardware(self):
         print 'Initialising hardware'
+        # connect to lasers
+        
         # USB analog input/output
         self.analogIO = USB87P4Controller()
         self.analogIO.openDevice()

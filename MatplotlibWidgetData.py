@@ -26,7 +26,7 @@ class MatplotlibWidgetData(QtGui.QWidget):
         self.vbl = QtGui.QVBoxLayout()
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
-        self.canvas.ax.set_title('Integrated traces')
+        self.canvas.ax.set_title('Integrated traces', fontsize=12)
         self.canvas.fig.patch.set_alpha(0)
         self.intgrTrace = []
         
@@ -40,14 +40,15 @@ class MatplotlibWidgetData(QtGui.QWidget):
         self.intgrTrace = np.append(self.intgrTrace, plotData)
         self.canvas.ax.clear()
         self.canvas.ax.plot(self.intgrTrace, 'b.-')
-        self.canvas.ax.set_title('Integrated traces')
+        self.canvas.ax.set_title('Integrated traces', fontsize=12)
         if radioMode == 'volt':
-            self.canvas.ax.set_xlabel('Extraction Voltage (V)')
+            self.canvas.ax.set_xlabel('Extraction Voltage (V)', fontsize=12)
         else:
-            self.canvas.ax.set_xlabel(r'2nd Wavelength ($\lambda$)')
-        self.canvas.ax.set_ylabel('Amplitude (arb.u.)')
+            self.canvas.ax.set_xlabel(r'2nd Wavelength ($\lambda$)', fontsize=12)
+        self.canvas.ax.set_ylabel('Amplitude (arb.u.)', fontsize=12)
         if len(self.intgrTrace) > 1:
-            self.canvas.ax.axis([-0.02*len(self.intgrTrace), len(self.intgrTrace)*1.02, min(self.intgrTrace)*1.2, max(self.intgrTrace)*1.2])
+            self.canvas.ax.axis([-0.02*len(self.intgrTrace), len(self.intgrTrace)*1.02, \
+            min(self.intgrTrace)*1.2, max(self.intgrTrace)*1.2])
         self.canvas.fig.patch.set_alpha(0)
         self.canvas.fig.tight_layout()
         self.canvas.draw()
