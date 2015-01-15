@@ -16,16 +16,15 @@ class USB87P4Controller:
     '''interface to USB87P4'''
     def __init__(self):
         print '-----------------------------------------------------------------------------'
-        print "C:\\Users\\TPSgroup\Documents\\RSE Control\\ryexpctl\\Instruments\\Uart.dll"
-        print os.getcwd() + r'\Instruments\DCON_PC.dll'
         try:
             if sys.platform == 'darwin':
                 raise OSError
             #self.__DCONDLL = ctypes.windll.LoadLibrary("C:\\Users\\TPSgroup\\Documents\\RSE Control\\ryexpctl\\Instruments\\DCON_PC.dll")
             #self.__UARTDLL = ctypes.windll.LoadLibrary("C:\\Users\\TPSgroup\Documents\\RSE Control\\ryexpctl\\Instruments\\Uart.dll")
-            self.__DCONDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\Instruments\DCON_PC.dll')
-            #self.__DIOCard = ctypes.windll.LoadLibrary("C:\WINDOWS\system32\PCI-Dask.dll")
-            self.__UARTDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\Instruments\Uart.dll')
+            #self.__DCONDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\Instruments\DCON_PC.dll')
+            self.__DIOCard = ctypes.windll.LoadLibrary("C:\\WINDOWS\\system32\\DCON_PC.dll")
+            self.__DIOCard = ctypes.windll.LoadLibrary("C:\\WINDOWS\system32\\Uart.dll")
+            #self.__UARTDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\Instruments\Uart.dll')
             mode = 'Hardware driver .dll for USB87P4 found'
         except OSError:
             self.__DCONDLL = USB87P4Simulator('DCON')
