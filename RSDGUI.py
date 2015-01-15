@@ -241,16 +241,19 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             event.ignore()
 
     def initHardware(self):
+        print 'Initialising hardware'
+        # USB analog input/output
+        self.analogIO = USB87P4Controller()
+        self.analogIO.openDevice()
         # waveform generator
         self.DIOCard = DIOCardController()
+        time.sleep(2)
         # card configured with 20MHz (sampleRate)
         self.DIOCard.configureCard(self.chk_extTrig.checkState())
         # scope
         self.scope = LeCroyScopeController()
         self.scope.initialize()
-        # USB analog input/output
-        self.analogIO = USB87P4Controller()
-        self.analogIO.openDevice()
+        print '-----------------------------------------------------------------------------'
 
     def shutDownExperiment(self):
         print 'Release controllers'

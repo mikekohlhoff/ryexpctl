@@ -15,20 +15,25 @@ class USB87P4Simulator:
 class USB87P4Controller:
     '''interface to USB87P4'''
     def __init__(self):
+        print '-----------------------------------------------------------------------------'
+        print "C:\\Users\\TPSgroup\Documents\\RSE Control\\ryexpctl\\Instruments\\Uart.dll"
+        print os.getcwd() + r'\Instruments\DCON_PC.dll'
         try:
             if sys.platform == 'darwin':
                 raise OSError
-            self.__DCONDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\DCON_PC.dll')
-            self.__UARTDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\Uart.dll')
-            mode = 'Hardware driver .dll found'
+            #self.__DCONDLL = ctypes.windll.LoadLibrary("C:\\Users\\TPSgroup\\Documents\\RSE Control\\ryexpctl\\Instruments\\DCON_PC.dll")
+            #self.__UARTDLL = ctypes.windll.LoadLibrary("C:\\Users\\TPSgroup\Documents\\RSE Control\\ryexpctl\\Instruments\\Uart.dll")
+            self.__DCONDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\Instruments\DCON_PC.dll')
+            self.__UARTDLL = ctypes.windll.LoadLibrary(os.getcwd() + '\Instruments\Uart.dll')
+            mode = 'Hardware driver .dll for USB87P4 found'
         except OSError:
             self.__DCONDLL = USB87P4Simulator('DCON')
             self.__UARTDLL = USB87P4Simulator('UART')
-            mode = 'OSError, enter simulation mode'
+            mode = 'OSError, enter simulation mode for USB87P4'
         except AttributeError:
             self.__DCONDLL = USB87P4Simulator('DCON')
             self.__UARTDLL = USB87P4Simulator('UART')
-            mode = 'Hardware not present, enter simulation mode'
+            mode = 'Hardware not present, enter simulation mode for USB87P4'
         print mode
 
         self.__dwBaudRate = ctypes.c_uint32(115200)
@@ -95,7 +100,7 @@ if __name__ == '__main__':
     analogOut = USB87P4Controller()
     analogOut.openDevice()
     import time
-    for i in range(10):
+    for i in range(2):
         j = i+1
         analogOut.writeAOMCP(j*100)
         analogOut.writeAOExtraction(j*100)

@@ -42,6 +42,7 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
 
     def __init__(self):
         '''Reference to PCI7300A created and card configured for creating waveform potentials '''
+        print '-----------------------------------------------------------------------------'
         try:
             if sys.platform == 'darwin':
                 raise OSError

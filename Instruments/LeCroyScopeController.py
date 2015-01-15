@@ -43,6 +43,7 @@ class LeCroyScopeSimulator:
 class LeCroyScopeController:
     '''interface to LeCroy oscilloscopes'''
     def __init__(self):
+        print '-----------------------------------------------------------------------------'
         try:
             import visa
             self.__scope = visa.instrument("VICP::169.254.201.2::inst0", timeout = 1, values_format = 1)

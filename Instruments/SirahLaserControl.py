@@ -31,6 +31,7 @@ class SirahLaserSimulator:
 class SirahLaserController:
     '''interface to USB87P4'''
     def __init__(self, LaserType):
+        print '-----------------------------------------------------------------------'
         try:
             if sys.platform == 'darwin':
                 raise OSError
