@@ -68,6 +68,7 @@ class USB87P4Controller:
         fValue = ctypes.c_float((float(outputVoltage)+2)/500)
         self.__DCONDLL.DCON_Write_AO(self.__cComPort,self.__iAddress, self.__iSlot, iChannel,
         self.__iAOTotalCh, fValue, self.__iCheckSum, self.__iTimeOut)
+        print 'write extraction port'
     
     def writeAOIonOptic1(self, outputVoltage):
         '''write scaled analog output to channel 1'''
