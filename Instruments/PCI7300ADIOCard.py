@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import textwrap
 import time
 
+from WaveformPotentials import WaveformPotentials21Elec
+
 # if PCI board (.dll's) is not present
 class DIOCardSimulator:
     def Register_Card(self, CardID, CardNumber): pass
@@ -133,19 +135,19 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
 
         elif self.__clockBit == 15:
             # port in order PB/PA configured
-            middleSplit = np.array([0], dtype=np.uint32)
+            middleSplit = np.zeros(1, dtype=np.uint32)
             self.buffer = np.zeros(np.size(left), dtype=np.uint32)
 
             # buffer of channels at each time step
+            mask = 2**32- 1
             for i in np.arange(0, np.size(left)):
-
                 # set split channel PB/PA, rotation shift
-                middleSplit[0] = middle[i] << 26 | middle[i] >> 6
+                middleSplit = (middle[i] << 26 | middle[i] >> 6) & mask
                 # 10 bit for each channel
-                self.buffer[i] = self.buffer[i] | left[i] << 16 | middleSplit[0] | right[i] << 4
+                self.buffer[i] = self.buffer[i] | left[i] << 16 | middleSplit | right[i] << 4
                 # set clock bit alternatingly, starting high
                 self.buffer[i] = self.buffer[i] | np.fmod(i+1,2) << self.__clockBit
-
+                
         # For (..) PCI-7300A (..) this argument must be set to 0.
         Port = ctypes.c_uint16(0) 
         # length of the buffer
@@ -153,9 +155,10 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         Iterations = ctypes.c_uint16(1)
         # SYNCH_OP, ASYNCH_OP, sync when return after digital op completed
         SyncMode = ctypes.c_uint16(1)
+        SampleRate = ctypes.c_double(self.SampleRate)
         # write data to ports with specified (internal) clock
         writeRet = self.__DIOCard.DO_ContWritePort(self.__CardNumber, Port, ctypes.c_void_p(self.buffer.ctypes.data), \
-                                        WriteCount, Iterations, self.SampleRate, SyncMode)
+                                        WriteCount, Iterations, SampleRate, SyncMode)
         return writeRet
 
     def releaseCard(self):
@@ -164,11 +167,23 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
 if __name__ == "__main__":
     # some radio button for port configuration BA/AB
     DIOCard = DIOCardController()
-    print DIOCard._DIOCardControllerSampleRate
-    print DIOCard._DIOCardControllertimeStep
-    DIOCard.changeSampleRate(10000000)
-    print DIOCard._DIOCardControllertimeStep
-    print DIOCard._DIOCardControllerSampleRate
-    DIOCard.writeWaveformPotentials(700,700, True)
+    DIOCard.configureCard(False)
+    print DIOCard.SampleRate
+    print DIOCard.timeStep
+    #DIOCard.changeSampleRate(10000000)
+    #print DIOCard.timeStep
+    #print DIOCard.SampleRate
+    wfPotentials = WaveformPotentials21Elec()
+    maxAmp = 1023/2.0
+    vInit = 700
+    vFinal = 700
+    decelDist = 19.1
+    inTime = 1
+    outDist = 0
+    outTime = 0
+    # build waveform potentials
+    wfPotentials.generate(DIOCard.timeStep, vInit, vFinal, inTime, outTime, maxAmp, decelDist)
+    #wfPotentials.plot()
+    print DIOCard.writeWaveformPotentials(wfPotentials.potentialsOut)
     DIOCard.releaseCard()
 
