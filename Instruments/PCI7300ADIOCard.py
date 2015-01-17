@@ -57,12 +57,13 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
             self.__DIOCard = DIOCardSimulator()
             mode = "Hardware not present, enter simulation mode for DIO card"
         print mode
-
-    def configureCard(self, extTrigger):
+        
         # 14=revA, 15 = revB
         self.__CardId = ctypes.c_int16(15) 
-        self.__CardNumber = ctypes.c_int16(0) 
-        
+        self.__CardNumber = ctypes.c_int16(0)
+        self.__DIOCard.Register_Card(self.__CardId, self.__CardNumber)
+
+    def configureCard(self, extTrigger): 
         # configure card for digital output
         # PortB 0,8,16, or 32 bit port
         self.__PortWidth = ctypes.c_uint16(32)
@@ -94,11 +95,9 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         # if PortWidth = 32
         self.__FifoThreshold = ctypes.c_uint32(0) 
         
-        self.__DIOCard.Register_Card(self.__CardId, self.__CardNumber)
-        return1 = self.__DIOCard.DO_7300B_Config(self.__CardNumber, self.__PortWidth, self.__TrigSource,
+        configReturn = self.__DIOCard.DO_7300B_Config(self.__CardNumber, self.__PortWidth, self.__TrigSource,
                                        self.__WaitStatus, self.__Terminator, self.__O_Cntrl_Pol,
                                        self.__FifoThreshold)
-        
         self.SampleRate = 20000000;
         # time interval used for calculating waveforms
         self.timeStep = 1/float(self.SampleRate)
@@ -159,7 +158,7 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         # write data to ports with specified (internal) clock
         writeRet = self.__DIOCard.DO_ContWritePort(self.__CardNumber, Port, ctypes.c_void_p(self.buffer.ctypes.data), \
                                         WriteCount, Iterations, SampleRate, SyncMode)
-        return writeRet
+        return 'Error: ', writeRet
 
     def releaseCard(self):
         self.__DIOCard.Release_Card(self.__CardNumber)
@@ -167,12 +166,12 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
 if __name__ == "__main__":
     # some radio button for port configuration BA/AB
     DIOCard = DIOCardController()
-    DIOCard.configureCard(False)
+    DIOCard.configureCard(True)
     print DIOCard.SampleRate
     print DIOCard.timeStep
-    #DIOCard.changeSampleRate(10000000)
-    #print DIOCard.timeStep
-    #print DIOCard.SampleRate
+    DIOCard.changeSampleRate(10000000)
+    print DIOCard.timeStep
+    print DIOCard.SampleRate
     wfPotentials = WaveformPotentials21Elec()
     maxAmp = 1023/2.0
     vInit = 700
