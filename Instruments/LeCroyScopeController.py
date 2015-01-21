@@ -30,7 +30,7 @@ class LeCroyScopeSimulator:
             return data
 
         elif self.lastCommand == 'ARM;WAIT;C1:WF? DAT1':
-            time.sleep(.5)
+            time.sleep(.1)
             data = (np.random.rand(1016) - 0.5)*512
             data = data.astype(np.int16)
             string = struct.pack('1016h', *data) + '\0'
