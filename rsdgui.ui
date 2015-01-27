@@ -49,13 +49,13 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
-  <widget class="MatplotlibWidgetScope" name="ScopeDisplay">
+  <widget class="PyQtGraphWidgetScope" name="ScopeDisplay">
    <property name="geometry">
     <rect>
-     <x>-15</x>
-     <y>0</y>
-     <width>441</width>
-     <height>331</height>
+     <x>5</x>
+     <y>5</y>
+     <width>411</width>
+     <height>296</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -123,7 +123,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>150</x>
+      <x>105</x>
       <y>30</y>
       <width>90</width>
       <height>21</height>
@@ -148,9 +148,9 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>20</x>
+      <x>5</x>
       <y>30</y>
-      <width>111</width>
+      <width>189</width>
       <height>20</height>
      </rect>
     </property>
@@ -262,8 +262,8 @@
      <rect>
       <x>5</x>
       <y>25</y>
-      <width>122</width>
-      <height>56</height>
+      <width>121</width>
+      <height>47</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -385,8 +385,15 @@
      <string>Save Trace</string>
     </property>
    </widget>
-   <zorder>btn_saveTrace</zorder>
    <zorder>verticalLayoutWidget</zorder>
+   <zorder>btn_saveTrace</zorder>
+   <zorder>inp_gate1Start</zorder>
+   <zorder>inp_gate1Stop</zorder>
+   <zorder>inp_gate2Start</zorder>
+   <zorder>inp_gate2Stop</zorder>
+   <zorder>label_16</zorder>
+   <zorder>label_17</zorder>
+   <zorder></zorder>
   </widget>
   <widget class="Line" name="line">
    <property name="geometry">
@@ -408,7 +415,7 @@
    <property name="geometry">
     <rect>
      <x>-15</x>
-     <y>300</y>
+     <y>385</y>
      <width>441</width>
      <height>331</height>
     </rect>
@@ -435,13 +442,13 @@
    <property name="flat">
     <bool>false</bool>
    </property>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>5</x>
       <y>30</y>
-      <width>117</width>
-      <height>54</height>
+      <width>106</width>
+      <height>51</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -543,6 +550,20 @@
      </item>
     </layout>
    </widget>
+   <zorder>inp_voltExtract</zorder>
+   <zorder>label_11</zorder>
+   <zorder>inp_voltOptic1</zorder>
+   <zorder>label_12</zorder>
+   <zorder>radio_voltMode</zorder>
+   <zorder>inp_setWLScan</zorder>
+   <zorder>label_18</zorder>
+   <zorder>inp_startWL</zorder>
+   <zorder>inp_stopWL</zorder>
+   <zorder>label_19</zorder>
+   <zorder>label_20</zorder>
+   <zorder></zorder>
+   <zorder>inp_incrField</zorder>
+   <zorder>inp_stopField</zorder>
   </widget>
   <widget class="QGroupBox" name="groupBox_5">
    <property name="geometry">
@@ -580,8 +601,8 @@
      <rect>
       <x>105</x>
       <y>30</y>
-      <width>107</width>
-      <height>58</height>
+      <width>95</width>
+      <height>44</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_6">
@@ -661,13 +682,13 @@
      </property>
     </item>
    </widget>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>60</y>
-      <width>107</width>
-      <height>81</height>
+      <width>98</width>
+      <height>78</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_6">
@@ -810,13 +831,13 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>115</x>
       <y>65</y>
-      <width>106</width>
-      <height>57</height>
+      <width>94</width>
+      <height>56</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -934,13 +955,13 @@
    <property name="title">
     <string>TOF gates (μs)</string>
    </property>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>5</x>
       <y>25</y>
-      <width>147</width>
-      <height>57</height>
+      <width>142</width>
+      <height>55</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -1153,13 +1174,13 @@
    <property name="title">
     <string>Waveform generation</string>
    </property>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>35</y>
-      <width>209</width>
-      <height>159</height>
+      <width>178</width>
+      <height>153</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -1456,7 +1477,7 @@
       <x>5</x>
       <y>25</y>
       <width>86</width>
-      <height>54</height>
+      <height>46</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_10">
@@ -1590,13 +1611,13 @@
    <property name="title">
     <string>Sirah laser</string>
    </property>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>5</x>
       <y>30</y>
-      <width>132</width>
-      <height>55</height>
+      <width>116</width>
+      <height>53</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_11">
@@ -1709,6 +1730,31 @@
     </layout>
    </widget>
   </widget>
+  <zorder>ScopeDisplay</zorder>
+  <zorder>WaveformDisplay</zorder>
+  <zorder>layoutWidget</zorder>
+  <zorder>groupBox</zorder>
+  <zorder>groupBox_3</zorder>
+  <zorder>line</zorder>
+  <zorder>DataDisplay</zorder>
+  <zorder>groupBox_4</zorder>
+  <zorder>groupBox_5</zorder>
+  <zorder>chk_editWF</zorder>
+  <zorder>chk_readScope</zorder>
+  <zorder>chk_readScope</zorder>
+  <zorder></zorder>
+  <zorder>label_7</zorder>
+  <zorder></zorder>
+  <zorder>label_21</zorder>
+  <zorder>groupBox_6</zorder>
+  <zorder>groupBox_2</zorder>
+  <zorder>groupBox_8</zorder>
+  <zorder>groupBox_9</zorder>
+  <zorder>inp_setWL_2</zorder>
+  <zorder>label_13</zorder>
+  <zorder>inp_setWL_3</zorder>
+  <zorder>label_14</zorder>
+  <zorder>groupBox_10</zorder>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1718,14 +1764,14 @@
    <header>MatplotlibWidgetWFPot</header>
   </customwidget>
   <customwidget>
-   <class>MatplotlibWidgetScope</class>
-   <extends>QGraphicsView</extends>
-   <header>MatplotlibWidgetScope</header>
-  </customwidget>
-  <customwidget>
    <class>MatplotlibWidgetData</class>
    <extends>QGraphicsView</extends>
    <header>MatplotlibWidgetData</header>
+  </customwidget>
+  <customwidget>
+   <class>PyQtGraphWidgetScope</class>
+   <extends>QGraphicsView</extends>
+   <header>PyQtGraphWidgetScope</header>
   </customwidget>
  </customwidgets>
  <resources/>

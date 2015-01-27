@@ -150,8 +150,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scopeThread.start()
 
     def acquisitionCtl(self, data):
-        if self.scopeMon:pass
+        if self.scopeMon:
             #self.ScopeDisplay.plot(data, self.cursorPos)
+            self.ScopeDisplay.plot(data)
         if self.scanMode:
             if self.radio_voltMode.isChecked():
                 self.DataDisplay.plot(data, 'volt')

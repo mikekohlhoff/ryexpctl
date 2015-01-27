@@ -6,6 +6,10 @@ import os
 import sys
 
 from matplotlib.figure import Figure
+import matplotlib
+#matplotlib.use('GTKAgg') 
+#from gtk import gdk
+#from matplotlib.backends.backend_gtk import FigureCanvasGTK as FigureCanvas
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 
 from multiprocessing import Pipe, Process
@@ -17,8 +21,7 @@ PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path
 print PROJECT_ROOT_DIRECTORY
 sys.path.append(os.path.join(os.path.split(PROJECT_ROOT_DIRECTORY)[0], 'RSERSDControl/labcontrol'))
 print sys.path
-from labcontrol import LeCroyScopeController
-
+from Instruments.LeCroyScopeController import LeCroyScopeController
 
 try:
     import pygtk
@@ -32,7 +35,7 @@ except:
     sys.exit(1)
 
 def acquisitionLoop(pipe):
-    scope = LeCroyScopeController.LeCroyScopeController()
+    scope = LeCroyScopeController()
     scope.initialize()
     scope.setScales()
     acquire = False
@@ -125,6 +128,12 @@ class rydec(object):
             self.axScope.clear()
             data = self.pipe.recv()
             self.axScope.plot(data)
+            self.axScope.set_title('Scope trace signal', fontsize=12)
+            self.axScope.set_xlabel(r'Time ($\mu$s)', fontsize=12)
+            self.axScope.set_ylabel('Amplitude (V)', fontsize=12)
+            self.axScope.axis([-0.02*len(data), len(data)*1.02, min(data)*1.2, max(data)*1.2])
+            self.axScope.grid(True)
+            #cursor = Cursor(self.scopeCanvas.ax, useblit=True, color='red', linewidth=2 )
             self.scopeCanvas.draw()
         return True
         
