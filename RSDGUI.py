@@ -25,7 +25,7 @@ from Instruments.DCONUSB87P4 import USB87P4Controller
 
 # subclass qthread (not recommended officially, old style)
 class scopeThread(QtCore.QThread):
-
+    
     def __init__(self, scopeActive=True, scope=None):
         QtCore.QThread.__init__(self)
         self.scopeActive = scopeActive
@@ -44,6 +44,13 @@ class scopeThread(QtCore.QThread):
             self.dataReady.emit(data)
         #self.quit()
         return
+
+
+class waveformGenThread(QtCore.QThread):
+    def __init__(self, ): pass
+
+    def run(self):
+        while: pass
 
 class RSDControl(QtGui.QMainWindow, ui_form):
 
@@ -81,10 +88,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
         self.chk_editWF.clicked.connect(self.showWFDisplay)
-        self.inp_gate1Start.editingFinished.connect(self.redrawScopeWidget)
-        self.inp_gate1Stop.editingFinished.connect(self.redrawScopeWidget)
-        self.inp_gate2Start.editingFinished.connect(self.redrawScopeWidget)
-        self.inp_gate2Stop.editingFinished.connect(self.redrawScopeWidget)
+        self.inp_gate1Start.editingFinished.connect(self.setCursorsScopeWidget)
+        self.inp_gate1Stop.editingFinished.connect(self.setCursorsScopeWidget)
+        self.inp_gate2Start.editingFinished.connect(self.setCursorsScopeWidget)
+        self.inp_gate2Stop.editingFinished.connect(self.setCursorsScopeWidget)
         # function in module as slot
         self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
@@ -93,8 +100,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # defaults
         self.radio_voltMode.setChecked(True)
         self.chk_extTrig.setChecked(True)
-        self.cursorPosOld = np.array([0,0,0,0])
-        self.cursorPos = self.cursorPosOld
+        self.cursorPos = np.array([0,0,0,0])
         
         self.setWindowTitle('RSD Control Electronics Test')    
         self.centerWindow()
@@ -108,12 +114,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         else:    
             if self.scopeMon:
                 self.startAcquisitionThread()
-                self.enableControlsScope(False)
                 self.scope.dispOff()
+                self.editGateField(True)
             else:
                 self.scopeThread.scopeActive = False
-                self.enableControlsScope(True)
                 self.scope.dispOn()
+                self.editGateField(False)
 
     def btn_startDataAcq_clicked(self):
         self.scanMode = not(self.scanMode)
@@ -123,12 +129,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.inp_aveSweeps.setValue(1)
             self.scope.armScope()
             # reset recorded data
-            self.DataDisplay.canvas.ax.clear()
             self.DataDisplay.intgrTrace = []
             self.btn_startDataAcq.setText('Stop Data Acq')
             self.scopeMon = True
             self.chk_readScope.setChecked(True)
             self.startAcquisitionThread()
+            self.chk_readScope.setEnabled(False)
+            self.enableControlsScope(False)
             self.radio_voltMode.setEnabled(False)
             self.radio_wlMode.setEnabled(False)
             self.scope.dispOff()
@@ -138,6 +145,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.btn_startDataAcq.setText('Start Data Acq')
             self.scopeMon = False
             self.chk_readScope.setChecked(False)
+            self.chk_readScope.setEnabled(True)
+            self.enableControlsScope(True)
             self.radio_voltMode.setEnabled(True)
             self.radio_wlMode.setEnabled(True)
             self.scope.dispOn()
@@ -150,14 +159,28 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scopeThread.start()
 
     def acquisitionCtl(self, data):
-        if self.scopeMon:
-            #self.ScopeDisplay.plot(data, self.cursorPos)
-            self.ScopeDisplay.plot(data)
-        if self.scanMode:
+        if not(self.scanMode) and self.scopeMon:
+            self.cursorPos = self.ScopeDisplay.plotMon(data)
+            self.setGateField(self.cursorPos)
+        if self.scanMode and self.scopeMon:
+            self.ScopeDisplay.plotDataAcq(data, self.cursorPos)
             if self.radio_voltMode.isChecked():
                 self.DataDisplay.plot(data, 'volt')
             elif self.radio_wlMode.isChecked():
                 self.DataDisplay.plot(data, 'wl')
+    
+    def setGateField(self, cursorPos):
+        self.inp_gate1Start.setValue(cursorPos[0])
+        self.inp_gate1Stop.setValue(cursorPos[1])
+        self.inp_gate2Start.setValue(cursorPos[2])
+        self.inp_gate2Stop.setValue(cursorPos[3])
+
+    def editGateField(self, boolEnbl):
+        self.inp_gate1Start.setReadOnly(boolEnbl)
+        self.inp_gate1Stop.setReadOnly(boolEnbl)
+        self.inp_gate2Start.setReadOnly(boolEnbl)
+        self.inp_gate2Stop.setReadOnly(boolEnbl)
+
 
     def enableControlsScope(self, boolEnbl):
         self.inp_gate1Start.setEnabled(boolEnbl)
@@ -187,12 +210,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if self.chk_editWF.checkState():
             self.plotWFPotentials()
 
-    def redrawScopeWidget(self):
-        self.cursorPos = np.array([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
-                     self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
-        if (self.cursorPos != self.cursorPosOld).all():
-            self.ScopeDisplay.redraw(self.cursorPos)
-        self.cursorPosOld = self.cursorPos
+    def setCursorsScopeWidget(self):
+        if self.scopeMon:
+            return
+        else:
+            self.cursorPos = np.array([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
+                             self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
+            self.ScopeDisplay.setCursors(self.cursorPos)
 
     def reconfigureDIOCard(self):
         self.DIOCard.changeSampleRate(self.inp_sampleRate.value()*1E6)
@@ -268,7 +292,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.analogIO.closeDevice()
         if hasattr(self, 'scopeThread'):
             self.scopeThread.terminate() # vs exit() vs quit()
-
+        if hasattr(self, 'waveformGenThread'):
+            self.waveformGenThread.terminate()
 
 if __name__ == "__main__":
 

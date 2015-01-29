@@ -54,8 +54,8 @@
     <rect>
      <x>5</x>
      <y>5</y>
-     <width>411</width>
-     <height>296</height>
+     <width>401</width>
+     <height>286</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -64,12 +64,21 @@
      <verstretch>3</verstretch>
     </sizepolicy>
    </property>
+   <property name="frameShape">
+    <enum>QFrame::Box</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Plain</enum>
+   </property>
+   <property name="lineWidth">
+    <number>1</number>
+   </property>
   </widget>
   <widget class="MatplotlibWidgetWFPot" name="WaveformDisplay">
    <property name="geometry">
     <rect>
-     <x>-15</x>
-     <y>630</y>
+     <x>5</x>
+     <y>645</y>
      <width>441</width>
      <height>331</height>
     </rect>
@@ -411,13 +420,13 @@
     <enum>Qt::Horizontal</enum>
    </property>
   </widget>
-  <widget class="MatplotlibWidgetData" name="DataDisplay">
+  <widget class="PyQtGraphWidgetData" name="DataDisplay">
    <property name="geometry">
     <rect>
-     <x>-15</x>
-     <y>385</y>
-     <width>441</width>
-     <height>331</height>
+     <x>5</x>
+     <y>305</y>
+     <width>401</width>
+     <height>281</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -425,6 +434,12 @@
      <horstretch>4</horstretch>
      <verstretch>3</verstretch>
     </sizepolicy>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::Box</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Plain</enum>
    </property>
   </widget>
   <widget class="QGroupBox" name="groupBox_4">
@@ -1764,14 +1779,14 @@
    <header>MatplotlibWidgetWFPot</header>
   </customwidget>
   <customwidget>
-   <class>MatplotlibWidgetData</class>
-   <extends>QGraphicsView</extends>
-   <header>MatplotlibWidgetData</header>
-  </customwidget>
-  <customwidget>
    <class>PyQtGraphWidgetScope</class>
    <extends>QGraphicsView</extends>
    <header>PyQtGraphWidgetScope</header>
+  </customwidget>
+  <customwidget>
+   <class>PyQtGraphWidgetData</class>
+   <extends>QGraphicsView</extends>
+   <header>PyQtGraphWidgetData</header>
   </customwidget>
  </customwidgets>
  <resources/>
