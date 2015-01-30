@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>PCBTest</class>
- <widget class="QWidget" name="PCBTest">
+ <class>RSDGUI</class>
+ <widget class="QWidget" name="RSDGUI">
   <property name="enabled">
    <bool>true</bool>
   </property>
@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>745</width>
-    <height>969</height>
+    <width>731</width>
+    <height>630</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -74,27 +74,6 @@
     <number>1</number>
    </property>
   </widget>
-  <widget class="MatplotlibWidgetWFPot" name="WaveformDisplay">
-   <property name="geometry">
-    <rect>
-     <x>5</x>
-     <y>645</y>
-     <width>441</width>
-     <height>331</height>
-    </rect>
-   </property>
-   <property name="minimumSize">
-    <size>
-     <width>0</width>
-     <height>0</height>
-    </size>
-   </property>
-   <property name="font">
-    <font>
-     <family>STIXGeneral</family>
-    </font>
-   </property>
-  </widget>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
@@ -105,146 +84,6 @@
     </rect>
    </property>
    <layout class="QFormLayout" name="formLayout"/>
-  </widget>
-  <widget class="QGroupBox" name="groupBox">
-   <property name="geometry">
-    <rect>
-     <x>415</x>
-     <y>640</y>
-     <width>291</width>
-     <height>61</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Helvetica Neue</family>
-    </font>
-   </property>
-   <property name="title">
-    <string>DIO card</string>
-   </property>
-   <property name="flat">
-    <bool>false</bool>
-   </property>
-   <widget class="QPushButton" name="btn_wfOutput">
-    <property name="enabled">
-     <bool>true</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>105</x>
-      <y>30</y>
-      <width>90</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>90</width>
-      <height>21</height>
-     </size>
-    </property>
-    <property name="font">
-     <font/>
-    </property>
-    <property name="text">
-     <string>Man Set Pot</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="chk_extTrig">
-    <property name="enabled">
-     <bool>true</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>5</x>
-      <y>30</y>
-      <width>189</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Helvetica Neue</family>
-     </font>
-    </property>
-    <property name="text">
-     <string>Start ExtTrig</string>
-    </property>
-    <property name="checked">
-     <bool>false</bool>
-    </property>
-   </widget>
-   <widget class="QGroupBox" name="groupBox_7">
-    <property name="geometry">
-     <rect>
-      <x>130</x>
-      <y>80</y>
-      <width>211</width>
-      <height>111</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Helvetica Neue</family>
-     </font>
-    </property>
-    <property name="title">
-     <string>DIO card</string>
-    </property>
-    <property name="flat">
-     <bool>false</bool>
-    </property>
-    <widget class="QPushButton" name="btn_wfOutput_2">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>5</x>
-       <y>55</y>
-       <width>90</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>90</width>
-       <height>21</height>
-      </size>
-     </property>
-     <property name="font">
-      <font/>
-     </property>
-     <property name="text">
-      <string>Man Set Pot</string>
-     </property>
-    </widget>
-    <widget class="QCheckBox" name="chk_extTrig_2">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="geometry">
-      <rect>
-       <x>5</x>
-       <y>35</y>
-       <width>189</width>
-       <height>20</height>
-      </rect>
-     </property>
-     <property name="font">
-      <font>
-       <family>Helvetica Neue</family>
-      </font>
-     </property>
-     <property name="text">
-      <string>Start ExtTrig</string>
-     </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
-    </widget>
-   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_3">
    <property name="geometry">
@@ -394,31 +233,8 @@
      <string>Save Trace</string>
     </property>
    </widget>
-   <zorder>verticalLayoutWidget</zorder>
    <zorder>btn_saveTrace</zorder>
-   <zorder>inp_gate1Start</zorder>
-   <zorder>inp_gate1Stop</zorder>
-   <zorder>inp_gate2Start</zorder>
-   <zorder>inp_gate2Stop</zorder>
-   <zorder>label_16</zorder>
-   <zorder>label_17</zorder>
-   <zorder></zorder>
-  </widget>
-  <widget class="Line" name="line">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>620</y>
-     <width>741</width>
-     <height>20</height>
-    </rect>
-   </property>
-   <property name="lineWidth">
-    <number>2</number>
-   </property>
-   <property name="orientation">
-    <enum>Qt::Horizontal</enum>
-   </property>
+   <zorder>verticalLayoutWidget</zorder>
   </widget>
   <widget class="PyQtGraphWidgetData" name="DataDisplay">
    <property name="geometry">
@@ -457,13 +273,13 @@
    <property name="flat">
     <bool>false</bool>
    </property>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>5</x>
       <y>30</y>
       <width>106</width>
-      <height>51</height>
+      <height>52</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -565,20 +381,6 @@
      </item>
     </layout>
    </widget>
-   <zorder>inp_voltExtract</zorder>
-   <zorder>label_11</zorder>
-   <zorder>inp_voltOptic1</zorder>
-   <zorder>label_12</zorder>
-   <zorder>radio_voltMode</zorder>
-   <zorder>inp_setWLScan</zorder>
-   <zorder>label_18</zorder>
-   <zorder>inp_startWL</zorder>
-   <zorder>inp_stopWL</zorder>
-   <zorder>label_19</zorder>
-   <zorder>label_20</zorder>
-   <zorder></zorder>
-   <zorder>inp_incrField</zorder>
-   <zorder>inp_stopField</zorder>
   </widget>
   <widget class="QGroupBox" name="groupBox_5">
    <property name="geometry">
@@ -697,7 +499,7 @@
      </property>
     </item>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -846,7 +648,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>115</x>
@@ -970,7 +772,7 @@
    <property name="title">
     <string>TOF gates (μs)</string>
    </property>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>5</x>
@@ -1177,303 +979,6 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QGroupBox" name="groupBox_8">
-   <property name="geometry">
-    <rect>
-     <x>415</x>
-     <y>705</y>
-     <width>291</width>
-     <height>201</height>
-    </rect>
-   </property>
-   <property name="title">
-    <string>Waveform generation</string>
-   </property>
-   <widget class="QWidget" name="">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>35</y>
-      <width>178</width>
-      <height>153</height>
-     </rect>
-    </property>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
-     <property name="spacing">
-      <number>1</number>
-     </property>
-     <item>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <property name="spacing">
-        <number>1</number>
-       </property>
-       <item>
-        <widget class="QSpinBox" name="inp_initVel">
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>2000</number>
-         </property>
-         <property name="value">
-          <number>700</number>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QSpinBox" name="inp_finalVel">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>100000</number>
-         </property>
-         <property name="value">
-          <number>700</number>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QSpinBox" name="inp_sampleRate">
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>100000000</number>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QDoubleSpinBox" name="inp_outDist">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>40</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="decimals">
-          <number>1</number>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QDoubleSpinBox" name="inp_outTime">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="decimals">
-          <number>1</number>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QDoubleSpinBox" name="inp_inTime">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="decimals">
-          <number>1</number>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QVBoxLayout" name="verticalLayout_3">
-       <property name="spacing">
-        <number>1</number>
-       </property>
-       <item>
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>Intial velocity</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_5">
-         <property name="text">
-          <string>Final velocity</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Sample Rate (MHz)</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Distance off chip (mm)</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_9">
-         <property name="text">
-          <string>Time off chip (μs)</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>Start ramp (μs)</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </widget>
-  </widget>
   <widget class="QGroupBox" name="groupBox_9">
    <property name="geometry">
     <rect>
@@ -1492,7 +997,7 @@
       <x>5</x>
       <y>25</y>
       <width>86</width>
-      <height>46</height>
+      <height>52</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_10">
@@ -1626,7 +1131,7 @@
    <property name="title">
     <string>Sirah laser</string>
    </property>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>5</x>
@@ -1745,39 +1250,9 @@
     </layout>
    </widget>
   </widget>
-  <zorder>ScopeDisplay</zorder>
-  <zorder>WaveformDisplay</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>groupBox</zorder>
-  <zorder>groupBox_3</zorder>
-  <zorder>line</zorder>
-  <zorder>DataDisplay</zorder>
-  <zorder>groupBox_4</zorder>
-  <zorder>groupBox_5</zorder>
-  <zorder>chk_editWF</zorder>
-  <zorder>chk_readScope</zorder>
-  <zorder>chk_readScope</zorder>
-  <zorder></zorder>
-  <zorder>label_7</zorder>
-  <zorder></zorder>
-  <zorder>label_21</zorder>
-  <zorder>groupBox_6</zorder>
-  <zorder>groupBox_2</zorder>
-  <zorder>groupBox_8</zorder>
-  <zorder>groupBox_9</zorder>
-  <zorder>inp_setWL_2</zorder>
-  <zorder>label_13</zorder>
-  <zorder>inp_setWL_3</zorder>
-  <zorder>label_14</zorder>
-  <zorder>groupBox_10</zorder>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
-  <customwidget>
-   <class>MatplotlibWidgetWFPot</class>
-   <extends>QGraphicsView</extends>
-   <header>MatplotlibWidgetWFPot</header>
-  </customwidget>
   <customwidget>
    <class>PyQtGraphWidgetScope</class>
    <extends>QGraphicsView</extends>

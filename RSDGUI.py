@@ -8,6 +8,7 @@ PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path
 # UI related
 from PyQt4 import QtCore, QtGui, uic
 ui_form = uic.loadUiType("rsdgui.ui")[0]
+ui_form_waveform = uic.loadUiType("rsdguiWfWin.ui")[0]
 
 # integrating matplotlib figures
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -25,7 +26,6 @@ from Instruments.DCONUSB87P4 import USB87P4Controller
 
 # subclass qthread (not recommended officially, old style)
 class scopeThread(QtCore.QThread):
-    
     def __init__(self, scopeActive=True, scope=None):
         QtCore.QThread.__init__(self)
         self.scopeActive = scopeActive
@@ -50,22 +50,17 @@ class waveformGenThread(QtCore.QThread):
     def __init__(self, ): pass
 
     def run(self):
-        while: pass
+        while True: pass
 
-class RSDControl(QtGui.QMainWindow, ui_form):
 
-    def __init__(self, parent=None):
-        QtGui.QMainWindow.__init__(self, parent)
+class waveformWindow(QtGui.QWidget, ui_form_waveform):
+    def __init__(self, DIOCard):
+        QtGui.QWidget.__init__(self)
         self.setupUi(self)
-        self.initHardware()
-        self.initUI()
-        
-        self.scopeMon = False
-        self.scanMode = False
 
-    def initUI(self):
+        # card configured with 20MHz (sampleRate)
+        self.DIOCard = DIOCard
         # iniatilize program with guiding mode parameters
-        self.inp_aveSweeps.setValue(1)
         self.inp_initVel.setValue(700)
         self.inp_finalVel.setValue(700)
         self.inp_sampleRate.setValue(self.DIOCard.SampleRate*1E-6)
@@ -75,19 +70,66 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.outDist = 23.5 - 2.2 - self.decelDist
         self.inp_outDist.setValue(self.outDist)
         self.setPCBPotentials()
-
-        # signals and slots
-        self.inp_aveSweeps.editingFinished.connect(self.inp_aveSweeps_changed)
         self.inp_initVel.editingFinished.connect(self.setPCBPotentials)
         self.inp_finalVel.editingFinished.connect(self.setPCBPotentials)
         self.inp_inTime.editingFinished.connect(self.setPCBPotentials)
         self.inp_outDist.editingFinished.connect(self.setPCBPotentials)
-        self.inp_sampleRate.editingFinished.connect(self.reconfigureDIOCard)
-        self.btn_wfOutput.clicked.connect(self.btn_wfOutput_clicked)
-        self.chk_extTrig.stateChanged.connect(self.chk_extTrig_changed)
+        self.inp_sampleRate.setReadOnly(True)
+        self.chk_extTrig.stateChanged.connect(self.startDOOutput)
+        self.chk_extTrig.setChecked(False)
+        self.setPCBPotentials()
+
+    def startDOOutput(self):
+        print 'start thread for DO gen'
+
+    def setPCBPotentials(self):
+        # 10bit resolution per channel
+        maxAmp = 1023/2.0
+        self.wfPotentials = WaveformPotentials21Elec()
+        vInit = self.inp_initVel.value()
+        vFinal = self.inp_finalVel.value()
+
+        # deceleration to stop at fixed position, 19.1 for 23 electrodes
+        inTime = self.inp_inTime.value()
+        # space beyond minima position after chirp sequence
+        # inDist = 2.2mm to first minima with electrods 1&4=Umax
+        # if outDist=0 end point of potential sequence 
+        # at z position before potential minima diverges
+        self.outDist = self.inp_outDist.value()
+        outTime = self.outDist*1E-3/vFinal*1E6
+        self.inp_outTime.setValue(outTime)
+        
+        # build waveform potentials
+        self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
+                                   maxAmp, self.decelDist)
+        if self.chk_plotWF.checkState():
+                self.plotWFPotentials()
+
+    def plotWFPotentials(self):
+        self.WaveformDisplay.plot(self.wfPotentials)
+
+
+class RSDControl(QtGui.QMainWindow, ui_form):
+    def __init__(self, parent=None):
+        QtGui.QMainWindow.__init__(self, parent)
+        self.setupUi(self)
+        self.initHardware()
+        self.initUI()
+        # monitor constants
+        self.scopeMon = False
+        self.scanMode = False
+        # waveform generation window
+        self.WfWin = waveformWindow(self.DIOCard)
+
+    def showWfWin(self):
+        self.WfWin.show()
+
+    def initUI(self):
+        # signals and slots
+        self.inp_aveSweeps.editingFinished.connect(self.inp_aveSweeps_changed)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
-        self.chk_editWF.clicked.connect(self.showWFDisplay)
+        self.chk_editWF.clicked.connect(self.showWfWin)
         self.inp_gate1Start.editingFinished.connect(self.setCursorsScopeWidget)
         self.inp_gate1Stop.editingFinished.connect(self.setCursorsScopeWidget)
         self.inp_gate2Start.editingFinished.connect(self.setCursorsScopeWidget)
@@ -98,11 +140,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_voltMCP.editingFinished.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
         # defaults
+        self.inp_aveSweeps.setValue(1)
         self.radio_voltMode.setChecked(True)
-        self.chk_extTrig.setChecked(True)
         self.cursorPos = np.array([0,0,0,0])
         
-        self.setWindowTitle('RSD Control Electronics Test')    
+        self.setWindowTitle('RSDRSE Control')    
         self.centerWindow()
         self.resize(736, 620)
         self.show()
@@ -188,28 +230,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_gate2Start.setEnabled(boolEnbl)
         self.inp_gate2Stop.setEnabled(boolEnbl)
 
-    def setPCBPotentials(self):
-        # 10bit resolution per channel
-        maxAmp = 1023/2.0
-        self.wfPotentials = WaveformPotentials21Elec()
-        vInit = self.inp_initVel.value()
-        vFinal = self.inp_finalVel.value()
-
-        # deceleration to stop at fixed position, 19.1 for 23 electrodes
-        inTime = self.inp_inTime.value()
-        # space beyond minima position after chirp sequence
-        # inDist = 2.2mm to first minima with electrods 1&4=Umax
-        # if outDist=0 end point of potential sequence 
-        # at z position before potential minima diverges
-        self.outDist = self.inp_outDist.value()
-        outTime = self.outDist*1E-3/vFinal*1E6
-        self.inp_outTime.setValue(outTime)
-        
-        # build waveform potentials
-        self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, maxAmp, self.decelDist)
-        if self.chk_editWF.checkState():
-            self.plotWFPotentials()
-
     def setCursorsScopeWidget(self):
         if self.scopeMon:
             return
@@ -217,20 +237,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.cursorPos = np.array([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
                              self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
             self.ScopeDisplay.setCursors(self.cursorPos)
-
-    def reconfigureDIOCard(self):
-        self.DIOCard.changeSampleRate(self.inp_sampleRate.value()*1E6)
-        self.DIOCard.configureCard(self.chk_extTrig.checkState())
-        self.setPCBPotentials()
-
-    def showWFDisplay(self):
-        if self.chk_editWF.checkState():
-            self.resize(736,958)
-        else:
-            self.resize(736,620)
-    
-    def plotWFPotentials(self):
-        self.WaveformDisplay.plot(self.wfPotentials)
            
     def centerWindow(self):
         frm = self.frameGeometry()
@@ -240,24 +246,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def inp_aveSweeps_changed(self):
         self.scope.setSweeps(self.inp_aveSweeps.value())
-
-    def btn_wfOutput_clicked(self):
-        # check if potentials were created
-        if not hasattr(self.wfPotentials, 'potentialsOut'):
-            print 'No waveform potentials created'
-            return
-
-        if self.chk_editWF.checkState():
-            print self.DIOCard.writeWaveformPotentials(self.wfPotentials.potentialsOut)
-        else:
-           pass
-
-    def chk_extTrig_changed(self):
-        self.DIOCard.configureCard(self.chk_extTrig.checkState())
-        if self.chk_extTrig.checkState():
-            self.btn_wfOutput.setEnabled(False)
-        else:
-            self.btn_wfOutput.setEnabled(True)
 
     def closeEvent(self, event):
         reply = QtGui.QMessageBox.question(self, '',
@@ -272,16 +260,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def initHardware(self):
         print 'Initialising hardware'
-        # connect to lasers
-        
         # USB analog input/output
         self.analogIO = USB87P4Controller()
         self.analogIO.openDevice()
         # waveform generator
         self.DIOCard = DIOCardController()
-        time.sleep(2)
-        # card configured with 20MHz (sampleRate)
-        self.DIOCard.configureCard(self.chk_extTrig.checkState())
         # scope
         self.scope = LeCroyScopeController()
         self.scope.initialize()
@@ -290,6 +273,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def shutDownExperiment(self):
         print 'Release controllers'
         self.analogIO.closeDevice()
+        self.DIOCard.releaseCard()
         if hasattr(self, 'scopeThread'):
             self.scopeThread.terminate() # vs exit() vs quit()
         if hasattr(self, 'waveformGenThread'):

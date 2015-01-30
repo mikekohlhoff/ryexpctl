@@ -24,8 +24,16 @@ class MatplotlibWidgetWFPot(QtGui.QWidget):
         self.vbl = QtGui.QVBoxLayout()
         self.vbl.addWidget(self.canvas)
         self.setLayout(self.vbl)
-        self.canvas.ax.set_title('Calculated PCB Potentials', fontsize=12)
+        self.canvas.ax.set_title('Calculated PCB electrode potentials', fontsize=10)
         self.canvas.fig.patch.set_alpha(0)
+        params = {
+                  'legend.fontsize': 8,
+                  'xtick.labelsize': 8,
+                  'ytick.labelsize': 8,
+                  'legend.handletextpad': .5,
+                }
+        plt.rcParams.update(params)
+
         
     def plot(self, wfPotentials):
         if hasattr(wfPotentials, 'plotTime'):
@@ -40,10 +48,10 @@ class MatplotlibWidgetWFPot(QtGui.QWidget):
             self.canvas.ax.plot(argX, argY[5,:], 'g--', label="6", linewidth=1.5)
             self.canvas.ax.axis([-2, wfPotentials.plotTime[-1]+0.5, wfPotentials.maxAmp*-2-10, wfPotentials.maxAmp*2+10])
             self.canvas.ax.grid(True)
-            self.canvas.ax.set_title("Calculated PCB potentials", fontsize=12)
-            self.canvas.ax.set_xlabel("Time ($\mu$s)", fontsize=12)
-            self.canvas.ax.set_ylabel("Amplitude (bits)", fontsize=12)
-            self.canvas.ax.legend(loc="lower right", fontsize=12)
+            self.canvas.ax.set_title("Calculated PCB electrode potentials", fontsize=10)
+            self.canvas.ax.set_xlabel("Time ($\mu$s)", fontsize=10)
+            self.canvas.ax.set_ylabel("Amplitude (bits)", fontsize=10)
+            self.canvas.ax.legend(loc="lower right",  bbox_to_anchor = [.7,0.06], fontsize=8)
             # mares in potential generation 
             self.canvas.ax.plot([wfPotentials.incplTime,wfPotentials.incplTime],[(wfPotentials.maxAmp*2+10),\
             (wfPotentials.maxAmp*(-2)-10)], 'k--', linewidth=1.5)
