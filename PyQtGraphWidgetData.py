@@ -20,20 +20,21 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
         self.setLayout(self.vbl)
         self.dataWidget.setLabel('left', 'Integrated signal', units='arb')
         self.dataWidget.showGrid(x=True, y=True)
+        self.plotTrace1 = []
+        self.plotTrace2 = []
 
-        self.intgrTrace = []
-
-    def integrator(self, data):
+    def integrator(self, data, cPos):
         # integrate scope traces 
-        intTrace = sum(data) 
+        intTrace = [sum(data[cPos[0]:cPos[1]]), sum(data[cPos[2]:cPos[3]])]
         return intTrace
     
-    def plot(self,data, radioMode):
-        plotData = self.integrator(data)
-        self.intgrTrace = np.append(self.intgrTrace, plotData)
-        self.dataWidget.clear()
-
-        self.dataWidget.plot(self.intgrTrace, pen='b', symbolBrush='b', symbolSize=4)
+    def plot(self, data, cursorPos, radioMode):
+        plotData = self.integrator(data, cursorPos)
+        self.plotTrace1.append(plotData[0])
+        self.plotTrace2.append(plotData[1])
+       # self.dataWidget.clear()
+        self.dataWidget.plot(self.plotTrace1, pen='#0000A0', clear=True)#, symbolBrush='#0000A0', symbolSize=4)
+        self.dataWidget.plot(self.plotTrace2, pen='#347C17', clear=False)#, symbolBrush='#347C17', symbolSize=4)
         if radioMode == 'volt':
             self.dataWidget.setLabel('bottom', 'Extraction Voltage', units='V')
         else:

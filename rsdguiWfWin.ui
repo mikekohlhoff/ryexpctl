@@ -9,12 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>716</width>
-    <height>347</height>
+    <width>626</width>
+    <height>315</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -49,27 +49,6 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
-  <widget class="MatplotlibWidgetWFPot" name="WaveformDisplay">
-   <property name="geometry">
-    <rect>
-     <x>15</x>
-     <y>20</y>
-     <width>371</width>
-     <height>256</height>
-    </rect>
-   </property>
-   <property name="minimumSize">
-    <size>
-     <width>0</width>
-     <height>0</height>
-    </size>
-   </property>
-   <property name="font">
-    <font>
-     <family>STIXGeneral</family>
-    </font>
-   </property>
-  </widget>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
@@ -84,10 +63,10 @@
   <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
     <rect>
-     <x>400</x>
-     <y>10</y>
-     <width>291</width>
-     <height>61</height>
+     <x>5</x>
+     <y>5</y>
+     <width>191</width>
+     <height>56</height>
     </rect>
    </property>
    <property name="font">
@@ -107,7 +86,7 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>5</x>
       <y>30</y>
       <width>189</width>
       <height>20</height>
@@ -131,9 +110,9 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>115</x>
-      <y>35</y>
-      <width>189</width>
+      <x>100</x>
+      <y>30</y>
+      <width>91</width>
       <height>20</height>
      </rect>
     </property>
@@ -153,9 +132,9 @@
   <widget class="QGroupBox" name="groupBox_8">
    <property name="geometry">
     <rect>
-     <x>400</x>
-     <y>75</y>
-     <width>216</width>
+     <x>5</x>
+     <y>65</y>
+     <width>191</width>
      <height>216</height>
     </rect>
    </property>
@@ -165,7 +144,7 @@
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>5</x>
       <y>35</y>
       <width>178</width>
       <height>153</height>
@@ -446,11 +425,41 @@
      </item>
     </layout>
    </widget>
+   <zorder>layoutWidget</zorder>
+   <zorder>label_6</zorder>
   </widget>
+  <widget class="MatplotlibWidgetWFPot" name="WaveformDisplay">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>5</y>
+     <width>396</width>
+     <height>286</height>
+    </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="font">
+    <font>
+     <family>STIXGeneral</family>
+    </font>
+   </property>
+  </widget>
+  <zorder>WaveformDisplay</zorder>
   <zorder>layoutWidget</zorder>
   <zorder>groupBox</zorder>
-  <zorder>WaveformDisplay</zorder>
   <zorder>groupBox_8</zorder>
+  <zorder>inp_sampleRate</zorder>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>

@@ -31,7 +31,6 @@ class scopeThread(QtCore.QThread):
         self.scopeActive = scopeActive
         self.scope = scope
         self.scope.setScales()
-        print 'SCOPE THREAD INITIALISED'
 
     dataReady = QtCore.pyqtSignal(object)
     # override
@@ -42,22 +41,31 @@ class scopeThread(QtCore.QThread):
         while self.scopeActive:
             data = self.scope.armwaitread()
             self.dataReady.emit(data)
-        #self.quit()
+        self.quit()
         return
 
-
 class waveformGenThread(QtCore.QThread):
-    def __init__(self, ): pass
+    def __init__(self, wfOutActive, DIOCard=None):
+        QtCore.QThread.__init__(self)
+        self.wfOutActive = wfOutActive
+        self.DIOCard = DIOCard
 
     def run(self):
-        while True: pass
-
-
+        while self.wfOutActive:
+            self.DIOCard.writeWaveformPotentials()
+            # reset card before next trigger at 10Hz
+            self.msleep(50)
+        self.quit()
+        return
+            
 class waveformWindow(QtGui.QWidget, ui_form_waveform):
     def __init__(self, DIOCard):
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
-
+        self.setWindowTitle('Waveform Control')
+        self.resize(300, 310)
+        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        
         # card configured with 20MHz (sampleRate)
         self.DIOCard = DIOCard
         # iniatilize program with guiding mode parameters
@@ -77,10 +85,20 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         self.inp_sampleRate.setReadOnly(True)
         self.chk_extTrig.stateChanged.connect(self.startDOOutput)
         self.chk_extTrig.setChecked(False)
-        self.setPCBPotentials()
+        self.chk_plotWF.stateChanged.connect(self.resizeWin)
+
+    winClose = QtCore.pyqtSignal()
+
+    def closeEvent(self, event):
+        event.accept()
+        self.winClose.emit()
 
     def startDOOutput(self):
-        print 'start thread for DO gen'
+        if hasattr(self, 'wfThread') and self.wfThread.wfOutActive:
+            self.wfThread.wfOutActive = False
+        else:
+            self.wfThread = waveformGenThread(True, self.DIOCard)
+            self.wfThread.start(priority=QtCore.QThread.HighestPriority)
 
     def setPCBPotentials(self):
         # 10bit resolution per channel
@@ -102,27 +120,27 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         # build waveform potentials
         self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
                                    maxAmp, self.decelDist)
+        self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
         if self.chk_plotWF.checkState():
-                self.plotWFPotentials()
+            self.WaveformDisplay.plot(self.wfPotentials)
 
-    def plotWFPotentials(self):
-        self.WaveformDisplay.plot(self.wfPotentials)
-
+    def resizeWin(self):
+        if self.chk_plotWF.isChecked():
+            self.resize(620, 310)
+        else:
+            self.resize(300, 310)
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.setupUi(self)
         self.initHardware()
-        self.initUI()
         # monitor constants
         self.scopeMon = False
         self.scanMode = False
         # waveform generation window
         self.WfWin = waveformWindow(self.DIOCard)
-
-    def showWfWin(self):
-        self.WfWin.show()
+        self.initUI()
 
     def initUI(self):
         # signals and slots
@@ -139,15 +157,22 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.editingFinished.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
+        self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
+        self.WfWin.winClose.connect(lambda: self.chk_editWF.setChecked(False))
         # defaults
         self.inp_aveSweeps.setValue(1)
         self.radio_voltMode.setChecked(True)
         self.cursorPos = np.array([0,0,0,0])
-        
-        self.setWindowTitle('RSDRSE Control')    
+
+        self.setWindowTitle('RSDRSE Control')
         self.centerWindow()
         self.resize(736, 620)
+        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         self.show()
+
+    def showWfWin(self):
+        self.chk_editWF.setEnabled(False)
+        self.WfWin.show()
 
     def chk_readScope_clicked(self):
         self.scopeMon = self.chk_readScope.isChecked()
@@ -166,12 +191,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def btn_startDataAcq_clicked(self):
         self.scanMode = not(self.scanMode)
         if self.scopeMon and hasattr(self, 'scopeThread'):
+            self.scopeThread.terminate()
             self.scopeThread.scopeActive = False
         if self.scanMode:
             self.inp_aveSweeps.setValue(1)
             self.scope.armScope()
             # reset recorded data
-            self.DataDisplay.intgrTrace = []
+            self.DataDisplay.plotTrace1 = []
+            self.DataDisplay.plotTrace2 = []
             self.btn_startDataAcq.setText('Stop Data Acq')
             self.scopeMon = True
             self.chk_readScope.setChecked(True)
@@ -189,6 +216,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.chk_readScope.setChecked(False)
             self.chk_readScope.setEnabled(True)
             self.enableControlsScope(True)
+            self.editGateField(False)
             self.radio_voltMode.setEnabled(True)
             self.radio_wlMode.setEnabled(True)
             self.scope.dispOn()
@@ -198,7 +226,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scopeThread = scopeThread(True,self.scope)
         self.scopeThread.scopeActive = True
         self.scopeThread.dataReady.connect(self.acquisitionCtl)
-        self.scopeThread.start()
+        self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
 
     def acquisitionCtl(self, data):
         if not(self.scanMode) and self.scopeMon:
@@ -207,9 +235,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if self.scanMode and self.scopeMon:
             self.ScopeDisplay.plotDataAcq(data, self.cursorPos)
             if self.radio_voltMode.isChecked():
-                self.DataDisplay.plot(data, 'volt')
+                self.DataDisplay.plot(data, self.cursorPos, 'volt')
             elif self.radio_wlMode.isChecked():
-                self.DataDisplay.plot(data, 'wl')
+                self.DataDisplay.plot(data, self.cursorPos, 'wl')
     
     def setGateField(self, cursorPos):
         self.inp_gate1Start.setValue(cursorPos[0])
@@ -222,7 +250,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_gate1Stop.setReadOnly(boolEnbl)
         self.inp_gate2Start.setReadOnly(boolEnbl)
         self.inp_gate2Stop.setReadOnly(boolEnbl)
-
 
     def enableControlsScope(self, boolEnbl):
         self.inp_gate1Start.setEnabled(boolEnbl)
@@ -271,14 +298,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         print '-----------------------------------------------------------------------------'
 
     def shutDownExperiment(self):
-        print 'Release controllers'
+        print 'Releasing controllers:'
         self.analogIO.closeDevice()
         self.DIOCard.releaseCard()
         if hasattr(self, 'scopeThread'):
             self.scopeThread.terminate() # vs exit() vs quit()
-        if hasattr(self, 'waveformGenThread'):
-            self.waveformGenThread.terminate()
-
+        if hasattr(self.WfWin, 'wfThread'):
+            self.WfWin.wfThread.terminate()
+            
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)
