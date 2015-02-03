@@ -33,14 +33,14 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.lr2.setMovable(True)
         if np.size(self.scopeWidget.listDataItems()) > 0:
            self.scopeWidget.removeItem(self.scopeWidget.listDataItems()[0])
-        self.scopeWidget.plot(data, pen='k')
+        self.scopeWidget.plot(data, pen=pg.mkPen('k', width=1.2))
 
         lr1Ret = self.lr1.getRegion()
         lr2Ret = self.lr2.getRegion()
         return np.array([lr1Ret[0], lr1Ret[1], lr2Ret[0], lr2Ret[1]])
 
     def plotDataAcq(self, data, cursorPos):
-        self.scopeWidget.plot(data, pen=pg.mkPen('k'), clear=True)
+        self.scopeWidget.plot(data, pen=pg.mkPen('k', width=1), clear=True)
         self.lr1 = pg.LinearRegionItem([cursorPos[0], cursorPos[1]], brush=pg.mkBrush(0,0,160,80))
         self.lr2 = pg.LinearRegionItem([cursorPos[2], cursorPos[3]], brush=pg.mkBrush(52,124,23,80))
         self.lr1.setMovable(False)

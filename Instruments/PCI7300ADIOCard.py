@@ -100,7 +100,8 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
     def configureCardDO(self): 
         configReturn = self.__DIOCard.DO_7300B_Config(self.__CardNumber, self.__PortWidth, self.__TrigSource, \
                        self.__WaitStatus, self.__Terminator, self.__O_Cntrl_Pol, self.__FifoThreshold)
-
+        print 'Config ret: ', configReturn
+        
     def changeSampleRate(self, SampleRateIn):
         self.SampleRate = SampleRateIn
         self.timeStep = 1/float(self.SampleRate)
@@ -126,8 +127,8 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
             self.DOBuffer[i] = self.DOBuffer[i] | left[i] << 16 | middleSplit | right[i] << 4
             # set clock bit alternatingly, starting high
             self.DOBuffer[i] = self.DOBuffer[i] | np.fmod(i+1,2) << self.__clockBit
-
-
+        print 'Buffer build'
+        
     def writeWaveformPotentials(self):
         # For (..) PCI-7300A (..) this argument must be set to 0.
         Port = ctypes.c_uint16(0) 
@@ -143,7 +144,12 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         # write data to ports with specified (internal) clock
         writeRet = self.__DIOCard.DO_ContWritePort(self.__CardNumber, Port, ctypes.c_void_p(self.DOBuffer.ctypes.data), \
                                         WriteCount, Iterations, SampleRate, SyncMode)
-        
+
+        print 'Return DO_Write: ', writeRet
+        print self.SampleRate, SampleRate.value
+        print self.__WaitStatus.value
+        print self.__TrigSource.value 
+                
     def DOCallBackFunc(self):
         # event callback to clear async register
         AccessCnt = ctypes.c_uint32()

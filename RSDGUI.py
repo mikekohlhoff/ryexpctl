@@ -63,8 +63,8 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
         self.setWindowTitle('Waveform Control')
-        self.resize(300, 310)
-        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.setFixedSize(196, 258)
+        self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         
         # card configured with 20MHz (sampleRate)
         self.DIOCard = DIOCard
@@ -126,9 +126,9 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
 
     def resizeWin(self):
         if self.chk_plotWF.isChecked():
-            self.resize(620, 310)
+            self.setFixedSize(640, 300)
         else:
-            self.resize(300, 310)
+            self.setFixedSize(196, 258)
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -166,8 +166,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
         self.setWindowTitle('RSDRSE Control')
         self.centerWindow()
-        self.resize(736, 620)
-        self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        self.setFixedSize(720, 558)
+        self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
     def showWfWin(self):
@@ -311,8 +311,5 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     
     myapp = RSDControl()
-    app.setStyle('plastique')
+    app.setStyle('Windows')
     app.exec_()
-#    sys.exit(app.exec_())
-
-
