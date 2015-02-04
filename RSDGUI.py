@@ -84,7 +84,6 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         self.inp_outDist.editingFinished.connect(self.setPCBPotentials)
         self.inp_sampleRate.setReadOnly(True)
         self.chk_extTrig.stateChanged.connect(self.startDOOutput)
-        self.chk_extTrig.setChecked(False)
         self.chk_plotWF.stateChanged.connect(self.resizeWin)
 
     winClose = QtCore.pyqtSignal()
@@ -120,7 +119,12 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         # build waveform potentials
         self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
                                    maxAmp, self.decelDist)
-        self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
+        if hasattr(self, 'wfThread') and self.wfThread.wfOutActive:
+            self.wfThread.wfOutActive = False
+            self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
+            self.startDOOutput()
+        else:
+            self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
         if self.chk_plotWF.checkState():
             self.WaveformDisplay.plot(self.wfPotentials)
 
@@ -292,6 +296,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.analogIO.openDevice()
         # waveform generator
         self.DIOCard = DIOCardController()
+        self.DIOCard.configureCardDO()
         # scope
         self.scope = LeCroyScopeController()
         self.scope.initialize()
@@ -305,11 +310,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.terminate() # vs exit() vs quit()
         if hasattr(self.WfWin, 'wfThread'):
             self.WfWin.wfThread.terminate()
+        self.WfWin.close()
             
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)
     
     myapp = RSDControl()
-    app.setStyle('Windows')
+    app.setStyle('cleanlooks')
     app.exec_()

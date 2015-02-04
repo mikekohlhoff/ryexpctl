@@ -89,7 +89,7 @@
      <rect>
       <x>5</x>
       <y>20</y>
-      <width>91</width>
+      <width>106</width>
       <height>20</height>
      </rect>
     </property>
@@ -124,7 +124,7 @@
    <property name="title">
     <string>Waveform generation</string>
    </property>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>5</x>
