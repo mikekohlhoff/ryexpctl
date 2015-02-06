@@ -23,6 +23,7 @@ class DIOCardSimulator:
     def Release_Card(self, CardNumber): pass
     def DO_EventCallBack(self, CardNumber, mode, EventType, CallbackAddress): pass
     def DO_AsyncClear(self, CardNumber, AccessCnt): pass
+    def DO_AsyncCheck(self, CardNumber, Stopped, AccessCnt): pass
 
 class DIOCardController:
     """\
@@ -134,25 +135,26 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         self.configureCardDO()
         #self.__DIOCard.DO_EventCallBack(self.__CardNumber, self.__EventMode, self.__EventType, self.cb_fun)
         #data = ctypes.c_void_p(self.__DOBuffer.ctypes.data)
-#	dataPtr = ctypes.POINTER(ctypes.c_void_p)
-#	data = self.__DOBuffer.ctypes.data_as(dataPtr)
-	data = self.__DOBuffer.ctypes.data_as(ctypes.POINTER(ctypes.c_void_p))
-	# write data to ports with specified (internal) clock
+        #dataPtr = ctypes.POINTER(ctypes.c_void_p)
+        #data = self.__DOBuffer.ctypes.data_as(dataPtr)
+        data = self.__DOBuffer.ctypes.data_as(ctypes.POINTER(ctypes.c_void_p))
+        # write data to ports with specified (internal) clock
         Stopped = ctypes.c_bool(False)
         AccessCnt = ctypes.c_uint32()
         writeRet = self.__DIOCard.DO_ContWritePort(self.__CardNumber, self.__Port,\
-		   data, self.__WriteCount, self.__Iterations, self.__SampleRateIn,\
-		   self.__SyncMode)
+                   data, self.__WriteCount, self.__Iterations, self.__SampleRateIn,\
+                   self.__SyncMode)
         
-	Stopped.value=False
+        Stopped.value=False
         while(not Stopped.value):
             self.__DIOCard.DO_AsyncCheck(self.__CardNumber, ctypes.byref(Stopped),\
-			 		 ctypes.byref(AccessCnt))
+                     ctypes.byref(AccessCnt))
             time.sleep(0.001)
         self.__DIOCard.DO_AsyncClear(self.__CardNumber, ctypes.byref(AccessCnt))
       
     def DOCallBackFunc(self):
         # event callback to clear async register
+        # didn't get to work in extTrig mode
         AccessCnt = ctypes.c_uint32()
         self.__DIOCard.DO_AsyncClear(self.__CardNumber, ctypes.byref(AccessCnt))
         
