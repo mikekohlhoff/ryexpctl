@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>720</width>
-    <height>558</height>
+    <width>1194</width>
+    <height>987</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -288,7 +288,7 @@
       <x>5</x>
       <y>20</y>
       <width>106</width>
-      <height>46</height>
+      <height>52</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -390,8 +390,6 @@
      </item>
     </layout>
    </widget>
-   <zorder>layoutWidget</zorder>
-   <zorder></zorder>
   </widget>
   <widget class="QGroupBox" name="groupBox_5">
    <property name="geometry">
@@ -495,7 +493,7 @@
       <x>10</x>
       <y>50</y>
       <width>91</width>
-      <height>71</height>
+      <height>78</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_6">
@@ -644,7 +642,7 @@
       <x>120</x>
       <y>55</y>
       <width>101</width>
-      <height>46</height>
+      <height>55</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -770,6 +768,60 @@
      <bool>false</bool>
     </property>
    </widget>
+   <widget class="QCheckBox" name="chk_readScope_2">
+    <property name="geometry">
+     <rect>
+      <x>215</x>
+      <y>135</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Pulse valve</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chk_readScope_3">
+    <property name="geometry">
+     <rect>
+      <x>185</x>
+      <y>160</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Lasers</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chk_readScope_4">
+    <property name="geometry">
+     <rect>
+      <x>215</x>
+      <y>105</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Excimer</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_2">
    <property name="geometry">
@@ -793,8 +845,8 @@
      <rect>
       <x>5</x>
       <y>20</y>
-      <width>136</width>
-      <height>46</height>
+      <width>142</width>
+      <height>55</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -1013,7 +1065,7 @@
       <x>5</x>
       <y>20</y>
       <width>86</width>
-      <height>46</height>
+      <height>52</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_10">
@@ -1153,7 +1205,7 @@
       <x>5</x>
       <y>20</y>
       <width>116</width>
-      <height>46</height>
+      <height>53</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_11">

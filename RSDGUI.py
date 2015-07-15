@@ -318,5 +318,5 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     
     myapp = RSDControl()
-    app.setStyle('cleanlooks')
+    #app.setStyle('cleanlooks')
     app.exec_()
