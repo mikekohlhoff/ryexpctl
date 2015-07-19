@@ -31,7 +31,7 @@ class PulseGeneratorController:
             import visa
             if sys.platform == 'darwin':
                 raise OSError
-            self.__delayGen = visa.instrument("COM_TODO")
+            self.__delayGen = visa.instrument("COM8")
             mode = 'Visa driver for 9520 delay generator found, connection established'
         except OSError:
             self.__delayGen = PulseGeneratorSimulator()
