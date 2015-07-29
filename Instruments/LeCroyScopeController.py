@@ -46,9 +46,10 @@ class LeCroyScopeControllerVISA:
         print '-----------------------------------------------------------------------------'
         try:
             import visa
+            # introduced this fix, cf. pyvisa issue #168
             from pyvisa.resources import MessageBasedResource
             rm = visa.ResourceManager()
-            self.__scope = rm.open_resource("VICP::169.254.201.2::INSTR", resource_pyclass=MessageBasedResource)  
+            self.__scope = rm.open_resource("VICP::169.254.201.2::INSTR", resource_pyclass=MessageBasedResource)
             print "Scope connection established with device ID:"
             print(self.__scope.query("*IDN?"))
         except ImportError:
@@ -59,26 +60,31 @@ class LeCroyScopeControllerVISA:
     def initialize(self):
         '''hardware initialization'''
         # do a calibration
-        #self.__scope.write('*CAL?')
-        #time.sleep(5)
+        self.__scope.write('*CAL?')
+        time.sleep(5)
         # CORD LO for intel based computers, CORD HI default
-        # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD
-        self.__scope.write('WFSU SP,4,NP,0,FP,0,SN,0;CFMT DEF9,WORD,BIN;CHDR OFF;CORD HI')
-        # clear screen, sweepes and turn of auto cal and leave scope in normal trigger mode
+        # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
+        self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,WORD,BIN;CHDR OFF;CORD HI')
+        # clear registers, sweepes and turn of auto cal and leave scope in normal trigger mode
         self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
 
+    def trigModeNormal(self):
+        self.__scope.write('TRMD NORMAL')
+    
     def dispOff(self):
         self.__scope.write('DISP OFF')
-        print 'Turn scope display off'
+        print 'Scope display off'
         
     def dispOn(self):
         self.__scope.write('DISP ON')
-        print 'Turn scope display on'
+        print 'Scope display on'
                 
     def setSweeps(self, numberSweeps):
         '''set number of sweeps for averaging'''
-        # doesn"t seem to be neccessary self.__scope.write(''AVG(C1)',AVGTYPE,CONTINUOUS)
         self.__scope.write("VBS 'app.acquisition.C1.AverageSweeps=" + str(numberSweeps) + "'")
+
+    def clearSweeps(self):
+        self._scope.write('*CLS;CLSW')
 
     def getWFDescription(self):
         self.__scope.write('C1:WF? DESC;')
@@ -90,32 +96,26 @@ class LeCroyScopeControllerVISA:
         wfd = self.getWFDescription()
         self.yscale = wfd.VERTICAL_GAIN
         self.yoff = wfd.VERTICAL_OFFSET
+        numpoints = wfd.WAVE_ARRAY_COUNT
         self.__scope.write('TDIV?')
-        self.timebase = float(self.__scope.read())
+        self.timeincr = float(self.__scope.read())/float(numpoints/10)
        
     def armwaitread(self):
+        '''main function for readout in GUI'''
         self.__scope.write('ARM;WAIT;C1:WF? DAT1')
         data = self.__scope.read_raw()
-        #return 1.*np.fromstring(data[16:-1], dtype=np.int16)*self.yscale+self.yoff
-        return np.arange(1,10)
-        
-    def armScope(self):
-        '''arm scope for single shot acquisition'''
-        # set scope to 1 average before and single trigger mode
-        self.setSweeps(1)
-        self.__scope.write('*CLS;CLSW;TRMD SINGLE')
+        return 1.*np.fromstring(data[16:-1], dtype=np.int16)*self.yscale-self.yoff
 
-    def getTrace(self, channel):
-        '''measure trace from scope, using channel number "channel"'''
+    def getTimeTrace(self):
+        '''return trace with time'''
         self.__scope.write('C1:WF? DAT1')
         data = self.__scope.read_raw()
-        npa = 1.*np.fromstring(data[16:-1], dtype=np.int16)*self.yscale-self.yoff
-        print self.yoff
-        plotTime = 1.*np.arange(np.size(npa))*self.timebase
-        from matplotlib import pyplot as plt
-        plt.plot(plotTime, npa)
-        plt.show()
-        return data
+        waveform = 1.*np.fromstring(data[16:-1], dtype=np.int16)*self.yscale-self.yoff
+        plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
+        return (plotTime, waveform)
+
+    def closeConnection(self):
+        self.__scope.close()
 
     def buzzBeep(self):
         self.__scope.write("BUZZ BEEP")
@@ -131,23 +131,15 @@ class LeCroyScopeSimulatorDSO:
         '''visa command read function'''
         return self.lastCommand
 
-    def read_raw(self):
-        if self.lastCommand == 'ARM;WAIT;C1:WF? DESC;':
-            data = 16*'.' + struct.pack(wdf, 0, 0, 346, 8000, 1000, 0, 1, 0, 11, 1, 0, 0, 1, 1, 1, 1,1,1, 1, 1)
-            return data
-
-        elif self.lastCommand == 'ARM;WAIT;C1:WF? DAT1':
-            time.sleep(.1)
-            data = (np.random.rand(1016) - 0.5)*512
-            data = data.astype(np.int16)
-            string = struct.pack('1016h', *data) + '\0'
-            return string
+    def ReadBinary(self):
+        data = (np.random.rand(1016) - 0.5)*512
+        data = data.astype(np.int16)
+        string = struct.pack('1016h', *data) + '\0'
+        return string
 
     def WriteString(self, string, constX):
         '''visa command write function'''
         self.lastCommand = string
-
-    def Disconnect(self): pass
 
 class LeCroyScopeControllerDSO:
     '''interface to LeCroy oscilloscopes with ActiveX DSO interface for VICP'''
@@ -169,14 +161,16 @@ class LeCroyScopeControllerDSO:
     def initialize(self):
         '''hardware and waveform initialization'''
         # do a calibration
-        #self.__scope.WriteString('*CAL?', 1)
-        #time.sleep(5)
+        self.__scope.WriteString('*CAL?', 1)
+        time.sleep(5)
         # clear screen, sweepes and turn of auto cal and leave scope in normal trigger mode
         self.__scope.WriteString('*CLS;CLSW;TRMD NORMAL;ACAL OFF', 1)
         # CORD LO for intel based computers, CORD HI default
-        # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD
-        self.__scope.WriteString('WFSU SP,4,NP,0,FP,0,SN,0;CFMT DEF9,WORD,BIN;CORD HI', 1)
+        # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
+        self.__scope.WriteString('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,WORD,BIN;CORD HI', 1)
         
+    def trigModeNormal(self):
+        self.__scope.WriteString('TRMD NORMAL', 1)
 
     def dispOff(self):
         self.__scope.WriteString('DISP OFF', 1)
@@ -190,35 +184,31 @@ class LeCroyScopeControllerDSO:
         '''set number of sweeps for averaging'''
         self.__scope.WriteString("VBS 'app.acquisition.C1.AverageSweeps=" + str(numberSweeps) + "'", 1)
 
-    def getWFDescription(self): pass
+    def clearSweeps(self):
+        self._scope.WriteString('*CLS;CLSW', 1)
 
-    def setScales(self): pass
-        
-    def armwaitread(self):
-        self.__scope.WriteString('ARM;', 1)
-        data = self.__scope.GetIntegerWaveform('C1', 10000, 0)
-        return data
-    
-    def armScope(self): 
-        '''arm scope for single shot acquisition'''
-        # set scope to 1 average before and single trigger mode
-        self.setSweeps(1)
-        self.__scope.WriteString('*CLS;CLSW;TRMD SINGLE', 1)
-               
-    def getTrace(self, channel):
-        '''measure trace from scope, using channel number "channel"'''
-        print(self.__scope.WriteString("VBS? 'return = app.Acquisition.Horizontal.HorScale", 1))
-        print(self.__scope.ReadString(256))
+    def setScales(self):
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.VerticalResolution", 1)
+        VerticalResolution = self.__scope.ReadString(256)
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.VerticalPerStep", 1)
+        VerticalPerStep = self.__scope.ReadString(256)
+        # TODO how to reconstruct screen display from these values
+        self.yscale = VerticalResolution
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.VerOffset", 1)
+        self.yoff = self.__scope.ReadString(256)
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.Samples' ", 1)
-        nums = self.__scope.ReadString(256)
-        print nums
-        #ReadBinary()
-        waveform = self.__scope.GetScaledWaveform('C1', nums, 0)
-        
-        print len(waveform)
-        from matplotlib import pyplot as plt
-        plt.plot(waveform)
-        plt.show()
+        self.numpoints = self.__scope.ReadString(256)
+        self.__scope.WriteString('TDIV?', 1)
+        self.timeincr = float(self.__scope.ReadString(256))/(float(self.numpoints)/10)
+       
+    def armwaitread(self):
+        self.__scope.WriteString("ARM;WAIT;C1:WF? DAT1", True)
+        data = self.__scope.ReadBinary(self.numpoints)
+        data = 1.*np.fromstring(data, dtype=np.int16)
+        return data[16:-1]
+               
+    def getTimeTrace(self):
+        return self.__scope.GetScaledWaveformWithTimes("C1", self.numpoints, 0)
 
     def closeConnection(self):
         self.__scope.Disconnect()
@@ -231,9 +221,22 @@ class LeCroyScopeControllerDSO:
 if __name__ == '__main__':	
     scope = LeCroyScopeControllerDSO()
     #scope.initialize()
-    #scope.setSweeps(1)
-    #scope.setScales()
-    #scope.getTrace(1)
-    #scope.dispOn()
-    scope.closeConnection()
+    scope.setSweeps(1)
+    scope.setScales()
+    scope.dispOff()
+    accumT = 0
+    for i in xrange(1,10):
+        start = time.clock()
+        data = scope.armwaitread()
+        accumT = accumT + (time.clock() - start)*1000
+        print (accumT/i)
+    from matplotlib import pyplot as plt
+    plt.figure(1)
+    plt.plot(data)
+    plt.figure(2)
+    time,data = scope.getTimeTrace()
+    plt.plot(time,data)
+    plt.show()
     scope.buzzBeep()
+    scope.dispOn()
+    scope.closeConnection()
