@@ -8,6 +8,7 @@ CHLA = 1 etc.
 import sys
 import os
 import ctypes
+import time
 
 class PulseGeneratorSimulator:
     '''simulator, if visa not present or OS not Windows'''
@@ -29,22 +30,33 @@ class PulseGeneratorController:
         print '-----------------------------------------------------------------------------'
         try:
             import visa
+            from pyvisa.resources import MessageBasedResource
             if sys.platform == 'darwin':
                 raise OSError
-            self.__delayGen = visa.instrument("COM8")
-            mode = 'Visa driver for 9520 delay generator found, connection established'
+            rm = visa.ResourceManager()
+            # set termination character (<carriage return><line feed>, <cr><lf>) for QC delay generator
+            self.__delayGen = rm.open_resource('ASRL13::INSTR')#, resource_pyclass=MessageBasedResource, send_end=True)
+            #self.__delayGen.term_chars='\r\n'
+            # default baud rate for usb is 38400
+
+            
+            #self.__delayGen.write(':SYST:BAUD 38400')
+            print 'Visa driver for 9520 delay generator found, connection established with:'
+            #self.__delayGen.write('*IDN?')
+            #time.sleep(1)
+            #print(self.__delayGen.read())
         except OSError:
             self.__delayGen = PulseGeneratorSimulator()
-            mode = 'OSError, enter simulation mode for delay generator'
+            print 'OSError, enter simulation mode for delay generator'
         except ImportError:
             self.__delayGen = PulseGeneratorSimulator()
-            mode = 'Hardware not present, enter simulation mode for delay generator'
-        print mode
+            print 'Hardware not present, enter simulation mode for delay generator'
 
-        # default baud rate for usb is 38400
+        
+
 
     def enableChl(self, channel):
-        self.__delayGen.write("PULSE{:d}:STATE ON<cr><lf>".format(channel))
+        self.__delayGen.write("PULSE{:d}:STATE ON".format(channel))
 
     def disableChl(self, channel):
         self.__delayGen.write("PULSE{:d}:STATE OFF<cr><lf>".format(channel))
@@ -58,6 +70,6 @@ class PulseGeneratorController:
 if __name__ == '__main__':
     delayGenerator = PulseGeneratorController()
     import time
-    delayGenerator.enableChl(1)
+    #delayGenerator.enableChl(1)
     time.sleep(2)
-    delayGenerator.disableChl(1)
+    #delayGenerator.disableChl(1)

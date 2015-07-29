@@ -17,10 +17,12 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import random
 import numpy as np
+import time
 
 # hardware controller modules
 from Instruments.PCI7300ADIOCard import *
-from Instruments.LeCroyScopeController import LeCroyScopeController
+from Instruments.LeCroyScopeController import LeCroyScopeControllerVISA
+from Instruments.LeCroyScopeController import LeCroyScopeControllerDSO
 from Instruments.WaveformPotentials import WaveformPotentials21Elec
 from Instruments.DCONUSB87P4 import USB87P4Controller
 
@@ -32,6 +34,9 @@ class scopeThread(QtCore.QThread):
         self.scope = scope
         self.scope.setScales()
 
+        self.accumT = 0
+        self.iT = 0
+
     dataReady = QtCore.pyqtSignal(object)
     # override
     def __del__(self):
@@ -39,8 +44,12 @@ class scopeThread(QtCore.QThread):
 
     def run(self):
         while self.scopeActive:
+            start = time.clock()
             data = self.scope.armwaitread()
             self.dataReady.emit(data)
+            self.accumT = self.accumT + (time.clock() - start)*1000
+            self.iT = self.iT + 1
+            print (self.accumT/self.iT)
         self.quit()
         return
 
@@ -170,7 +179,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.cursorPos = np.array([0,0,0,0])
 
         self.setWindowTitle('RSDRSE Control')
-        self.centerWindow()
+        #self.centerWindow()
         self.setFixedSize(720, 558)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
@@ -299,7 +308,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.DIOCard = DIOCardController()
         self.DIOCard.configureCardDO()
         # scope
-        self.scope = LeCroyScopeController()
+        self.scope = LeCroyScopeControllerDSO()
         self.scope.initialize()
         print '-----------------------------------------------------------------------------'
 
@@ -316,7 +325,5 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)
-    
     myapp = RSDControl()
-    #app.setStyle('cleanlooks')
     app.exec_()
