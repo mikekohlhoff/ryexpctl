@@ -64,7 +64,7 @@ class LeCroyScopeControllerVISA:
         time.sleep(5)
         # CORD LO for intel based computers, CORD HI default
         # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
-        self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,WORD,BIN;CHDR OFF;CORD HI')
+        self.__scope.write('WFSU SP,1,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CHDR OFF;CORD HI')
         # clear registers, sweepes and turn of auto cal and leave scope in normal trigger mode
         self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
 
@@ -97,20 +97,19 @@ class LeCroyScopeControllerVISA:
         self.yscale = wfd.VERTICAL_GAIN
         self.yoff = wfd.VERTICAL_OFFSET
         numpoints = wfd.WAVE_ARRAY_COUNT
-        self.__scope.write('TDIV?')
-        self.timeincr = float(self.__scope.read())/float(numpoints/10)
-       
+        self.timeincr = wfd.HORIZ_INTERVAL
+             
     def armwaitread(self):
         '''main function for readout in GUI'''
         self.__scope.write('ARM;WAIT;C1:WF? DAT1')
         data = self.__scope.read_raw()
-        return 1.*np.fromstring(data[16:-1], dtype=np.int16)*self.yscale-self.yoff
+        return 1.*(np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscale-self.yoff
 
     def getTimeTrace(self):
         '''return trace with time'''
         self.__scope.write('C1:WF? DAT1')
         data = self.__scope.read_raw()
-        waveform = 1.*np.fromstring(data[16:-1], dtype=np.int16)*self.yscale-self.yoff
+        waveform = (np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscale-self.yoff
         plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
         return (plotTime, waveform)
 
@@ -220,7 +219,7 @@ class LeCroyScopeControllerDSO:
 		
 if __name__ == '__main__':	
     scope = LeCroyScopeControllerDSO()
-    #scope.initialize()
+    scope.initialize()
     scope.setSweeps(1)
     scope.setScales()
     scope.dispOff()
@@ -232,7 +231,7 @@ if __name__ == '__main__':
         print (accumT/i)
     from matplotlib import pyplot as plt
     plt.figure(1)
-    plt.plot(data)
+    plt.plot(data, '.')
     plt.figure(2)
     time,data = scope.getTimeTrace()
     plt.plot(time,data)

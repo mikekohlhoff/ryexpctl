@@ -34,17 +34,17 @@ class PulseGeneratorController:
             if sys.platform == 'darwin':
                 raise OSError
             rm = visa.ResourceManager()
+            self.__delayGen = rm.open_resource('ASRL13::INSTR')
             # set termination character (<carriage return><line feed>, <cr><lf>) for QC delay generator
-            self.__delayGen = rm.open_resource('ASRL13::INSTR')#, resource_pyclass=MessageBasedResource, send_end=True)
-            #self.__delayGen.term_chars='\r\n'
+            self.__delayGen.write_termination='\r\n'
+            self.__delayGen.read_termination='\r\n'
             # default baud rate for usb is 38400
-
-            
-            #self.__delayGen.write(':SYST:BAUD 38400')
+            self.__delayGen.baud_rate = 38400
             print 'Visa driver for 9520 delay generator found, connection established with:'
-            #self.__delayGen.write('*IDN?')
-            #time.sleep(1)
-            #print(self.__delayGen.read())
+            self.__delayGen.write('*IDN?')
+            time.sleep(0.1)
+            print(self.__delayGen.read())
+
         except OSError:
             self.__delayGen = PulseGeneratorSimulator()
             print 'OSError, enter simulation mode for delay generator'
@@ -52,24 +52,44 @@ class PulseGeneratorController:
             self.__delayGen = PulseGeneratorSimulator()
             print 'Hardware not present, enter simulation mode for delay generator'
 
-        
 
+    def screenUpdate(self, updONOFF):
+        '''turn on automatic update of the screen'''
+        self.__delayGen.write(':DISPLAY:MODE ' + updONOFF)
 
     def enableChl(self, channel):
-        self.__delayGen.write("PULSE{:d}:STATE ON".format(channel))
+        self.__delayGen.write(':PULS{:d}:STAT 1'.format(channel))
 
     def disableChl(self, channel):
-        self.__delayGen.write("PULSE{:d}:STATE OFF<cr><lf>".format(channel))
+        self.__delayGen.write(':PULS{:d}:STAT 0'.format(channel))
 
     def setDelay(self, channel, delayVal):
         '''set delay of respective channel'''
         # delay set in s 
-        self.__delayGen.write("PULSE{:d}:DELAY {:f}<cr><lf>".format(channel, delayVal))
+        self.__delayGen.write(":PULS{:d}:DELAY {:f}".format(channel, delayVal))
+
+    def setWidth(self, channel, widthVal):
+        '''set delay of respective channel'''
+        # pulse width set in s 
+        self.__delayGen.write(":PULS{:d}:WIDTH {:f}".format(channel, widthVal))
+        
+    def closeConnection(self):
+        self.__delayGen.close()
 
 
 if __name__ == '__main__':
-    delayGenerator = PulseGeneratorController()
+    delGen = PulseGeneratorController()
     import time
-    #delayGenerator.enableChl(1)
+    delGen.screenUpdate('ON')
+    delGen.disableChl(7)
     time.sleep(2)
-    #delayGenerator.disableChl(1)
+    delGen.enableChl(7)
+    time.sleep(1)
+    delGen.setDelay(7, 0.001)
+    time.sleep(1)
+    delGen.setDelay(7, 0)
+    time.sleep(1)
+    delGen.setWidth(7, 0.001)
+    time.sleep(1)
+    delGen.setWidth(7, 0.000001)
+    delGen.closeConnection()
