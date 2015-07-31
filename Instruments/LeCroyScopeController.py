@@ -109,7 +109,7 @@ class LeCroyScopeControllerVISA:
         '''return trace with time'''
         self.__scope.write('C1:WF? DAT1')
         data = self.__scope.read_raw()
-        waveform = (np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscale-self.yoff
+        waveform = 1.*(np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscale-self.yoff
         plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
         return (plotTime, waveform)
 
@@ -166,7 +166,7 @@ class LeCroyScopeControllerDSO:
         self.__scope.WriteString('*CLS;CLSW;TRMD NORMAL;ACAL OFF', 1)
         # CORD LO for intel based computers, CORD HI default
         # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
-        self.__scope.WriteString('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,WORD,BIN;CORD HI', 1)
+        self.__scope.WriteString('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CORD HI', 1)
         
     def trigModeNormal(self):
         self.__scope.WriteString('TRMD NORMAL', 1)
@@ -187,27 +187,26 @@ class LeCroyScopeControllerDSO:
         self._scope.WriteString('*CLS;CLSW', 1)
 
     def setScales(self):
-        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.VerticalResolution", 1)
-        VerticalResolution = self.__scope.ReadString(256)
-        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.VerticalPerStep", 1)
-        VerticalPerStep = self.__scope.ReadString(256)
-        # TODO how to reconstruct screen display from these values
-        self.yscale = VerticalResolution
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.VerticalResolution", 1)
+        self.yscale = float(self.__scope.ReadString(256))
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.VerOffset", 1)
-        self.yoff = self.__scope.ReadString(256)
+        self.yoff = float(self.__scope.ReadString(256))
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.Samples' ", 1)
         self.numpoints = self.__scope.ReadString(256)
-        self.__scope.WriteString('TDIV?', 1)
-        self.timeincr = float(self.__scope.ReadString(256))/(float(self.numpoints)/10)
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.HorizontalPerStep", 1)
+        self.timeincr = float(self.__scope.ReadString(256))
        
     def armwaitread(self):
         self.__scope.WriteString("ARM;WAIT;C1:WF? DAT1", True)
         data = self.__scope.ReadBinary(self.numpoints)
-        data = 1.*np.fromstring(data, dtype=np.int16)
-        return data[16:-1]
+        waveform = 1.*(np.fromstring(data, dtype=np.dtype('int8')).astype('float'))*self.yscale-self.yoff
+        return waveform
                
     def getTimeTrace(self):
-        return self.__scope.GetScaledWaveformWithTimes("C1", self.numpoints, 0)
+        waveform =  self.__scope.GetScaledWaveform("C1", self.numpoints, 0)
+        plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
+        return (plotTime, waveform)
+
 
     def closeConnection(self):
         self.__scope.Disconnect()
@@ -218,7 +217,7 @@ class LeCroyScopeControllerDSO:
 
 		
 if __name__ == '__main__':	
-    scope = LeCroyScopeControllerDSO()
+    scope = LeCroyScopeControllerVISA()
     scope.initialize()
     scope.setSweeps(1)
     scope.setScales()
@@ -231,10 +230,11 @@ if __name__ == '__main__':
         print (accumT/i)
     from matplotlib import pyplot as plt
     plt.figure(1)
-    plt.plot(data, '.')
+    plt.plot(data)
+    scope.trigModeNormal()
     plt.figure(2)
-    time,data = scope.getTimeTrace()
-    plt.plot(time,data)
+    t, data = scope.getTimeTrace()
+    plt.plot(t, data)
     plt.show()
     scope.buzzBeep()
     scope.dispOn()
