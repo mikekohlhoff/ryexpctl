@@ -217,7 +217,7 @@ class LeCroyScopeControllerDSO:
 
 		
 if __name__ == '__main__':	
-    scope = LeCroyScopeControllerVISA()
+    scope = LeCroyScopeControllerDSO()
     scope.initialize()
     scope.setSweeps(1)
     scope.setScales()

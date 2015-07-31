@@ -23,6 +23,8 @@ class PulseGeneratorSimulator:
         '''visa command read function'''
         return self.lastCommand
 
+    def close(self): pass
+
    
 class PulseGeneratorController:
     '''interface to delay generator'''
@@ -75,7 +77,6 @@ class PulseGeneratorController:
         
     def closeConnection(self):
         self.__delayGen.close()
-
 
 if __name__ == '__main__':
     delGen = PulseGeneratorController()
