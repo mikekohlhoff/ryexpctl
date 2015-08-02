@@ -74,20 +74,18 @@ class MaxiGauge (object):
         #SEN [,x,x,x,x,x,x] <CR>[<LF>]
         #Sensors 1 ... 6
         #x = 0 -> No change, 1 -> Off, 2 -> On
-        statusAll = '[,x,x,x,x,x,x]'
-        print statusAll
-        statusAll
+        statusAll = list(',0,0,0,0,0,0')
         ps = self.pressures()
         # 0 - sensor on, 4 - sensor off
-        if ps[sensor-1].status == 0 and state == 'ON':
-            statusAll[sensor-1] = '2'
-            self.send('SEN{:d}'.format(sensor)
-            print 'Turn gauge #{:d} off'.format(sensor-1)
-        else:
-            print 'sensor off'
-
-                      
-
+        if ps[sensor-1].status == 0 and state == 'OFF':
+            statusAll[2*sensor - 1] = '1'
+            self.send('SEN' + "".join(statusAll))
+            print 'Turn gauge #{:d} off'.format(sensor)
+        elif ps[sensor-1].status == 4 and state == 'ON':
+            statusAll[2*sensor - 1] = '2'
+            print "".join(statusAll)
+            self.send('SEN' + "".join(statusAll))
+            print 'Turn gauge #{:d} on'.format(sensor)                   
 
     def debugMessage(self, message):
         if self.debug: print(repr(message))
@@ -276,6 +274,10 @@ if __name__ == '__main__':
         ps = mg.pressures()
         print "Sensor {:d} {:4e} mbar".format(i+1, ps[i].pressure)
     import time
+    mg.gaugeSwitch(1, 'OFF')
+    time.sleep(3)
+    mg.gaugeSwitch(1, 'ON')
+    time.sleep(3)
     mg.gaugeSwitch(4, 'OFF')
     time.sleep(3)
     mg.gaugeSwitch(4, 'ON')
