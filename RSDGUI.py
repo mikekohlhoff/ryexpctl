@@ -1,7 +1,13 @@
+'''
+Control RSE experiment, GUI in RSDControl class, scope read-out in separate thread that emits data to widget
+that handles data evaluation, display and saving
+''' 
+
 import time
 from datetime import datetime
 import os
 import sys
+import time
 
 PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
 
@@ -17,7 +23,6 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import random
 import numpy as np
-import time
 
 # hardware controller modules
 from Instruments.PCI7300ADIOCard import *
@@ -26,23 +31,217 @@ from Instruments.LeCroyScopeController import LeCroyScopeControllerDSO
 from Instruments.WaveformPotentials import WaveformPotentials21Elec
 from Instruments.DCONUSB87P4 import USB87P4Controller
 
-# subclass qthread (not recommended officially, old style)
+class RSDControl(QtGui.QMainWindow, ui_form):
+    def __init__(self, parent=None):
+        QtGui.QMainWindow.__init__(self, parent)
+        self.setupUi(self)
+        self.initHardware()
+        # monitor constants
+        self.scopeMon = False
+        self.scanMode = False
+        # waveform generation window
+        self.WfWin = waveformWindow(self.DIOCard)
+        self.initUI()
+
+    def initUI(self):
+        # signals and slots
+        self.inp_aveSweeps.editingFinished.connect(self.inp_aveSweeps_changed)
+        self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
+        self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
+        self.chk_editWF.clicked.connect(self.showWfWin)
+        self.inp_gate1Start.valueChanged.connect(self.setCursorsScopeWidget)
+        self.inp_gate1Stop.valueChanged.connect(self.setCursorsScopeWidget)
+        self.inp_gate2Start.valueChanged.connect(self.setCursorsScopeWidget)
+        self.inp_gate2Stop.valueChanged.connect(self.setCursorsScopeWidget)
+
+        # function in module as slot
+        self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
+        self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
+        self.inp_voltMCP.editingFinished.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
+        self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
+        self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
+        self.WfWin.winClose.connect(lambda: self.chk_editWF.setChecked(False))
+
+        # defaults
+        self.inp_aveSweeps.setValue(1)
+        self.cursorPos = np.array([0,0,0,0])
+        # have only scope non-scan related controls activated
+        self.enableControlsScan(True)
+        self.groupBox_DataAcq.setEnabled(False)
+        self.groupBox_ScanParam.setEnabled(False)
+        self.groupBox_TOF.setEnabled(False)
+
+		 # set size of window
+        self.setWindowTitle('RSDRSE Control')
+        #self.centerWindow()
+        #self.setFixedSize(720, 558)
+        #self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        self.show()
+
+    def showWfWin(self):
+        '''display control window for decelerator waveform generation'''
+        self.chk_editWF.setEnabled(False)
+        self.WfWin.show()
+
+    def chk_readScope_clicked(self):
+        '''create scope thread and _run()'''
+        # have scope connection within scope thread
+        self.scope.closeConnection()
+        self.scopeMon = self.chk_readScope.isChecked()
+        if self.scopeMon:
+            self.enableControlsScope(True)
+            self.dataBuf = []
+            self.scopeThread = scopeThread(True, self.inp_aveSweeps.value())
+            self.scopeThread.dataReady.connect(self.dataAcquisition)
+            self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
+        else:
+            self.enableControlsScope(False)
+            self.scopeThread.scopeActive = False
+            self.scope = LeCroyScopeControllerVISA()
+
+    def btn_startDataAcq_clicked(self):
+        self.scanMode = not(self.scanMode)
+        if self.scanMode:
+            # start scan, reset recorded data
+            self.scanParam = str(self.scanModeSelect.currentText())
+            self.DataDisplay.plotTrace1 = []
+            self.DataDisplay.plotTrace2 = []
+            self.DataDisplay.errTrace1 = []
+            self.DataDisplay.errTrace2 = []
+            self.btn_startDataAcq.setText('Abort Data Acq')
+            self.enableControlsScan(False)
+            print 'DATA ACQ ON'
+        else:
+            # abort scan
+            self.btn_startDataAcq.setText('Start Data Acq')
+            self.enableControlsScan(True)
+            print 'DATA ACQ OFF'
+
+    def dataAcquisition(self, data):
+        # add data
+        self.dataBuf.append(data)
+        self.cursorPos = self.ScopeDisplay.getCursors()         
+        self.setGateField(self.cursorPos)
+        if len(self.dataBuf) >= self.scopeThread.avgSweeps:
+            # deque trace buffer when average shots is reached
+            dataIn = self.dataBuf[0:self.scopeThread.avgSweeps]
+            del self.dataBuf[0:self.scopeThread.avgSweeps]
+            # integration done in widgets
+            if self.scopeMon and not(self.scanMode):
+                self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincr)   
+            elif self.scopeMon and self.scanMode:
+                self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincr)
+                self.DataDisplay.plot(dataIn, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincr)
+        
+    def setGateField(self, cursorPos):
+        # convert to mus
+        cursorPos = np.around(1E6*cursorPos, decimals=2)
+        inpPos = np.array([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
+                      self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
+        if np.array_equal(cursorPos, inpPos):
+            return
+        else:
+            self.inp_gate1Start.setValue(cursorPos[0])
+            self.inp_gate1Stop.setValue(cursorPos[1])
+            self.inp_gate2Start.setValue(cursorPos[2])
+            self.inp_gate2Stop.setValue(cursorPos[3])
+
+    def setCursorsScopeWidget(self):
+        cursorPos = np.array([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
+                                self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
+        self.ScopeDisplay.setCursors(1E-6*cursorPos)
+           
+    def centerWindow(self):
+        frm = self.frameGeometry()
+        win = QtGui.QDesktopWidget().availableGeometry().center()
+        frm.moveCenter(win)
+        self.move(frm.topLeft())
+        
+    def enableControlsScan(self, boolEnbl):
+        # lock controls when scanning to avoid DAU to interfere with measurement
+        self.groupBox_ScanParam.setEnabled(boolEnbl)
+        self.groupBox_Laser.setEnabled(boolEnbl)
+        self.groupBox_MCP.setEnabled(boolEnbl)
+        self.groupBox_Extraction.setEnabled(boolEnbl)
+        self.groupBox_Scope.setEnabled(boolEnbl)
+        self.groupBox_DevControl.setEnabled(boolEnbl)      
+        self.groupBox_TOF.setEnabled(boolEnbl)      
+        
+    def enableControlsScope(self, boolEnbl):
+        # when starting up scan controls locked, only when scope read out activated
+        self.groupBox_DataAcq.setEnabled(boolEnbl)
+        self.groupBox_ScanParam.setEnabled(boolEnbl)
+        self.groupBox_TOF.setEnabled(boolEnbl)
+        
+    def inp_aveSweeps_changed(self):
+        # sets avg on scope or avg in data eval after readout
+        if self.scopeMon:
+            self.scopeThread.avgSweepsChanged(self.inp_aveSweeps.value())
+        else:
+            self.scopeThread.avgSweeps = self.inp_aveSweeps.value()
+            # reset data buffer
+            self.dataBuf = []
+            
+    def closeEvent(self, event):
+        reply = QtGui.QMessageBox.question(self, '',
+            "Shut down experiment control?", QtGui.QMessageBox.Yes | 
+            QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)
+
+        if reply == QtGui.QMessageBox.Yes:
+            event.accept()
+            self.shutDownExperiment()
+        else:
+            event.ignore()
+
+    def initHardware(self):
+        print '-----------------------------------------------------------------------------'
+        print 'Initialising hardware'
+        # USB analog input/output
+        self.analogIO = USB87P4Controller()
+        self.analogIO.openDevice()
+        # waveform generator
+        self.DIOCard = DIOCardController()
+        self.DIOCard.configureCardDO()
+        # scope init here for calib and WFSU,
+        # conncection closed when scope read-out active
+        self.scope = LeCroyScopeControllerVISA()
+        #TODO self.scope.initialize()
+        self.scope.invertTrace(True)
+        print '-----------------------------------------------------------------------------'
+
+    def shutDownExperiment(self):
+        print 'Releasing controllers:'
+        self.analogIO.closeDevice()
+        self.DIOCard.releaseCard()
+        if hasattr(self, 'scope'):
+            self.scope.closeConnection()
+        if hasattr(self, 'scopeThread'):
+            self.scopeThread.terminate() # vs exit() vs quit()
+        if hasattr(self.WfWin, 'wfThread'):
+            self.WfWin.wfThread.terminate()
+        self.WfWin.close()
+        
+# subclass qthread (not recommended officially, old style)      
 class scopeThread(QtCore.QThread):
-    def __init__(self, scopeActive=True, scope=None):
+    def __init__(self, scopeActive=True, avgSweeps=1):
         QtCore.QThread.__init__(self)
         self.scopeActive = scopeActive
-        self.scope = scope
+        self.scope = LeCroyScopeControllerVISA()
+        # averages for data eval with single traces from scope
+        self.avgSweeps = avgSweeps
+        self.scope.invertTrace(False)
+        self.scope.setSweeps(1)
         self.scope.setScales()
-
         self.accumT = 0
         self.iT = 0
-
+        
     dataReady = QtCore.pyqtSignal(object)
     # override
     def __del__(self):
         self.wait()
 
     def run(self):
+        self.scope.dispOff()
         while self.scopeActive:
             start = time.clock()
             data = self.scope.armwaitread()
@@ -50,8 +249,17 @@ class scopeThread(QtCore.QThread):
             self.accumT = self.accumT + (time.clock() - start)*1000
             self.iT = self.iT + 1
             print (self.accumT/self.iT)
+        # return control to scope
+        self.scope.dispOn()
+        self.scope.invertTrace(True)
+        self.scope.trigModeNormal()
+        self.scope.closeConnection()
         self.quit()
         return
+        
+    def avgSweepsChanged(self, avgSweeps):
+        self.avgSweeps = avgSweeps
+        print 'Avg sweeps for data eval changed to ' + str(self.avgSweeps)
 
 class waveformGenThread(QtCore.QThread):
     def __init__(self, wfOutActive, DIOCard=None):
@@ -93,7 +301,7 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         self.inp_outDist.editingFinished.connect(self.setPCBPotentials)
         self.inp_sampleRate.setReadOnly(True)
         self.chk_extTrig.stateChanged.connect(self.startDOOutput)
-        self.chk_plotWF.stateChanged.connect(self.resizeWin)
+        self.chk_plotWF.stateChanged.connect(self.resizeWfWin)
 
     winClose = QtCore.pyqtSignal()
 
@@ -138,189 +346,12 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         if self.chk_plotWF.checkState():
             self.WaveformDisplay.plot(self.wfPotentials)
 
-    def resizeWin(self):
+    def resizeWfWin(self):
         if self.chk_plotWF.isChecked():
             self.setFixedSize(640, 300)
         else:
             self.setFixedSize(196, 258)
 
-class RSDControl(QtGui.QMainWindow, ui_form):
-    def __init__(self, parent=None):
-        QtGui.QMainWindow.__init__(self, parent)
-        self.setupUi(self)
-        self.initHardware()
-        # monitor constants
-        self.scopeMon = False
-        self.scanMode = False
-        # waveform generation window
-        self.WfWin = waveformWindow(self.DIOCard)
-        self.initUI()
-
-    def initUI(self):
-        # signals and slots
-        self.inp_aveSweeps.editingFinished.connect(self.inp_aveSweeps_changed)
-        self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
-        self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
-        self.chk_editWF.clicked.connect(self.showWfWin)
-        self.inp_gate1Start.editingFinished.connect(self.setCursorsScopeWidget)
-        self.inp_gate1Stop.editingFinished.connect(self.setCursorsScopeWidget)
-        self.inp_gate2Start.editingFinished.connect(self.setCursorsScopeWidget)
-        self.inp_gate2Stop.editingFinished.connect(self.setCursorsScopeWidget)
-        # function in module as slot
-        self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
-        self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
-        self.inp_voltMCP.editingFinished.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
-        self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
-        self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
-        self.WfWin.winClose.connect(lambda: self.chk_editWF.setChecked(False))
-        # defaults
-        self.inp_aveSweeps.setValue(1)
-        self.radio_voltMode.setChecked(True)
-        self.cursorPos = np.array([0,0,0,0])
-
-        self.setWindowTitle('RSDRSE Control')
-        #self.centerWindow()
-        self.setFixedSize(720, 558)
-        self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-        self.show()
-
-    def showWfWin(self):
-        self.chk_editWF.setEnabled(False)
-        self.WfWin.show()
-
-    def chk_readScope_clicked(self):
-        self.scopeMon = self.chk_readScope.isChecked()
-        if self.scanMode:
-            return
-        else:    
-            if self.scopeMon:
-                self.startAcquisitionThread()
-                self.scope.dispOff()
-                self.editGateField(True)
-            else:
-                self.scopeThread.scopeActive = False
-                self.scope.dispOn()
-                self.editGateField(False)
-
-    def btn_startDataAcq_clicked(self):
-        self.scanMode = not(self.scanMode)
-        if self.scopeMon and hasattr(self, 'scopeThread'):
-            self.scopeThread.terminate()
-            self.scopeThread.scopeActive = False
-        if self.scanMode:
-            self.inp_aveSweeps.setValue(1)
-            self.scope.armScope()
-            # reset recorded data
-            self.DataDisplay.plotTrace1 = []
-            self.DataDisplay.plotTrace2 = []
-            self.btn_startDataAcq.setText('Stop Data Acq')
-            self.scopeMon = True
-            self.chk_readScope.setChecked(True)
-            self.startAcquisitionThread()
-            self.chk_readScope.setEnabled(False)
-            self.enableControlsScope(False)
-            self.radio_voltMode.setEnabled(False)
-            self.radio_wlMode.setEnabled(False)
-            self.scope.dispOff()
-            print 'DATA ACQ ON'
-        else:
-            self.scopeThread.scopeActive = False
-            self.btn_startDataAcq.setText('Start Data Acq')
-            self.scopeMon = False
-            self.chk_readScope.setChecked(False)
-            self.chk_readScope.setEnabled(True)
-            self.enableControlsScope(True)
-            self.editGateField(False)
-            self.radio_voltMode.setEnabled(True)
-            self.radio_wlMode.setEnabled(True)
-            self.scope.dispOn()
-            print 'DATA ACQ OFF'
-
-    def startAcquisitionThread(self):
-        self.scopeThread = scopeThread(True,self.scope)
-        self.scopeThread.scopeActive = True
-        self.scopeThread.dataReady.connect(self.acquisitionCtl)
-        self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
-
-    def acquisitionCtl(self, data):
-        if not(self.scanMode) and self.scopeMon:
-            self.cursorPos = self.ScopeDisplay.plotMon(data)
-            self.setGateField(self.cursorPos)
-        if self.scanMode and self.scopeMon:
-            self.ScopeDisplay.plotDataAcq(data, self.cursorPos)
-            if self.radio_voltMode.isChecked():
-                self.DataDisplay.plot(data, self.cursorPos, 'volt')
-            elif self.radio_wlMode.isChecked():
-                self.DataDisplay.plot(data, self.cursorPos, 'wl')
-    
-    def setGateField(self, cursorPos):
-        self.inp_gate1Start.setValue(cursorPos[0])
-        self.inp_gate1Stop.setValue(cursorPos[1])
-        self.inp_gate2Start.setValue(cursorPos[2])
-        self.inp_gate2Stop.setValue(cursorPos[3])
-
-    def editGateField(self, boolEnbl):
-        self.inp_gate1Start.setReadOnly(boolEnbl)
-        self.inp_gate1Stop.setReadOnly(boolEnbl)
-        self.inp_gate2Start.setReadOnly(boolEnbl)
-        self.inp_gate2Stop.setReadOnly(boolEnbl)
-
-    def enableControlsScope(self, boolEnbl):
-        self.inp_gate1Start.setEnabled(boolEnbl)
-        self.inp_gate1Stop.setEnabled(boolEnbl)
-        self.inp_gate2Start.setEnabled(boolEnbl)
-        self.inp_gate2Stop.setEnabled(boolEnbl)
-
-    def setCursorsScopeWidget(self):
-        if self.scopeMon:
-            return
-        else:
-            self.cursorPos = np.array([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
-                             self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
-            self.ScopeDisplay.setCursors(self.cursorPos)
-           
-    def centerWindow(self):
-        frm = self.frameGeometry()
-        win = QtGui.QDesktopWidget().availableGeometry().center()
-        frm.moveCenter(win)
-        self.move(frm.topLeft())
-
-    def inp_aveSweeps_changed(self):
-        self.scope.setSweeps(self.inp_aveSweeps.value())
-
-    def closeEvent(self, event):
-        reply = QtGui.QMessageBox.question(self, '',
-            "Shut down experiment control?", QtGui.QMessageBox.Yes | 
-            QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)
-
-        if reply == QtGui.QMessageBox.Yes:
-            event.accept()
-            self.shutDownExperiment()
-        else:
-            event.ignore()
-
-    def initHardware(self):
-        print 'Initialising hardware'
-        # USB analog input/output
-        self.analogIO = USB87P4Controller()
-        self.analogIO.openDevice()
-        # waveform generator
-        self.DIOCard = DIOCardController()
-        self.DIOCard.configureCardDO()
-        # scope
-        self.scope = LeCroyScopeControllerDSO()
-        self.scope.initialize()
-        print '-----------------------------------------------------------------------------'
-
-    def shutDownExperiment(self):
-        print 'Releasing controllers:'
-        self.analogIO.closeDevice()
-        self.DIOCard.releaseCard()
-        if hasattr(self, 'scopeThread'):
-            self.scopeThread.terminate() # vs exit() vs quit()
-        if hasattr(self.WfWin, 'wfThread'):
-            self.WfWin.wfThread.terminate()
-        self.WfWin.close()
             
 if __name__ == "__main__":
 

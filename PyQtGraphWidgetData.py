@@ -4,6 +4,7 @@ import pyqtgraph as pg
 import numpy as np
 import math
 from pyqtgraph import mkPen
+from pyqtgraph import mkBrush
 
 class PyQtGraphWidgetData(QtGui.QGraphicsView):
 
@@ -19,24 +20,53 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
         self.vbl = QtGui.QVBoxLayout()
         self.vbl.addWidget(self.dataWidget)
         self.setLayout(self.vbl)
-        self.dataWidget.setLabel('left', 'Integrated signal', units='arb')
+        self.dataWidget.setLabel('left', 'Integrated signal')
         self.dataWidget.showGrid(x=False, y=True)
         self.plotTrace1 = []
         self.plotTrace2 = []
-
-    def integrator(self, data, cPos):
-        # integrate scope traces 
+        self.errTrace1 = []
+        self.errTrace2 = []
+        
+    def integrator(self, dataIn, cPos):
+        # integrate scope traces and invert
+        data = (sum(dataIn)/len(dataIn))*-1
+        # std deviation for average
+        dataIn = np.vstack(dataIn)
+        err = np.std(dataIn, axis=0)
         intTrace = [sum(data[cPos[0]:cPos[1]]), sum(data[cPos[2]:cPos[3]])]
-        return intTrace
+        # error propagation
+        err = [np.sqrt(sum(np.square(err[cPos[0]:cPos[1]]))), np.sqrt(sum(np.square(err[cPos[2]:cPos[3]])))]
+        return intTrace, err
     
-    def plot(self, data, cursorPos, radioMode):
-        plotData = self.integrator(data, cursorPos)
-        self.plotTrace1.append(plotData[0])
-        self.plotTrace2.append(plotData[1])
-       # self.dataWidget.clear()
-        self.dataWidget.plot(self.plotTrace1, pen=mkPen('#0000A0', width=1.2), clear=True)#, symbolBrush='#0000A0', symbolSize=4)
-        self.dataWidget.plot(self.plotTrace2, pen=mkPen('#347C17', width=1.2), clear=False)#, symbolBrush='#347C17', symbolSize=4)
-        if radioMode == 'volt':
+    def plot(self, dataIn, cPosIn, scanParam, ti):
+        cPos = [round(cPosIn[0]/ti), round(cPosIn[1]/ti), round(cPosIn[2]/ti), round(cPosIn[3]/ti)]
+        data, err = self.integrator(dataIn, cPos)
+       
+        self.plotTrace1.append(float(data[0]))
+        self.plotTrace2.append(float(data[1]))
+        self.errTrace1.append(float(err[0]))
+        self.errTrace2.append(float(err[1]))
+               
+        # convert error to display version, error as band with data as line inbetween
+        errPlot1 = [np.asarray(self.plotTrace1)+0.5*np.asarray(self.errTrace1), np.asarray(self.plotTrace1)-0.5*np.asarray(self.errTrace1)]
+        errPlot2 = [np.asarray(self.plotTrace2)+0.5*np.asarray(self.errTrace2), np.asarray(self.plotTrace2)-0.5*np.asarray(self.errTrace2)]
+        e11 = self.dataWidget.plot(errPlot1[0], pen=mkPen('#0000A0', width=0.5), clear=True)
+        e12 = self.dataWidget.plot(errPlot1[1], pen=mkPen('#0000A0', width=0.5))
+        e21 = self.dataWidget.plot(errPlot2[0], pen=mkPen('#347C17', width=0.5))
+        e22 = self.dataWidget.plot(errPlot2[1], pen=mkPen('#347C17', width=0.5))
+        fillErr1 = pg.FillBetweenItem(e11, e12, brush=mkBrush(0,0,160,80))
+        fillErr2 = pg.FillBetweenItem(e21, e22, brush=mkBrush(52,124,23,80))
+        self.dataWidget.addItem(fillErr1)
+        self.dataWidget.addItem(fillErr2)
+        # actual averaged data
+        self.dataWidget.plot(self.plotTrace1, pen=mkPen('#0000A0', width=1.5, style=QtCore.Qt.DashLine))
+        self.dataWidget.plot(self.plotTrace2, pen=mkPen('#347C17', width=1.5, style=QtCore.Qt.DashLine))
+        # overlay with scatter to discern parameter spacing
+        self.dataWidget.plot(self.plotTrace1, symbolBrush='#0000A0', symbolSize=4)
+        self.dataWidget.plot(self.plotTrace2, symbolBrush='#347C17', symbolSize=4)
+        
+        if scanParam == 'Voltage':
             self.dataWidget.setLabel('bottom', 'Extraction Voltage', units='V')
         else:
-            self.dataWidget.setLabel('bottom', '2nd Wavelength', units='nm')
+            self.dataWidget.setLabel('bottom', 'UV Wavelength', units='nm')
+   

@@ -106,7 +106,8 @@ class WaveformPotentials21Elec:
         self.potentialsOut = nan_to_num(potentialsOut)
         print 'Potential waveforms generated'
         mes = """Time of flight for whole sequence: {0:.2f}mus""".format(self.plotTime[-1])
-        print textwrap.dedent(mes)        
+        print textwrap.dedent(mes)
+        print '-----------------------------------------------------------------------------'        
         
     def plot(self):
         if hasattr(self, 'plotTime'):

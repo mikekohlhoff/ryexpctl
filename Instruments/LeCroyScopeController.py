@@ -43,30 +43,31 @@ class LeCroyScopeSimulatorVISA:
 class LeCroyScopeControllerVISA:
     '''interface to LeCroy oscilloscopes controlled by commands sent via VISA'''
     def __init__(self):
-        print '-----------------------------------------------------------------------------'
         try:
             import visa
             # introduced this fix, cf. pyvisa issue #168
             from pyvisa.resources import MessageBasedResource
             rm = visa.ResourceManager()
             self.__scope = rm.open_resource("VICP::169.254.201.2::INSTR", resource_pyclass=MessageBasedResource)
-            print "Scope connection established with device ID:"
-            print(self.__scope.query("*IDN?"))
+            # CORD LO for intel based computers, CORD HI default
+            # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
+            self.__scope.write('WFSU SP,1,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CHDR OFF;CORD HI')
+            # clear registers, sweepes and turn of auto cal and leave scope in normal trigger mode
+            self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
+
         except ImportError:
             print "Can't load visa/scope driver, using simulator for scope"
             self.__scope = LeCroyScopeSimulatorVISA()
 
-
     def initialize(self):
         '''hardware initialization'''
+        print '-----------------------------------------------------------------------------'
+        print "Scope connection established with device ID:"
+        print(self.__scope.query("*IDN?"))
         # do a calibration
         self.__scope.write('*CAL?')
-        time.sleep(5)
-        # CORD LO for intel based computers, CORD HI default
-        # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
-        self.__scope.write('WFSU SP,1,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CHDR OFF;CORD HI')
-        # clear registers, sweepes and turn of auto cal and leave scope in normal trigger mode
-        self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
+        print 'Calibrating scope ...'
+        time.sleep(8)
 
     def trigModeNormal(self):
         self.__scope.write('TRMD NORMAL')
@@ -113,6 +114,9 @@ class LeCroyScopeControllerVISA:
         plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
         return (plotTime, waveform)
 
+    def invertTrace(self, boolInv):
+        self.__scope.write("VBS? 'app.Acquisition.C1.Invert=" + str(boolInv) + "'")
+
     def closeConnection(self):
         self.__scope.close()
 
@@ -143,15 +147,17 @@ class LeCroyScopeSimulatorDSO:
 class LeCroyScopeControllerDSO:
     '''interface to LeCroy oscilloscopes with ActiveX DSO interface for VICP'''
     def __init__(self):
-        print '-----------------------------------------------------------------------------'
         try:
             #imports the pywin32 library
             import win32com.client
             self.__scope=win32com.client.Dispatch("LeCroy.ActiveDSOCtrl.1")
             self.__scope.MakeConnection("IP:169.254.201.2")
-            self.__scope.WriteString("*IDN?", 1)
-            print "Scope connection established with device ID:"
-            print(self.__scope.ReadString(256))
+            # clear screen, sweepes and turn of auto cal and leave scope in normal trigger mode
+            self.__scope.WriteString('*CLS;CLSW;TRMD NORMAL;ACAL OFF', 1)
+            # CORD LO for intel based computers, CORD HI default
+            # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
+            self.__scope.WriteString('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CORD HI', 1)
+
         except ImportError:
             print "Can't load scope driver, using simulator for scope"
             self.__scope = LeCroyScopeSimulatorDSO()
@@ -159,14 +165,14 @@ class LeCroyScopeControllerDSO:
 
     def initialize(self):
         '''hardware and waveform initialization'''
+        print '-----------------------------------------------------------------------------'
+        self.__scope.WriteString("*IDN?", 1)
+        print "Scope connection established with device ID:"
+        print(self.__scope.ReadString(256))
         # do a calibration
         self.__scope.WriteString('*CAL?', 1)
-        time.sleep(5)
-        # clear screen, sweepes and turn of auto cal and leave scope in normal trigger mode
-        self.__scope.WriteString('*CLS;CLSW;TRMD NORMAL;ACAL OFF', 1)
-        # CORD LO for intel based computers, CORD HI default
-        # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
-        self.__scope.WriteString('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CORD HI', 1)
+        print 'Calibrating scope ...'
+        time.sleep(8)
         
     def trigModeNormal(self):
         self.__scope.WriteString('TRMD NORMAL', 1)
@@ -207,7 +213,9 @@ class LeCroyScopeControllerDSO:
         plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
         return (plotTime, waveform)
 
-
+    def invertTrace(self, boolInv):
+        self.__scope.WriteString("VBS? 'app.Acquisition.C1.Invert=" + str(boolInv) + "'", 1)
+        
     def closeConnection(self):
         self.__scope.Disconnect()
 
@@ -221,9 +229,13 @@ if __name__ == '__main__':
     scope.initialize()
     scope.setSweeps(1)
     scope.setScales()
+    scope.invertTrace(True)
+    time.sleep(2)
+    scope.invertTrace(False)
+    time.sleep(1)
     scope.dispOff()
     accumT = 0
-    for i in xrange(1,10):
+    for i in xrange(1,20):
         start = time.clock()
         data = scope.armwaitread()
         accumT = accumT + (time.clock() - start)*1000

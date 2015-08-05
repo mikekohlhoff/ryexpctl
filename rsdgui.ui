@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1194</width>
-    <height>987</height>
+    <width>800</width>
+    <height>900</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -89,7 +89,7 @@
    </property>
    <layout class="QFormLayout" name="formLayout"/>
   </widget>
-  <widget class="QGroupBox" name="groupBox_3">
+  <widget class="QGroupBox" name="groupBox_Scope">
    <property name="geometry">
     <rect>
      <x>420</x>
@@ -215,35 +215,6 @@
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="btn_saveTrace">
-    <property name="geometry">
-     <rect>
-      <x>5</x>
-      <y>85</y>
-      <width>90</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>90</width>
-      <height>21</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>11</pointsize>
-     </font>
-    </property>
-    <property name="layoutDirection">
-     <enum>Qt::LeftToRight</enum>
-    </property>
-    <property name="text">
-     <string>Save Trace</string>
-    </property>
-   </widget>
-   <zorder>btn_saveTrace</zorder>
-   <zorder>verticalLayoutWidget</zorder>
   </widget>
   <widget class="PyQtGraphWidgetData" name="DataDisplay">
    <property name="geometry">
@@ -267,7 +238,7 @@
     <enum>QFrame::Plain</enum>
    </property>
   </widget>
-  <widget class="QGroupBox" name="groupBox_4">
+  <widget class="QGroupBox" name="groupBox_Extraction">
    <property name="geometry">
     <rect>
      <x>420</x>
@@ -293,7 +264,10 @@
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <property name="spacing">
-      <number>1</number>
+      <number>2</number>
+     </property>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetFixedSize</enum>
      </property>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -302,6 +276,12 @@
        </property>
        <item>
         <widget class="QSpinBox" name="inp_voltExtract">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="maximumSize">
           <size>
            <width>40</width>
@@ -391,7 +371,7 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QGroupBox" name="groupBox_5">
+  <widget class="QGroupBox" name="groupBox_DataAcq">
    <property name="geometry">
     <rect>
      <x>420</x>
@@ -422,37 +402,11 @@
      <string>Start Data Acq</string>
     </property>
    </widget>
-   <widget class="QWidget" name="layoutWidget">
-    <property name="geometry">
-     <rect>
-      <x>115</x>
-      <y>25</y>
-      <width>91</width>
-      <height>51</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="verticalLayout_6">
-     <property name="spacing">
-      <number>10</number>
-     </property>
-     <item>
-      <widget class="QRadioButton" name="radio_voltMode">
-       <property name="text">
-        <string>Voltage</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QRadioButton" name="radio_wlMode">
-       <property name="text">
-        <string>Wavelength</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
   </widget>
-  <widget class="QGroupBox" name="groupBox_6">
+  <widget class="QGroupBox" name="groupBox_ScanParam">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>420</x>
@@ -492,8 +446,8 @@
      <rect>
       <x>10</x>
       <y>50</y>
-      <width>91</width>
-      <height>78</height>
+      <width>95</width>
+      <height>90</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_6">
@@ -503,7 +457,10 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <property name="spacing">
-        <number>1</number>
+        <number>2</number>
+       </property>
+       <property name="sizeConstraint">
+        <enum>QLayout::SetFixedSize</enum>
        </property>
        <item>
         <widget class="QSpinBox" name="inp_setWLScan">
@@ -652,7 +609,10 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_7">
        <property name="spacing">
-        <number>1</number>
+        <number>2</number>
+       </property>
+       <property name="sizeConstraint">
+        <enum>QLayout::SetFixedSize</enum>
        </property>
        <item>
         <widget class="QSpinBox" name="inp_incrField">
@@ -750,8 +710,8 @@
    <widget class="QCheckBox" name="chk_editWF">
     <property name="geometry">
      <rect>
-      <x>15</x>
-      <y>130</y>
+      <x>10</x>
+      <y>150</y>
       <width>131</width>
       <height>20</height>
      </rect>
@@ -768,62 +728,33 @@
      <bool>false</bool>
     </property>
    </widget>
-   <widget class="QCheckBox" name="chk_readScope_2">
+   <widget class="QComboBox" name="scanModeSelect">
     <property name="geometry">
      <rect>
-      <x>215</x>
-      <y>135</y>
-      <width>116</width>
-      <height>18</height>
+      <x>175</x>
+      <y>140</y>
+      <width>96</width>
+      <height>26</height>
      </rect>
     </property>
-    <property name="font">
-     <font>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Pulse valve</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="chk_readScope_3">
-    <property name="geometry">
-     <rect>
-      <x>185</x>
-      <y>160</y>
-      <width>116</width>
-      <height>18</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Lasers</string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="chk_readScope_4">
-    <property name="geometry">
-     <rect>
-      <x>215</x>
-      <y>105</y>
-      <width>116</width>
-      <height>18</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>10</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Excimer</string>
-    </property>
+    <item>
+     <property name="text">
+      <string>Voltage</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Wavelength</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>DelaysTODO</string>
+     </property>
+    </item>
    </widget>
   </widget>
-  <widget class="QGroupBox" name="groupBox_2">
+  <widget class="QGroupBox" name="groupBox_TOF">
    <property name="geometry">
     <rect>
      <x>560</x>
@@ -851,7 +782,10 @@
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_9">
      <property name="spacing">
-      <number>1</number>
+      <number>2</number>
+     </property>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetFixedSize</enum>
      </property>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -1047,14 +981,20 @@
     </layout>
    </widget>
   </widget>
-  <widget class="QGroupBox" name="groupBox_9">
+  <widget class="QGroupBox" name="groupBox_MCP">
    <property name="geometry">
     <rect>
-     <x>420</x>
-     <y>200</y>
-     <width>296</width>
-     <height>76</height>
+     <x>270</x>
+     <y>620</y>
+     <width>321</width>
+     <height>156</height>
     </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
    </property>
    <property name="title">
     <string>MCP</string>
@@ -1062,8 +1002,8 @@
    <widget class="QWidget" name="layoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>5</x>
-      <y>20</y>
+      <x>70</x>
+      <y>70</y>
       <width>86</width>
       <height>52</height>
      </rect>
@@ -1077,81 +1017,16 @@
        <property name="spacing">
         <number>0</number>
        </property>
-       <item>
-        <widget class="QSpinBox" name="inp_voltMCP">
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="minimum">
-          <number>0</number>
-         </property>
-         <property name="maximum">
-          <number>1600</number>
-         </property>
-         <property name="singleStep">
-          <number>5</number>
-         </property>
-         <property name="value">
-          <number>0</number>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QSpinBox" name="inp_voltPhos">
-         <property name="maximumSize">
-          <size>
-           <width>40</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="wrapping">
-          <bool>false</bool>
-         </property>
-         <property name="frame">
-          <bool>true</bool>
-         </property>
-         <property name="buttonSymbols">
-          <enum>QAbstractSpinBox::NoButtons</enum>
-         </property>
-         <property name="keyboardTracking">
-          <bool>true</bool>
-         </property>
-         <property name="minimum">
-          <number>0</number>
-         </property>
-         <property name="maximum">
-          <number>4000</number>
-         </property>
-         <property name="value">
-          <number>0</number>
-         </property>
-        </widget>
-       </item>
       </layout>
      </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_13">
+       <property name="spacing">
+        <number>2</number>
+       </property>
+       <property name="sizeConstraint">
+        <enum>QLayout::SetFixedSize</enum>
+       </property>
        <item>
         <widget class="QLabel" name="label_26">
          <property name="text">
@@ -1186,8 +1061,124 @@
      <string>Ramp MCP</string>
     </property>
    </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>215</x>
+      <y>41</y>
+      <width>42</width>
+      <height>58</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="spacing">
+      <number>10</number>
+     </property>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetFixedSize</enum>
+     </property>
+     <item>
+      <widget class="QSpinBox" name="inp_voltMCP">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>22</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>40</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="mouseTracking">
+        <bool>true</bool>
+       </property>
+       <property name="wrapping">
+        <bool>false</bool>
+       </property>
+       <property name="frame">
+        <bool>true</bool>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="keyboardTracking">
+        <bool>true</bool>
+       </property>
+       <property name="minimum">
+        <number>0</number>
+       </property>
+       <property name="maximum">
+        <number>1600</number>
+       </property>
+       <property name="singleStep">
+        <number>5</number>
+       </property>
+       <property name="value">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="inp_voltPhos">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>22</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>40</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="mouseTracking">
+        <bool>true</bool>
+       </property>
+       <property name="wrapping">
+        <bool>false</bool>
+       </property>
+       <property name="frame">
+        <bool>true</bool>
+       </property>
+       <property name="buttonSymbols">
+        <enum>QAbstractSpinBox::NoButtons</enum>
+       </property>
+       <property name="keyboardTracking">
+        <bool>true</bool>
+       </property>
+       <property name="minimum">
+        <number>0</number>
+       </property>
+       <property name="maximum">
+        <number>4000</number>
+       </property>
+       <property name="value">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
-  <widget class="QGroupBox" name="groupBox_10">
+  <widget class="QGroupBox" name="groupBox_Laser">
    <property name="geometry">
     <rect>
      <x>560</x>
@@ -1210,7 +1201,10 @@
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout_11">
      <property name="spacing">
-      <number>1</number>
+      <number>2</number>
+     </property>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetFixedSize</enum>
      </property>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -1316,6 +1310,91 @@
       </layout>
      </item>
     </layout>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_DevControl">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>645</y>
+     <width>181</width>
+     <height>176</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>Device Control</string>
+   </property>
+   <widget class="QCheckBox" name="chk_readScope_4">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>35</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Excimer</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chk_readScope_5">
+    <property name="geometry">
+     <rect>
+      <x>5</x>
+      <y>70</y>
+      <width>146</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Pressure gauge main</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chk_readScope_2">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>110</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Pulse valve</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="chk_readScope_3">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>140</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Lasers</string>
+    </property>
    </widget>
   </widget>
  </widget>
