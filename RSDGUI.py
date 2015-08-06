@@ -7,7 +7,6 @@ import time
 from datetime import datetime
 import os
 import sys
-import time
 
 PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
 
@@ -30,15 +29,17 @@ from Instruments.LeCroyScopeController import LeCroyScopeControllerVISA
 from Instruments.LeCroyScopeController import LeCroyScopeControllerDSO
 from Instruments.WaveformPotentials import WaveformPotentials21Elec
 from Instruments.DCONUSB87P4 import USB87P4Controller
+from Instruments.PfeifferMaxiGauge import MaxiGauge
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.setupUi(self)
         self.initHardware()
-        # monitor constants
+        # monitor constants, hasattr(thread) only works before first creation
         self.scopeMon = False
         self.scanMode = False
+        self.pressThread = False
         # waveform generation window
         self.WfWin = waveformWindow(self.DIOCard)
         self.initUI()
@@ -48,7 +49,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_aveSweeps.editingFinished.connect(self.inp_aveSweeps_changed)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
+        self.chk_invertTrace1.clicked.connect(self.chk_invertTrace1_clicked)
+        self.chk_invertTrace2.clicked.connect(self.chk_invertTrace2_clicked)
         self.chk_editWF.clicked.connect(self.showWfWin)
+        self.chk_readMainGauge.clicked.connect(self.readGauge_clicked)
+        self.chk_readSourceGauge.clicked.connect(self.readGauge_clicked)
         self.inp_gate1Start.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate1Stop.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate2Start.valueChanged.connect(self.setCursorsScopeWidget)
@@ -68,8 +73,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # have only scope non-scan related controls activated
         self.enableControlsScan(True)
         self.groupBox_DataAcq.setEnabled(False)
-        self.groupBox_ScanParam.setEnabled(False)
+        self.tabWidget_ScanParam.setEnabled(False)
         self.groupBox_TOF.setEnabled(False)
+        self.out_readMainGauge.setText('Gauge turned off')
+        self.out_readSourceGauge.setText('Read out not active')
 
 		 # set size of window
         self.setWindowTitle('RSDRSE Control')
@@ -85,18 +92,18 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def chk_readScope_clicked(self):
         '''create scope thread and _run()'''
-        # have scope connection within scope thread
-        self.scope.closeConnection()
         self.scopeMon = self.chk_readScope.isChecked()
         if self.scopeMon:
-            self.enableControlsScope(True)
+            # have scope connection within scope thread
+            self.scope.closeConnection()
             self.dataBuf = []
             self.scopeThread = scopeThread(True, self.inp_aveSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
+            self.enableControlsScope(True)
         else:
-            self.enableControlsScope(False)
             self.scopeThread.scopeActive = False
+            self.enableControlsScope(False)
             self.scope = LeCroyScopeControllerVISA()
 
     def btn_startDataAcq_clicked(self):
@@ -159,18 +166,19 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         
     def enableControlsScan(self, boolEnbl):
         # lock controls when scanning to avoid DAU to interfere with measurement
-        self.groupBox_ScanParam.setEnabled(boolEnbl)
+        self.tabWidget_ScanParam.setEnabled(boolEnbl)
         self.groupBox_Laser.setEnabled(boolEnbl)
         self.groupBox_MCP.setEnabled(boolEnbl)
         self.groupBox_Extraction.setEnabled(boolEnbl)
         self.groupBox_Scope.setEnabled(boolEnbl)
         self.groupBox_DevControl.setEnabled(boolEnbl)      
         self.groupBox_TOF.setEnabled(boolEnbl)      
+        self.groupBox_Decelerator.setEnabled(boolEnbl)      
         
     def enableControlsScope(self, boolEnbl):
         # when starting up scan controls locked, only when scope read out activated
         self.groupBox_DataAcq.setEnabled(boolEnbl)
-        self.groupBox_ScanParam.setEnabled(boolEnbl)
+        self.tabWidget_ScanParam.setEnabled(boolEnbl)
         self.groupBox_TOF.setEnabled(boolEnbl)
         
     def inp_aveSweeps_changed(self):
@@ -181,6 +189,49 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.avgSweeps = self.inp_aveSweeps.value()
             # reset data buffer
             self.dataBuf = []
+            
+    def chk_invertTrace1_clicked(self):
+        self.scope.invertTrace('C1', self.chk_invertTrace1.isChecked())
+        if self.chk_invertTrace1.isChecked():
+            print 'Invert scope trace C1'
+        else:
+            print 'Scope trace C1 non-inverted'
+            
+    def chk_invertTrace2_clicked(self):
+        self.scope.invertTrace('C2', self.chk_invertTrace2.isChecked())
+        if self.chk_invertTrace2.isChecked():
+            print 'Invert scope trace C2'
+        else:
+            print 'Scope trace C2 non-inverted'
+            
+    def readGauge_clicked(self):
+        '''create maxi gauge thread and _run()'''
+        # create controller connection within scope thread
+        MainActive = self.chk_readMainGauge.isChecked()
+        SourceActive = self.chk_readSourceGauge.isChecked()
+        if MainActive: MainState = 'ON'
+        else: MainState = 'OFF'       
+        if not(self.pressThread):
+            self.PressureThread = PressureThread(True, MainState)
+            self.PressureThread.pressReadReady.connect(self.setPressRead)
+            self.PressureThread.start(priority=QtCore.QThread.LowPriority)
+            self.pressThread = True
+        else:
+            self.PressureThread.MainState = MainState            
+        if not(MainActive) and not(SourceActive):
+            self.pressThread = False
+            time.sleep(2)        
+            self.PressureThread.ReadActive = False    
+        if not(MainActive):
+            self.out_readMainGauge.setText('Gauge turned off')
+        if not(SourceActive):
+            self.out_readSourceGauge.setText('Read out not active')
+            
+    def setPressRead(self, pressRead):
+        if self.chk_readMainGauge.isChecked():
+            self.out_readMainGauge.setText(pressRead[0])
+        if self.chk_readSourceGauge.isChecked():
+            self.out_readSourceGauge.setText(pressRead[1])
             
     def closeEvent(self, event):
         reply = QtGui.QMessageBox.question(self, '',
@@ -206,7 +257,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()
         #TODO self.scope.initialize()
-        self.scope.invertTrace(True)
+        self.scope.invertTrace('C1', True)
         print '-----------------------------------------------------------------------------'
 
     def shutDownExperiment(self):
@@ -216,12 +267,39 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if hasattr(self, 'scope'):
             self.scope.closeConnection()
         if hasattr(self, 'scopeThread'):
-            self.scopeThread.terminate() # vs exit() vs quit()
+            # vs exit() vs quit()
+            self.scopeThread.terminate() 
         if hasattr(self.WfWin, 'wfThread'):
             self.WfWin.wfThread.terminate()
+        if hasattr(self, 'PressureThread'):
+            self.PressureThread.terminate()
         self.WfWin.close()
         
-# subclass qthread (not recommended officially, old style)      
+# subclass qthread (not recommended officially, old style)
+class PressureThread(QtCore.QThread):
+    def __init__(self, ReadActive, MainState):
+        QtCore.QThread.__init__(self)
+        self.ReadActive = ReadActive
+        self.MainState = MainState
+        self.MaxiGauge = MaxiGauge('COM1')
+        
+    pressReadReady = QtCore.pyqtSignal(object)
+    
+    def __del__(self):
+        self.wait()
+        
+    def run(self):
+        while self.ReadActive:
+            self.MaxiGauge.gaugeSwitch(4, self.MainState)
+            self.msleep(100)
+            ps = self.MaxiGauge.pressures()
+            MainPress = "{:2.3e} mbar".format(ps[3].pressure)
+            SourcePress = "{:2.3e} mbar".format(ps[0].pressure)
+            self.pressReadReady.emit([MainPress, SourcePress])
+        self.MaxiGauge.disconnect()
+        self.quit()
+        return
+      
 class scopeThread(QtCore.QThread):
     def __init__(self, scopeActive=True, avgSweeps=1):
         QtCore.QThread.__init__(self)
@@ -229,7 +307,7 @@ class scopeThread(QtCore.QThread):
         self.scope = LeCroyScopeControllerVISA()
         # averages for data eval with single traces from scope
         self.avgSweeps = avgSweeps
-        self.scope.invertTrace(False)
+        self.scope.invertTrace('C1', False)
         self.scope.setSweeps(1)
         self.scope.setScales()
         self.accumT = 0
@@ -251,7 +329,7 @@ class scopeThread(QtCore.QThread):
             print (self.accumT/self.iT)
         # return control to scope
         self.scope.dispOn()
-        self.scope.invertTrace(True)
+        self.scope.invertTrace('C1', True)
         self.scope.trigModeNormal()
         self.scope.closeConnection()
         self.quit()

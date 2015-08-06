@@ -114,8 +114,8 @@ class LeCroyScopeControllerVISA:
         plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
         return (plotTime, waveform)
 
-    def invertTrace(self, boolInv):
-        self.__scope.write("VBS? 'app.Acquisition.C1.Invert=" + str(boolInv) + "'")
+    def invertTrace(self, chl, boolInv):
+        self.__scope.write("VBS? 'app.Acquisition." + chl + ".Invert=" + str(boolInv) + "'")
 
     def closeConnection(self):
         self.__scope.close()
@@ -213,8 +213,8 @@ class LeCroyScopeControllerDSO:
         plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
         return (plotTime, waveform)
 
-    def invertTrace(self, boolInv):
-        self.__scope.WriteString("VBS? 'app.Acquisition.C1.Invert=" + str(boolInv) + "'", 1)
+    def invertTrace(self, chl, boolInv):
+        self.__scope.WriteString("VBS? 'app.Acquisition." + chl + ".Invert=" + str(boolInv) + "'", 1)
         
     def closeConnection(self):
         self.__scope.Disconnect()

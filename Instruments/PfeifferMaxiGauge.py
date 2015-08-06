@@ -77,13 +77,13 @@ class MaxiGauge (object):
         statusAll = list(',0,0,0,0,0,0')
         ps = self.pressures()
         # 0 - sensor on, 4 - sensor off
-        if ps[sensor-1].status == 0 and state == 'OFF':
+        stat = ps[sensor-1].status
+        if stat != 4 and state == 'OFF':
             statusAll[2*sensor - 1] = '1'
             self.send('SEN' + "".join(statusAll))
             print 'Turn gauge #{:d} off'.format(sensor)
-        elif ps[sensor-1].status == 4 and state == 'ON':
+        elif stat != 0 and state == 'ON':
             statusAll[2*sensor - 1] = '2'
-            print "".join(statusAll)
             self.send('SEN' + "".join(statusAll))
             print 'Turn gauge #{:d} on'.format(sensor)                   
 
@@ -139,7 +139,8 @@ class MaxiGauge (object):
         
     def disconnect(self):
         #self.send(C['ETX'])
-        if hasattr(self, 'connection') and self.connection: self.connection.close()
+        if hasattr(self, 'connection') and self.connection: 
+            self.connection.close()
 
     def __del__(self):
         self.disconnect()
@@ -274,12 +275,14 @@ if __name__ == '__main__':
         ps = mg.pressures()
         print "Sensor {:d} {:4e} mbar".format(i+1, ps[i].pressure)
     import time
-    mg.gaugeSwitch(1, 'OFF')
-    time.sleep(3)
+    start = time.clock()
     mg.gaugeSwitch(1, 'ON')
-    time.sleep(3)
-    mg.gaugeSwitch(4, 'OFF')
-    time.sleep(3)
+    time.sleep(1)
+    mg.gaugeSwitch(1, 'OFF')
+    time.sleep(1)
     mg.gaugeSwitch(4, 'ON')
+    #time.sleep(1)
+    mg.gaugeSwitch(4, 'OFF')
+    print 'time: ' + str(time.clock() - start)
     mg.disconnect()
     
