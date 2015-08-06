@@ -71,7 +71,11 @@ class LeCroyScopeControllerVISA:
 
     def trigModeNormal(self):
         self.__scope.write('TRMD NORMAL')
-    
+        
+    def setTrigOffset(self, offset):
+        '''Time on scope display between trigger and left edge''' 
+        self.__scope.write("VBS 'app.acquisition.Horizontal.HorOffset=" + str(offset) + "'")
+       
     def dispOff(self):
         self.__scope.write('DISP OFF')
         print 'Scope display off'
@@ -87,35 +91,47 @@ class LeCroyScopeControllerVISA:
     def clearSweeps(self):
         self._scope.write('*CLS;CLSW')
 
-    def getWFDescription(self):
-        self.__scope.write('C1:WF? DESC;')
+    def getWFDescription(self, channel):
+        self.__scope.write('{:s}:WF? DESC;'.format(channel))
         data = self.__scope.read_raw()
         WAVEDESC = data[16:346+16]
         return wft._make(struct.unpack(wdf, WAVEDESC))
 
     def setScales(self):
-        wfd = self.getWFDescription()
-        self.yscale = wfd.VERTICAL_GAIN
-        self.yoff = wfd.VERTICAL_OFFSET
-        numpoints = wfd.WAVE_ARRAY_COUNT
-        self.timeincr = wfd.HORIZ_INTERVAL
-             
+        wfd = self.getWFDescription('C1')
+        self.yscaleC1 = wfd.VERTICAL_GAIN
+        self.yoffC1 = wfd.VERTICAL_OFFSET
+        numpointsC1 = wfd.WAVE_ARRAY_COUNT
+        self.timeincrC1 = wfd.HORIZ_INTERVAL
+        self.trigOffsetC1 =  wfd.HORIZ_OFFSET
+        wfd = self.getWFDescription('C2')
+        self.yscaleC2 = wfd.VERTICAL_GAIN
+        self.yoffC2 = wfd.VERTICAL_OFFSET
+        numpointsC2 = wfd.WAVE_ARRAY_COUNT
+        self.timeincrC2 = wfd.HORIZ_INTERVAL 
+        self.trigOffsetC2 =  wfd.HORIZ_OFFSET
+        
     def armwaitread(self):
         '''main function for readout in GUI'''
         self.__scope.write('ARM;WAIT;C1:WF? DAT1')
-        data = self.__scope.read_raw()
-        return 1.*(np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscale-self.yoff
+        data1 = self.__scope.read_raw()
+        datC1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
+        return datC1
 
     def getTimeTrace(self):
         '''return trace with time'''
         self.__scope.write('C1:WF? DAT1')
         data = self.__scope.read_raw()
-        waveform = 1.*(np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscale-self.yoff
-        plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
+        waveform = 1.*(np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
+        plotTime = 1.*np.arange(np.size(waveform))*self.timeincrC1
         return (plotTime, waveform)
 
     def invertTrace(self, chl, boolInv):
         self.__scope.write("VBS? 'app.Acquisition." + chl + ".Invert=" + str(boolInv) + "'")
+        if boolInv:
+            print 'Invert scope trace ' + chl
+        else:
+            print 'Scope trace ' + chl + ' non-inverted'
 
     def closeConnection(self):
         self.__scope.close()
@@ -188,29 +204,42 @@ class LeCroyScopeControllerDSO:
     def setSweeps(self, numberSweeps):
         '''set number of sweeps for averaging'''
         self.__scope.WriteString("VBS 'app.acquisition.C1.AverageSweeps=" + str(numberSweeps) + "'", 1)
+        self.__scope.WriteString("VBS 'app.acquisition.C2.AverageSweeps=" + str(numberSweeps) + "'", 1)
 
     def clearSweeps(self):
         self._scope.WriteString('*CLS;CLSW', 1)
 
     def setScales(self):
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.VerticalResolution", 1)
-        self.yscale = float(self.__scope.ReadString(256))
+        self.yscaleC1 = float(self.__scope.ReadString(256))
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.VerOffset", 1)
-        self.yoff = float(self.__scope.ReadString(256))
+        self.yoffC1 = float(self.__scope.ReadString(256))
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.Samples' ", 1)
-        self.numpoints = self.__scope.ReadString(256)
+        self.numpointsC1 = self.__scope.ReadString(256)
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.HorizontalPerStep", 1)
-        self.timeincr = float(self.__scope.ReadString(256))
+        self.timeincrC1 = float(self.__scope.ReadString(256))
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C1.Out.Result.HorizontalOffset", 1)
+        self.trigOffsestC1 = float(self.__scope.ReadString(256))
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C2.Out.Result.VerticalResolution", 1)
+        self.yscaleC2 = float(self.__scope.ReadString(256))
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C2.VerOffset", 1)
+        self.yoffC2 = float(self.__scope.ReadString(256))
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C2.Out.Result.Samples' ", 1)
+        self.numpointsC2 = self.__scope.ReadString(256)
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C2.Out.Result.HorizontalPerStep", 1)
+        self.timeincrC2 = float(self.__scope.ReadString(256))
+        self.__scope.WriteString("VBS? 'return = app.Acquisition.C2.Out.Result.HorizontalOffset", 1)
+        self.trigOffsestC2 = float(self.__scope.ReadString(256))       
        
     def armwaitread(self):
         self.__scope.WriteString("ARM;WAIT;C1:WF? DAT1", True)
-        data = self.__scope.ReadBinary(self.numpoints)
-        waveform = 1.*(np.fromstring(data, dtype=np.dtype('int8')).astype('float'))*self.yscale-self.yoff
+        data = self.__scope.ReadBinary(self.numpointsC1)
+        waveform = 1.*(np.fromstring(data, dtype=np.dtype('int8')).astype('float'))*self.yscaleC1-self.yoffC1
         return waveform
                
     def getTimeTrace(self):
-        waveform =  self.__scope.GetScaledWaveform("C1", self.numpoints, 0)
-        plotTime = 1.*np.arange(np.size(waveform))*self.timeincr
+        waveform =  self.__scope.GetScaledWaveform("C1", self.numpointsC1, 0)
+        plotTime = 1.*np.arange(np.size(waveform))*self.timeincrC1
         return (plotTime, waveform)
 
     def invertTrace(self, chl, boolInv):

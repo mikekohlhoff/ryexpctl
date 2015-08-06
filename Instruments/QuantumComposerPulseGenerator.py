@@ -46,7 +46,7 @@ class PulseGeneratorController:
             self.__delayGen.write('*IDN?')
             time.sleep(0.1)
             print(self.__delayGen.read())
-
+            
         except OSError:
             self.__delayGen = PulseGeneratorSimulator()
             print 'OSError, enter simulation mode for delay generator'
@@ -55,20 +55,24 @@ class PulseGeneratorController:
             print 'Hardware not present, enter simulation mode for delay generator'
 
 
-    def screenUpdate(self, updONOFF):
+    def screenUpdate(self, state):
         '''turn on automatic update of the screen'''
-        self.__delayGen.write(':DISPLAY:MODE ' + updONOFF)
+        self.__delayGen.write(':DISPLAY:MODE ' + state)
+        time.sleep(0.1)
+        self.__delayGen.read()
 
-    def enableChl(self, channel):
-        self.__delayGen.write(':PULS{:d}:STAT 1'.format(channel))
-
-    def disableChl(self, channel):
-        self.__delayGen.write(':PULS{:d}:STAT 0'.format(channel))
+    def switchChl(self, channel, state):
+        self.__delayGen.write(':PULS{:d}:STAT {:d}'.format(channel, state))
 
     def setDelay(self, channel, delayVal):
         '''set delay of respective channel'''
         # delay set in s 
         self.__delayGen.write(":PULS{:d}:DELAY {:f}".format(channel, delayVal))
+     
+    def readDelay(self, channel):
+        '''read delay of respective channel'''
+        self.__delayGen.write(":PULS{:d}:DELAY?".format(channel))
+        return self.__delayGen.read()
 
     def setWidth(self, channel, widthVal):
         '''set delay of respective channel'''
@@ -81,16 +85,21 @@ class PulseGeneratorController:
 if __name__ == '__main__':
     delGen = PulseGeneratorController()
     import time
+    delGen.readDelay(8)
+    time.sleep(1)
     delGen.screenUpdate('ON')
-    delGen.disableChl(7)
+    delGen.readDelay(8)
+    delGen.switchChl(8, False)
     time.sleep(2)
-    delGen.enableChl(7)
+    delGen.switchChl(8, True)
     time.sleep(1)
-    delGen.setDelay(7, 0.001)
+    delGen.setDelay(8, 0.001)
     time.sleep(1)
-    delGen.setDelay(7, 0)
+    delGen.setDelay(8, 0)
     time.sleep(1)
-    delGen.setWidth(7, 0.001)
+    delGen.setWidth(8, 0.001)
     time.sleep(1)
-    delGen.setWidth(7, 0.000001)
+    delGen.setWidth(8, 0.000001)
+    time.sleep(1)
+    delGen.readDelay(8)
     delGen.closeConnection()

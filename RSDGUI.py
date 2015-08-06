@@ -30,6 +30,7 @@ from Instruments.LeCroyScopeController import LeCroyScopeControllerDSO
 from Instruments.WaveformPotentials import WaveformPotentials21Elec
 from Instruments.DCONUSB87P4 import USB87P4Controller
 from Instruments.PfeifferMaxiGauge import MaxiGauge
+from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -58,7 +59,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_gate1Stop.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate2Start.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate2Stop.valueChanged.connect(self.setCursorsScopeWidget)
-
+        
         # function in module as slot
         self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
@@ -66,6 +67,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
         self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
         self.WfWin.winClose.connect(lambda: self.chk_editWF.setChecked(False))
+        self.chk_Excimer.stateChanged.connect(lambda: self.pulseGen.switchChl(2, self.chk_Excimer.isChecked()))
+        self.chk_LaserUV.stateChanged.connect(lambda: self.pulseGen.switchChl(5, self.chk_LaserUV.isChecked()))
+        self.chk_LaserVUV.stateChanged.connect(lambda: self.pulseGen.switchChl(4, self.chk_LaserVUV.isChecked()))
+        self.chk_PulseValve.stateChanged.connect(lambda: self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked()))
+        self.ScopeDisplay.line1.sigPositionChanged.connect(lambda: self.inp_extractDelay.setValue(self.ScopeDisplay.line1.value()*1E6))
+        self.ScopeDisplay.line1.sigPositionChangeFinished.connect(lambda: self.pulseGen.setDelay(6, float(('{:1.10f}').format(self.inp_extractDelay.value()*1E-6))))
+        self.inp_extractDelay.editingFinished.connect(lambda: self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6))
+        self.inp_extractDelay.editingFinished.connect(lambda: self.pulseGen.setDelay(6, float(('{:1.10f}').format(self.inp_extractDelay.value()*1E-6))))
 
         # defaults
         self.inp_aveSweeps.setValue(1)
@@ -101,8 +110,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
             self.enableControlsScope(True)
+            self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6)
         else:
-            self.scopeThread.scopeActive = False
+            self.scopeThread.scopeRead = False
             self.enableControlsScope(False)
             self.scope = LeCroyScopeControllerVISA()
 
@@ -135,10 +145,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             del self.dataBuf[0:self.scopeThread.avgSweeps]
             # integration done in widgets
             if self.scopeMon and not(self.scanMode):
-                self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincr)   
+                self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincrC1)      
             elif self.scopeMon and self.scanMode:
-                self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincr)
-                self.DataDisplay.plot(dataIn, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincr)
+                self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1)
+                self.DataDisplay.plot(dataIn, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)
         
     def setGateField(self, cursorPos):
         # convert to mus
@@ -173,8 +183,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.groupBox_Scope.setEnabled(boolEnbl)
         self.groupBox_DevControl.setEnabled(boolEnbl)      
         self.groupBox_TOF.setEnabled(boolEnbl)      
-        self.groupBox_Decelerator.setEnabled(boolEnbl)      
-        
+        self.groupBox_Decelerator.setEnabled(boolEnbl)
+    
     def enableControlsScope(self, boolEnbl):
         # when starting up scan controls locked, only when scope read out activated
         self.groupBox_DataAcq.setEnabled(boolEnbl)
@@ -188,21 +198,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         else:
             self.scopeThread.avgSweeps = self.inp_aveSweeps.value()
             # reset data buffer
-            self.dataBuf = []
-            
+            self.dataBuf = []  
+    
     def chk_invertTrace1_clicked(self):
-        self.scope.invertTrace('C1', self.chk_invertTrace1.isChecked())
-        if self.chk_invertTrace1.isChecked():
-            print 'Invert scope trace C1'
-        else:
-            print 'Scope trace C1 non-inverted'
+        if not(self.scopeMon): self.scope.invertTrace('C1', self.chk_invertTrace1.isChecked())
             
     def chk_invertTrace2_clicked(self):
-        self.scope.invertTrace('C2', self.chk_invertTrace2.isChecked())
-        if self.chk_invertTrace2.isChecked():
-            print 'Invert scope trace C2'
-        else:
-            print 'Scope trace C2 non-inverted'
+        if not(self.scopeMon): self.scope.invertTrace('C2', self.chk_invertTrace2.isChecked())
             
     def readGauge_clicked(self):
         '''create maxi gauge thread and _run()'''
@@ -258,21 +260,28 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scope = LeCroyScopeControllerVISA()
         #TODO self.scope.initialize()
         self.scope.invertTrace('C1', True)
+        self.pulseGen = PulseGeneratorController()
+        self.pulseGen.screenUpdate('ON')
+        time.sleep(0.1)
+        self.inp_extractDelay.setValue(float(self.pulseGen.readDelay(6))*1E6)
         print '-----------------------------------------------------------------------------'
 
     def shutDownExperiment(self):
         print 'Releasing controllers:'
         self.analogIO.closeDevice()
         self.DIOCard.releaseCard()
-        if hasattr(self, 'scope'):
-            self.scope.closeConnection()
         if hasattr(self, 'scopeThread'):
-            # vs exit() vs quit()
-            self.scopeThread.terminate() 
+            self.scopeThread.scopeRead = False
+            time.sleep(.2)
+            self.scopeThread.terminate()
+        if hasattr(self, 'scope'):
+            self.scope.closeConnection()            
         if hasattr(self.WfWin, 'wfThread'):
             self.WfWin.wfThread.terminate()
         if hasattr(self, 'PressureThread'):
             self.PressureThread.terminate()
+        if hasattr(self, 'pulseGen'):
+            self.pulseGen.closeConnection()
         self.WfWin.close()
         
 # subclass qthread (not recommended officially, old style)
@@ -301,15 +310,16 @@ class PressureThread(QtCore.QThread):
         return
       
 class scopeThread(QtCore.QThread):
-    def __init__(self, scopeActive=True, avgSweeps=1):
+    def __init__(self, scopeRead=True, avgSweeps=1):
         QtCore.QThread.__init__(self)
-        self.scopeActive = scopeActive
+        self.scopeRead = scopeRead
         self.scope = LeCroyScopeControllerVISA()
         # averages for data eval with single traces from scope
         self.avgSweeps = avgSweeps
         self.scope.invertTrace('C1', False)
         self.scope.setSweeps(1)
         self.scope.setScales()
+        print self.scope.trigOffsetC1
         self.accumT = 0
         self.iT = 0
         
@@ -320,7 +330,7 @@ class scopeThread(QtCore.QThread):
 
     def run(self):
         self.scope.dispOff()
-        while self.scopeActive:
+        while self.scopeRead:
             start = time.clock()
             data = self.scope.armwaitread()
             self.dataReady.emit(data)
