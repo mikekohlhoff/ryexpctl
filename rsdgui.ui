@@ -355,6 +355,9 @@
     <property name="keyboardTracking">
      <bool>true</bool>
     </property>
+    <property name="decimals">
+     <number>2</number>
+    </property>
    </widget>
    <widget class="QLabel" name="label_15">
     <property name="geometry">
@@ -453,7 +456,7 @@
      <x>430</x>
      <y>245</y>
      <width>136</width>
-     <height>96</height>
+     <height>126</height>
     </rect>
    </property>
    <property name="font">
@@ -551,9 +554,75 @@
      <string>TODO file handling</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="chk_gateInt">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>85</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Integrate Gate 1</string>
+    </property>
+   </widget>
+   <widget class="QTextBrowser" name="out_gateInt">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>105</y>
+      <width>106</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>40</width>
+      <height>22</height>
+     </size>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::NoFrame</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Plain</enum>
+    </property>
+    <property name="html">
+     <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Tahoma'; font-size:8pt; font-weight:400; font-style:normal;&quot;&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+    </property>
+   </widget>
    <zorder>label_2</zorder>
    <zorder>scanModeSelect</zorder>
    <zorder>btn_startDataAcq</zorder>
+   <zorder>chk_gateInt</zorder>
+   <zorder>out_gateInt</zorder>
   </widget>
   <widget class="QGroupBox" name="groupBox_TOF">
    <property name="geometry">
@@ -2529,8 +2598,8 @@ p, li { white-space: pre-wrap; }
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
-     <x>440</x>
-     <y>355</y>
+     <x>745</x>
+     <y>425</y>
      <width>86</width>
      <height>16</height>
     </rect>
@@ -2653,7 +2722,7 @@ p, li { white-space: pre-wrap; }
   <customwidget>
    <class>PyQtGraphWidgetScope</class>
    <extends>QGraphicsView</extends>
-   <header>PyQtGraphWidgetScope</header>
+   <header location="global">PyQtGraphWidgetScope</header>
   </customwidget>
   <customwidget>
    <class>PyQtGraphWidgetData</class>

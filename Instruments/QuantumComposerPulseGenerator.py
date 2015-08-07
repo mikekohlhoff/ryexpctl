@@ -67,7 +67,7 @@ class PulseGeneratorController:
     def setDelay(self, channel, delayVal):
         '''set delay of respective channel'''
         # delay set in s 
-        self.__delayGen.write(":PULS{:d}:DELAY {:f}".format(channel, delayVal))
+        self.__delayGen.write(":PULS{:d}:DELAY {:1.10f}".format(channel, delayVal))
      
     def readDelay(self, channel):
         '''read delay of respective channel'''

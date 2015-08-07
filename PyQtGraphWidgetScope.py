@@ -26,15 +26,16 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.lr2 = pg.LinearRegionItem([0,0], brush=pg.mkBrush(52,124,23,80))
         self.lr1.setZValue(10)
         self.lr2.setZValue(10)
-        self.scopeWidget.addItem(self.lr1)
         self.scopeWidget.addItem(self.lr2)
-        self.lr1.setMovable(True)
-        self.lr2.setMovable(True)
+        self.scopeWidget.addItem(self.lr1)
+
+        self.lr1.setMovable(False)
+        self.lr2.setMovable(False)
         
         # line for extraction pulse
         self.line1 = pg.InfiniteLine([0,0], pen=pg.mkPen('#990000', width=2, style=QtCore.Qt.DashLine))
         self.scopeWidget.addItem(self.line1)
-        self.line1.setMovable(True)
+        self.line1.setMovable(False)
         
     def plotMon(self, dataIn, timeincr):
         # reset mobility of cursors after data acquisition
@@ -44,14 +45,15 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         
         if np.size(self.scopeWidget.listDataItems()) > 0:
            self.scopeWidget.removeItem(self.scopeWidget.listDataItems()[0])
-        # average traces
-        data = self.integrator(dataIn)
+        # average traces, invert data, no integration over gate
+        data = (sum(dataIn)/len(dataIn))*-1
         plotTime = np.arange(np.size(data))*timeincr
         self.scopeWidget.plot(plotTime, data, pen=pg.mkPen('k', width=1.2))
+        return data
 
     def plotDataAcq(self, dataIn, cursorPos, timeincr):
         # average traces
-        data = self.integrator(dataIn)
+        data = (sum(dataIn)/len(dataIn))*-1
         plotTime = np.arange(np.size(data))*timeincr
         self.scopeWidget.plot(plotTime, data, pen=pg.mkPen('k', width=1), clear=True)
         
@@ -62,11 +64,6 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.line1.setMovable(False)
         self.scopeWidget.addItem(self.lr1)
         self.scopeWidget.addItem(self.lr2)
-        
-    def integrator(self, dataIn):
-        # average traces, invert data
-        data = (sum(dataIn)/len(dataIn))*-1
-        return data
 
     def getCursors(self):
         lr1Ret = self.lr1.getRegion()

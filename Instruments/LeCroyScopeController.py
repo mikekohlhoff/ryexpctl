@@ -254,13 +254,13 @@ class LeCroyScopeControllerDSO:
 
 		
 if __name__ == '__main__':	
-    scope = LeCroyScopeControllerDSO()
-    scope.initialize()
+    scope = LeCroyScopeControllerVISA()
+    #scope.initialize()
     scope.setSweeps(1)
     scope.setScales()
-    scope.invertTrace(True)
+    scope.invertTrace('C1', True)
     time.sleep(2)
-    scope.invertTrace(False)
+    scope.invertTrace('C2', False)
     time.sleep(1)
     scope.dispOff()
     accumT = 0
