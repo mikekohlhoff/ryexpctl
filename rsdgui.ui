@@ -263,7 +263,8 @@
      <string>Avg Sweeps</string>
     </property>
    </widget>
-   <zorder>verticalLayoutWidget</zorder>
+   <zorder>inp_aveSweeps</zorder>
+   <zorder>label</zorder>
    <zorder>chk_invertTrace1</zorder>
    <zorder>chk_readScope</zorder>
    <zorder>chk_invertTrace2</zorder>
@@ -319,7 +320,7 @@
       <x>10</x>
       <y>50</y>
       <width>40</width>
-      <height>20</height>
+      <height>22</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -403,7 +404,7 @@
       <x>11</x>
       <y>23</y>
       <width>40</width>
-      <height>20</height>
+      <height>22</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -1013,7 +1014,7 @@ p, li { white-space: pre-wrap; }
    <property name="title">
     <string>Imaging</string>
    </property>
-   <widget class="QPushButton" name="btn_startConditioning">
+   <widget class="QPushButton" name="btn_startMCP">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -1041,7 +1042,7 @@ p, li { white-space: pre-wrap; }
      </font>
     </property>
     <property name="text">
-     <string>Ramp MCP</string>
+     <string>Start Up MCP</string>
     </property>
    </widget>
    <widget class="QSpinBox" name="inp_voltPhos">
@@ -1096,7 +1097,7 @@ p, li { white-space: pre-wrap; }
      <number>0</number>
     </property>
     <property name="maximum">
-     <number>4000</number>
+     <number>3000</number>
     </property>
     <property name="value">
      <number>0</number>
@@ -1157,10 +1158,10 @@ p, li { white-space: pre-wrap; }
      <number>0</number>
     </property>
     <property name="maximum">
-     <number>1600</number>
+     <number>2000</number>
     </property>
     <property name="singleStep">
-     <number>5</number>
+     <number>10</number>
     </property>
     <property name="value">
      <number>0</number>
@@ -1204,10 +1205,11 @@ p, li { white-space: pre-wrap; }
      <string>Phos</string>
     </property>
    </widget>
-   <zorder>layoutWidget_2</zorder>
+   <zorder>label_26</zorder>
+   <zorder>label_27</zorder>
    <zorder>inp_voltPhos</zorder>
    <zorder>inp_voltMCP</zorder>
-   <zorder>btn_startConditioning</zorder>
+   <zorder>btn_startMCP</zorder>
   </widget>
   <widget class="QGroupBox" name="groupBox_Laser">
    <property name="geometry">
@@ -1235,7 +1237,7 @@ p, li { white-space: pre-wrap; }
       <x>11</x>
       <y>23</y>
       <width>40</width>
-      <height>20</height>
+      <height>22</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -1307,7 +1309,7 @@ p, li { white-space: pre-wrap; }
       <x>11</x>
       <y>51</y>
       <width>40</width>
-      <height>20</height>
+      <height>22</height>
      </rect>
     </property>
     <property name="sizePolicy">
@@ -1627,7 +1629,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>2</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="tab_2">
     <attribute name="title">
@@ -1639,7 +1641,7 @@ p, li { white-space: pre-wrap; }
        <x>10</x>
        <y>75</y>
        <width>40</width>
-       <height>20</height>
+       <height>22</height>
       </rect>
      </property>
      <property name="sizePolicy">
@@ -1710,7 +1712,7 @@ p, li { white-space: pre-wrap; }
        <x>10</x>
        <y>15</y>
        <width>40</width>
-       <height>20</height>
+       <height>22</height>
       </rect>
      </property>
      <property name="sizePolicy">
@@ -1762,7 +1764,7 @@ p, li { white-space: pre-wrap; }
        <x>10</x>
        <y>45</y>
        <width>40</width>
-       <height>20</height>
+       <height>22</height>
       </rect>
      </property>
      <property name="sizePolicy">
@@ -2614,13 +2616,13 @@ p, li { white-space: pre-wrap; }
     <string>Scan Settings</string>
    </property>
   </widget>
-  <widget class="QProgressBar" name="progressBar">
+  <widget class="QProgressBar" name="progressBarScan">
    <property name="geometry">
     <rect>
      <x>760</x>
      <y>515</y>
-     <width>118</width>
-     <height>23</height>
+     <width>120</width>
+     <height>24</height>
     </rect>
    </property>
    <property name="value">
@@ -2633,7 +2635,7 @@ p, li { white-space: pre-wrap; }
      <x>830</x>
      <y>355</y>
      <width>40</width>
-     <height>20</height>
+     <height>22</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -2710,10 +2712,8 @@ p, li { white-space: pre-wrap; }
   <zorder>layoutWidget</zorder>
   <zorder>DataDisplay</zorder>
   <zorder>groupBox_Laser</zorder>
-  <zorder>inp_gaugeRead_2</zorder>
-  <zorder>inp_gaugeRead_3</zorder>
   <zorder>label_3</zorder>
-  <zorder>progressBar</zorder>
+  <zorder>progressBarScan</zorder>
   <zorder>inp_voltOptic1</zorder>
   <zorder>label_12</zorder>
  </widget>

@@ -9,12 +9,13 @@ from datetime import datetime
 import os
 import sys
 
-PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
+#PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
 
 # UI related
 from PyQt4 import QtCore, QtGui, uic
 ui_form = uic.loadUiType("rsdgui.ui")[0]
 ui_form_waveform = uic.loadUiType("rsdguiWfWin.ui")[0]
+ui_form_startmcp = uic.loadUiType("rsdguiStartMCP.ui")[0]
 
 # integrating matplotlib figures
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -43,6 +44,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scanMode = False
         self.gateInt = False
         self.pressThread = False
+        self.setPotBool = False
         # waveform generation window
         self.WfWin = waveformWindow(self.DIOCard)
         self.initUI()
@@ -64,6 +66,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_gate2Stop.valueChanged.connect(self.setCursorsScopeWidget)
         self.ScopeDisplay.line1.sigPositionChanged.connect(self.setExtractionDelay)
         self.inp_extractDelay.editingFinished.connect(self.setExtractionDelay)
+        self.btn_startMCP.clicked.connect(self.startMCPPhos)
         
         # function in module as slot
         self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
@@ -79,7 +82,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.ScopeDisplay.line1.sigPositionChanged.connect(lambda: self.inp_extractDelay.setValue(self.ScopeDisplay.line1.value()*1E6))
         self.inp_extractDelay.valueChanged.connect(lambda: self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6))
 
-
         # defaults
         self.inp_aveSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
@@ -92,18 +94,38 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.out_readSourceGauge.setText('Read out not active')
         self.out_gateInt.setText('Inactive')
 
-		 # set size of window
+	# set size of window
         self.setWindowTitle('RSDRSE Control')
         self.centerWindow()
-        #self.setFixedSize(720, 558)
-        #self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        #self.setFixedSize(TODO, TODO)
+        self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
     def showWfWin(self):
         '''display control window for decelerator waveform generation'''
         self.chk_editWF.setEnabled(False)
         self.WfWin.show()
-
+        
+    def startMCPPhos(self):
+        '''display controls to ramp MCP/Phos voltages'''
+        self.StartMCPWin = StartMCPWin(self.analogIO, self.inp_voltMCP.value(), self.inp_voltPhos.value())
+        self.StartMCPWin.winClose.connect(self.closeStartMCPWin)
+        self.StartMCPWin.setTextFinal.connect(self.setVoltText)
+        self.StartMCPWin.ctlActive(True)
+        self.StartMCPWin.show()
+        self.enableControlsScan(False)
+        self.groupBox_DataAcq.setEnabled(False)
+        self.setPotBool = True
+        
+    def closeStartMCPWin(self):
+        self.enableControlsScan(True)
+        self.groupBox_DataAcq.setEnabled(True)
+        self.setPotBool = False
+        
+    def setVoltText(self, text):
+        self.inp_voltMCP.setValue(int(text[0]))
+        self.inp_voltPhos.setValue(int(text[1]))
+        
     def chk_readScope_clicked(self):
         '''create scope thread and _run()'''
         self.scopeMon = self.chk_readScope.isChecked()
@@ -297,13 +319,17 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.out_readSourceGauge.setText(pressRead[1])
             
     def closeEvent(self, event):
-        reply = QtGui.QMessageBox.question(self, '',
-            "Shut down experiment control?", QtGui.QMessageBox.Yes | 
-            QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)
-
-        if reply == QtGui.QMessageBox.Yes:
-            event.accept()
-            self.shutDownExperiment()
+        self.blockSignals(True)
+        if not(self.setPotBool):
+            reply = QtGui.QMessageBox.question(self, '',
+                "Shut down experiment control?", QtGui.QMessageBox.Yes | 
+                QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)  
+            if reply == QtGui.QMessageBox.Yes:
+                event.accept()
+                self.shutDownExperiment()
+            else:
+                event.ignore()
+                self.blockSignals(False)
         else:
             event.ignore()
 
@@ -320,12 +346,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()
         #TODO self.scope.initialize()
+        self.scope.setScales()
+        trigOffsetC1 = self.scope.trigOffsetC1
         self.scope.invertTrace('C1', True)
         self.chk_invertTrace1.setChecked(True)
         self.pulseGen = PulseGeneratorController()
         self.pulseGen.screenUpdate('ON')
         time.sleep(0.1)
-        self.inp_extractDelay.setValue(float(self.pulseGen.readDelay(6))*1E6)
+        self.inp_extractDelay.setValue((float(self.pulseGen.readDelay(6)) + abs(trigOffsetC1))*1E6)
         print '-----------------------------------------------------------------------------'
 
     def shutDownExperiment(self):
@@ -384,7 +412,6 @@ class scopeThread(QtCore.QThread):
         if dispOff:
             self.scope.dispOff()
         # TODO
-        print self.scope.trigOffsetC1
         self.accumT = 0
         self.iT = 0
         
@@ -501,6 +528,164 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
             self.setFixedSize(640, 300)
         else:
             self.setFixedSize(196, 258)
+
+class StartMCPThread(QtCore.QThread):
+    def __init__(self, setPotBool, analogIO, stepTime, finalMCP, finalPhos, rampTime, startMCP, startPhos):
+        QtCore.QThread.__init__(self)
+        self.setPotBool = setPotBool
+        self.analogIO = analogIO
+        self.stepTime = stepTime*1E-3
+        self.startMCP = startMCP
+        self.startPhos = startPhos
+        self.finalMCP = finalMCP
+        self.finalPhos = finalPhos
+   
+    valueSet = QtCore.pyqtSignal(object)
+    settingComplete = QtCore.pyqtSignal()
+    
+    # override
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        if self.stepTime >= 0.1 and self.finalMCP > 0:
+            ratio = self.finalPhos/float(self.finalMCP)
+            i = self.startMCP
+            j = self.startPhos
+            while self.setPotBool:
+                self.analogIO.writeAOMCP(i)
+                self.analogIO.writeAOPhos(round(j))
+                if i == self.finalMCP:
+                    # step up to final setting if ratio deviations
+                    j = self.finalPhos
+                    self.analogIO.writeAOPhos(j)
+                    self.settingComplete.emit()
+                    break
+                else:
+                    i += 1
+                    j += ratio
+                self.valueSet.emit([i,int(j),0])
+                time.sleep(self.stepTime)
+            self.quit()
+            return
+        elif self.finalMCP == 0 and self.finalPhos == 0:
+            ratio = self.startPhos/float(self.startMCP)
+            i = self.startMCP
+            j = self.startPhos
+            while self.setPotBool:
+                self.analogIO.writeAOMCP(i)
+                self.analogIO.writeAOPhos(round(j))
+                if i == self.finalMCP:
+                    # step up to final setting if ratio deviations
+                    self.analogIO.writeAOPhos(0)
+                    self.settingComplete.emit()
+                    break
+                else:
+                    i -= 1
+                    j -= ratio
+                self.valueSet.emit([i,int(j),self.startMCP])
+                time.sleep(0.1)
+            self.quit()
+            return
+        else:
+            return
+      
+class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
+    def __init__(self, analogIO, MCPVolt, PhosVolt):
+        QtGui.QWidget.__init__(self)
+        self.setupUi(self)
+        self.setWindowTitle('Start MCP/Phos Screen Control')
+        self.setFixedSize(363, 303)
+        self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        self.centerWindow()
+        self.setPotBool = False
+        self.analogIO = analogIO
+        self.progBar = self.progressBarMCP
+        self.btn_startMCPRamp.clicked.connect(self.setPotentials)
+        self.inp_timeStep.setValue(1000)
+        self.inp_finalPhos.setValue(3000)
+        self.inp_finalMCP.setValue(1200)
+        self.out_setMCP.setText(str(MCPVolt))
+        self.out_setPhos.setText(str(PhosVolt))
+        
+        self.inp_finalMCP.editingFinished.connect(self.calcCycleTime)
+        self.inp_timeStep.editingFinished.connect(self.calcCycleTime)
+        self.calcCycleTime()
+         
+    winClose = QtCore.pyqtSignal()
+    setTextFinal = QtCore.pyqtSignal(object)
+    
+    def setTextOut(self, text):
+        self.out_setMCP.setText(str(text[0]))
+        self.out_setPhos.setText(str(text[1]))
+        if self.inp_finalMCP.value() != 0:
+            self.progBar.setValue((float(text[0])/self.inp_finalMCP.value())*1E2)
+        else:
+            self.progBar.setValue((float(text[0])/text[2])*1E2)
+            
+    def calcCycleTime(self):
+        self.rampTime = self.inp_finalMCP.value()*self.inp_timeStep.value()*1E-3
+        m, s = divmod(int(self.rampTime), 60)
+        self.out_cycleTime.setText('{:02d}:{:02d}'.format(m, s))
+        if self.inp_timeStep.value() < 100:
+                self.inp_timeStep.blockSignals(True)
+                reply = QtGui.QMessageBox.warning(self, 'Warning',
+                'Time step value too small', QtGui.QMessageBox.Ok)
+                self.inp_timeStep.setValue(100)
+                self.inp_timeStep.blockSignals(False)
+        if self.inp_finalMCP.value() == 0 or self.inp_finalPhos.value() == 0:
+            self.inp_finalMCP.setValue(0)
+            self.inp_finalPhos.setValue(0)
+    
+    def setPotentials(self):
+        if not(self.setPotBool):
+            self.setPotBool = True
+            self.btn_startMCPRamp.setText('Pause Ramping')
+            self.ctlActive(False)
+            self.StartMCPThread = StartMCPThread(True, self.analogIO, self.inp_timeStep.value(),
+                                             self.inp_finalMCP.value(), self.inp_finalPhos.value(), self.rampTime,
+                                             int(self.out_setMCP.toPlainText()), int(self.out_setPhos.toPlainText()))
+            self.StartMCPThread.valueSet.connect(self.setTextOut)
+            self.StartMCPThread.settingComplete.connect(self.settingComplete)
+            self.StartMCPThread.start()      
+        else:
+            self.btn_startMCPRamp.setText('Start Ramping')
+            self.setPotBool = False
+            self.StartMCPThread.setPotBool = False
+            
+    def ctlActive(self, stateBool):
+        self.inp_finalMCP.setEnabled(stateBool)
+        self.inp_finalPhos.setEnabled(stateBool)
+        self.inp_timeStep.setEnabled(stateBool)
+        
+    def centerWindow(self):
+        frm = self.frameGeometry()
+        win = QtGui.QDesktopWidget().availableGeometry().center()
+        frm.moveCenter(win)
+        self.move(frm.topLeft())
+        
+    def settingComplete(self):
+       self.setPotBool = False
+       self.close()
+           
+    def closeEvent(self, event):
+        if self.setPotBool:
+            reply = QtGui.QMessageBox.question(self, '',
+            "Abort Potential Ramp?", QtGui.QMessageBox.Yes | 
+            QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)
+            if reply == QtGui.QMessageBox.Yes:
+                event.accept()
+                self.StartMCPThread.setPotBool = False
+                self.btn_startMCPRamp.setText('Start Ramping')
+                self.setPotBool = False
+                self.winClose.emit()
+                self.setTextFinal.emit([self.out_setMCP.toPlainText(), self.out_setPhos.toPlainText()])
+            else:
+                event.ignore()
+        else:
+            event.accept()
+            self.winClose.emit()
+            self.setTextFinal.emit([self.out_setMCP.toPlainText(), self.out_setPhos.toPlainText()])
 
             
 if __name__ == "__main__":

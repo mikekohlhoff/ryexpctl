@@ -17,15 +17,9 @@ class USB87P4Controller:
     def __init__(self):
         print '-----------------------------------------------------------------------------'
         try:
-            if sys.platform == 'darwin':
-                raise OSError
-            self.__DCONDLL = ctypes.windll.LoadLibrary("C:\\WINDOWS\\system32\\DCON_PC.dll")
-            self.__UARTDLL = ctypes.windll.LoadLibrary("C:\\WINDOWS\system32\\Uart.dll")
+            self.__DCONDLL = ctypes.windll.LoadLibrary('DCON_PC.dll')
+            self.__UARTDLL = ctypes.windll.LoadLibrary('Uart.dll')
             mode = 'Hardware driver .dll for USB87P4 found'
-        except OSError:
-            self.__DCONDLL = USB87P4Simulator('DCON')
-            self.__UARTDLL = USB87P4Simulator('UART')
-            mode = 'OSError, enter simulation mode for USB87P4'
         except AttributeError:
             self.__DCONDLL = USB87P4Simulator('DCON')
             self.__UARTDLL = USB87P4Simulator('UART')
@@ -66,7 +60,7 @@ class USB87P4Controller:
     def writeAOExtraction(self, outputVoltage):
         '''write scaled analog output to channel 0'''
         iChannel = ctypes.c_int16(0)
-        fValue = ctypes.c_float((float(outputVoltage)+2)/500)
+        fValue = ctypes.c_float((float(outputVoltage)+3)/500)
         self.__DCONDLL.DCON_Write_AO(self.__cComPort,self.__iAddress, self.__iSlot, iChannel,
         self.__iAOTotalCh, fValue, self.__iCheckSum, self.__iTimeOut)
         print 'write extraction port'
@@ -88,7 +82,7 @@ class USB87P4Controller:
     def writeAOPhos(self, outputVoltage):
         '''write scaled analog output to channel 3'''
         iChannel = ctypes.c_int16(3)
-        fValue = ctypes.c_float((float(outputVoltage)+2)/500)
+        fValue = ctypes.c_float((float(outputVoltage)+4)/500)
         self.__DCONDLL.DCON_Write_AO(self.__cComPort,self.__iAddress, self.__iSlot, iChannel,
         self.__iAOTotalCh, fValue, self.__iCheckSum, self.__iTimeOut)
          
@@ -96,8 +90,8 @@ if __name__ == '__main__':
     analogOut = USB87P4Controller()
     analogOut.openDevice()
     import time
-    for i in range(2):
-        j = i+1
+    for i in range(5):
+        j = (i+1)*2
         analogOut.writeAOMCP(j*100)
         analogOut.writeAOExtraction(j*100)
         analogOut.writeAOPhos(j*100)
