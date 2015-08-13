@@ -28,7 +28,6 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.lr2.setZValue(10)
         self.scopeWidget.addItem(self.lr2)
         self.scopeWidget.addItem(self.lr1)
-
         self.lr1.setMovable(False)
         self.lr2.setMovable(False)
         
@@ -51,7 +50,7 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.scopeWidget.plot(plotTime, data, pen=pg.mkPen('k', width=1.2))
         return data
 
-    def plotDataAcq(self, dataIn, cursorPos, timeincr):
+    def plotDataAcq(self, dataIn, cursorPos, timeincr, linePos):
         # average traces
         data = (sum(dataIn)/len(dataIn))*-1
         plotTime = np.arange(np.size(data))*timeincr
@@ -64,6 +63,10 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.line1.setMovable(False)
         self.scopeWidget.addItem(self.lr1)
         self.scopeWidget.addItem(self.lr2)
+        
+        self.line1 = pg.InfiniteLine(linePos, pen=pg.mkPen('#990000', width=2, style=QtCore.Qt.DashLine))
+        self.scopeWidget.addItem(self.line1)
+        self.line1.setMovable(False)
 
     def getCursors(self):
         lr1Ret = self.lr1.getRegion()

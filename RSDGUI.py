@@ -9,8 +9,6 @@ from datetime import datetime
 import os
 import sys
 
-#PROJECT_ROOT_DIRECTORY = os.path.abspath(os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
-
 # UI related
 from PyQt4 import QtCore, QtGui, uic
 ui_form = uic.loadUiType("rsdgui.ui")[0]
@@ -33,6 +31,7 @@ from Instruments.WaveformPotentials import WaveformPotentials21Elec
 from Instruments.DCONUSB87P4 import USB87P4Controller
 from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
+from Instruments.SirahLaserControl import SirahLaserController
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -51,7 +50,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
 
     def initUI(self):
         # signals and slots
-        self.inp_aveSweeps.editingFinished.connect(self.inp_aveSweeps_changed)
+        self.inp_avgSweeps.editingFinished.connect(self.inp_avgSweeps_changed)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
         self.chk_invertTrace1.clicked.connect(self.chk_invertTrace1_clicked)
@@ -67,6 +66,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.ScopeDisplay.line1.sigPositionChanged.connect(self.setExtractionDelay)
         self.inp_extractDelay.editingFinished.connect(self.setExtractionDelay)
         self.btn_startMCP.clicked.connect(self.startMCPPhos)
+        self.chk_connectLasers.clicked.connect(self.connectLasers)
         
         # function in module as slot
         self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
@@ -81,9 +81,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_PulseValve.stateChanged.connect(lambda: self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked()))
         self.ScopeDisplay.line1.sigPositionChanged.connect(lambda: self.inp_extractDelay.setValue(self.ScopeDisplay.line1.value()*1E6))
         self.inp_extractDelay.valueChanged.connect(lambda: self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6))
-
+        self.inp_setWL_UV.editingFinished.connect(lambda: self.setWavelengths('UV'))
+        self.inp_setWL_VUV.editingFinished.connect(lambda: self.setWavelengths('VUV'))
+        self.scanModeSelect.currentIndexChanged.connect(lambda: self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex()))
+        self.tabWidget_ScanParam.currentChanged.connect(lambda: self.scanModeSelect.setCurrentIndex(self.tabWidget_ScanParam.currentIndex()))
+        
         # defaults
-        self.inp_aveSweeps.setValue(1)
+        self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
         self.enableControlsScan(True)
@@ -93,11 +97,16 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.out_readMainGauge.setText('Gauge turned off')
         self.out_readSourceGauge.setText('Read out not active')
         self.out_gateInt.setText('Inactive')
-
+        self.inp_setWL_UV.setEnabled(False)
+        self.inp_setWL_VUV.setEnabled(False)
+        currentIndex=self.tabWidget_ScanParam.currentIndex()
+        currentWidget=self.tabWidget_ScanParam.currentWidget()
+        self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex())
+        
 	# set size of window
-        self.setWindowTitle('RSDRSE Control')
+        self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
-        #self.setFixedSize(TODO, TODO)
+        self.setFixedSize(971, 628)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
@@ -133,6 +142,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # have scope connection within scope thread
             self.scope.closeConnection()
             self.dataBuf = []
+            self.inp_avgSweeps.setValue(1)
             self.scopeThread = scopeThread(True, False)
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
@@ -155,50 +165,116 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # set parameters for dataAcquisition()
         self.scanMode = not(self.scanMode)
         if self.scanMode:
-            # start scan, reset recorded data
-            self.scanParam = str(self.scanModeSelect.currentText())
-            self.dataBuf = []
-            self.DataDisplay.plotTrace1 = []
-            self.DataDisplay.plotTrace2 = []
-            self.DataDisplay.errTrace1 = []
-            self.DataDisplay.errTrace2 = []
+            self.scanMode = False
+            if str(self.scanModeSelect.currentText()) == 'Wavelength' and not(self.chk_connectLasers.isChecked()):
+                QtGui.QMessageBox.critical(self, 'Sirah Laser Error', "Lasers not connected.", QtGui.QMessageBox.Ok)
+                return
+            if self.inp_avgSweeps.value() < 2:
+                QtGui.QMessageBox.critical(self, 'Data Acquistion Warning', "Average needs to be at least 2.", QtGui.QMessageBox.Ok)
+                return
             self.btn_startDataAcq.setText('Abort Data Acq')
-            self.enableControlsScan(False)
             # reconnect to scope to switch display otherwise access problems
             self.scopeThread.scopeRead = False
-            time.sleep(0.2)
-            self.scopeThread = scopeThread(True, True)
+            time.sleep(0.4)
+            # set scan parameters
+            self.setScanParams()
+            self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
-            self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
-            print 'DATA ACQ ON'
+            self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
+            self.enableControlsScan(False)
+            self.line1Pos = self.ScopeDisplay.line1.value()
         else:
             # abort scan
             self.scopeThread.scopeRead = False
-            time.sleep(0.2)
+            if len(self.DataDisplay.dataTrace1) > 0:
+                self.openSaveFile()
             self.scopeThread = scopeThread(True, False)
+            self.inp_avgSweeps.setValue(1)
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority) 
+            # reset devices to value before scan
             self.btn_startDataAcq.setText('Start Data Acq')
+            self.setParam = self.beforescanParam
+            self.scanSetDevice()
+            self.progressBarScan.setValue(0)
             self.enableControlsScan(True)
+            # reconnect signals for extraction control in scope display, should have done it this way for the linReg as well
+            self.ScopeDisplay.line1.sigPositionChanged.connect(lambda: self.inp_extractDelay.setValue(self.ScopeDisplay.line1.value()*1E6))
+            self.ScopeDisplay.line1.sigPositionChanged.connect(self.setExtractionDelay)
             print 'DATA ACQ OFF'
-            
-    def chk_gateInt_stateChanged(self):
-        '''integrate 1 gate to append to data acq file'''
-        # set parameters for dataAcquisition()
-        self.gateInt = self.chk_gateInt.isChecked()
-        if self.gateInt:  
-            # get average from scope, not data eval
-            self.btn_startDataAcq.setEnabled(False)
-            self.gateIntVal = 0.0
-            print 'Integrate TOF gate 1'
+        
+    def setScanParams(self):
+        self.scanParam = str(self.scanModeSelect.currentText())
+        fileName = self.scanParam + 'Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
+        self.savePath = os.path.join('C:\\Users\\tpsadmin\\Desktop\\Documents\\Data Mike\\Data\\2015', fileName)
+        if self.scanParam == 'Voltage':
+            self.scanParam = self.scanParam + ' ' + str(self.voltageSelectScan.currentText())
+            self.startParam = self.inp_startField.value()
+            self.stopParam = self.inp_stopField.value()
+            self.stepParam = self.inp_incrField.value()
+            self.setParam = self.startParam
+            self.setOutParam = self.out_voltMon
+            self.beforescanParam = self.inp_voltExtract.value()
+            self.scanSetDevice()            
+        elif self.scanParam == 'Wavelength':
+            self.scanParam = self.scanParam + ' ' + str(self.laserSelectScan.currentText())
+            self.startParam = self.inp_startWL.value()
+            self.stopParam = self.inp_stopWL.value()
+            self.stepParam = self.inp_incrWL.value()
+            self.setParam = self.startParam
+            self.setOutParam = self.out_WLMon
+            if 'UV' in self.scanParam:
+                self.beforescanParam = self.inp_setWL_UV.value()
+                self.devParam = self.UVLaser
+            elif 'VUV' in self.scanParam:
+                self.beforescanParam = self.inp_setWL_VUV.value()
+                self.devParam = self.VUVLaser
+            self.burstStart = LaserBurstThread(self.devParam, self.startParam, self.stopParam, self.stepParam)
+            self.burstStart.burstReady.connect(self.resetDatBuf)
+            self.burstStart.start()
+        elif 'Delay' in self.scanParam:
+            self.scanParam = self.scanParam + ' ' + str(self.delaySelectScan.currentText())
+            self.startParam = self.inp_startDelay.value()*1E-6
+            self.stopParam = self.inp_stopDelay.value()*1E-6
+            self.stepParam = self.inp_incrDelay.value()*1E-6
+            self.setParam = self.startParam
+            self.setOutParam = self.out_delayMon
+            # set delay generator channel for scan
+            if 'Rydberg' in self.scanParam:
+                # Fire channel
+                self.devParam = 3
+            elif 'Extract' in self.scanParam:
+                # Fire channel
+                self.devParam = 6 
+            elif 'Photo' in self.scanParam:
+                # Fire channel
+                self.devParam = 2
+            # clear io buffer
+            #self.pulseGen.read()
+            self.beforescanParam = float(self.pulseGen.readDelay(self.devParam))               
+            self.scanSetDevice()
+        # determine scan direction
+        if self.stopParam > self.startParam:
+            self.scanDirection = 1
         else:
-            self.scopeThread.avgSweeps = 1
-            self.inp_aveSweeps.setValue(1)
-            self.out_gateInt.setText('Inactive')
-            self.btn_startDataAcq.setEnabled(True)
+            self.scanDirection = -1
+        # set scan flag in thread
+        if not('Wavelength' in self.scanParam):         
+            self.resetDatBuf()   
 
+    def resetDatBuf(self):
+        #reset recorded data
+        self.dataBuf = []
+        self.DataDisplay.dataTrace1 = []
+        self.DataDisplay.dataTrace2 = []
+        self.DataDisplay.errTrace1 = []
+        self.DataDisplay.errTrace2 = []
+        self.DataDisplay.paramTrace = []
+        self.scanMode = True
+        print 'DATA ACQ ON'
+           
     def dataAcquisition(self, data):
-        # add data
+        # add data       
         self.dataBuf.append(data)
         self.cursorPos = self.ScopeDisplay.getCursors()         
         self.setGateField(self.cursorPos)
@@ -206,13 +282,26 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # deque trace buffer when average shots is reached
             dataIn = self.dataBuf[0:self.scopeThread.avgSweeps]
             del self.dataBuf[0:self.scopeThread.avgSweeps]
-            # integration done in widgets
             if self.scopeMon and not(self.scanMode):
+                # scope monitor plotting
                 self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincrC1)      
             elif self.scopeMon and self.scanMode:
-                self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1)
-                self.DataDisplay.plot(dataIn, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)
+                # scan plotting
+                self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1, self.line1Pos)
+                self.DataDisplay.plot(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)     
+                if self.setParam == self.stopParam:
+                    # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
+                    self.btn_startDataAcq_clicked()
+                    # Sirah lasers sweep with StartBurst()
+                    if 'Wavelength' in self.scanParam:
+                        self.devParam.CancelBurst()
+                else:
+                    # step scan parameter
+                    if not('Wavelength' in self.scanParam):
+                        self.setParam += self.scanDirection*self.stepParam                
+                    self.scanSetDevice()                   
         elif self.scopeMon and self.gateInt:
+             # gate 1 integration
              # don't deque for < avgSweeps, calculate average and error from whole buffer
             if len(self.dataBuf) > self.scopeThread.avgSweeps:
                 del self.dataBuf[0]
@@ -226,7 +315,68 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # error propagation
             self.gateIntErr = np.sqrt(sum(np.square(err[cPos[0]:cPos[1]])))
             self.out_gateInt.setText('{:.2f} '.format(self.gateIntVal) + QtCore.QString(u'±') + ' {:.2f}'.format( self.gateIntErr))
-                       
+    
+    def scanSetDevice(self):        
+        if 'Voltage' in self.scanParam:
+            self.analogIO.writeAOExtraction(self.setParam)
+            outVal = self.setParam
+        elif 'Wavelength' in self.scanParam: 
+            # reset laser to former wavelength
+            if not self.scanMode and 'UV' in self.scanParam:
+                self.setLaser = LaserThread(self.devParam, self.setParam, self.inp_setWL_UV)
+                self.setLaser.start()
+                self.out_WLMon.setText('{:3.4f}'.format(self.setParam))
+                return
+            elif not self.scanMode and 'VUV' in self.scanParam:
+                self.setLaser = LaserThread(self.devParam, self.setParam, self.inp_setWL_UV)
+                self.setLaser.start()
+                self.out_WLMon.setText('{:3.4f}'.format(self.setParam))
+                return
+            (wl, cont) = self.devParam.NextBurst()    
+            self.setParam = wl
+            print wl
+            outVal = '{:3.4f}'.format(wl)
+            # if sum(steps) != stop - start
+            if not cont: self.setParam = self.stopParam
+        elif 'Delay' in self.scanParam:
+             self.setParam = float('{:.11f}'.format(self.setParam))
+             self.pulseGen.setDelay(self.devParam, float('{:1.11f}'.format(self.setParam)))
+             outVal = '{:4.5f}'.format(self.setParam*1E6)
+        self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
+        self.setOutParam.setText(str(outVal))
+    
+    def openSaveFile(self):
+        savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', self.savePath, '(*.txt)')
+        saveData = np.hstack((np.vstack(np.asarray(self.DataDisplay.paramTrace)), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
+                            np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
+                            np.vstack(np.asarray(self.DataDisplay.errTrace2))))
+        if str(savePath):
+            print 'Save data file'
+            if 'Voltage' in self.scanParam:
+                fmtIn = '%.3f'
+            elif 'Wavelength' in self.scanParam:
+                # smallest step .00025nm
+                fmtIn = '%.5f'
+            elif 'Delay' in self.scanParam:
+                fmtIn = '%.11f'
+            np.savetxt(str(savePath), saveData, fmt=fmtIn, delimiter='\t', newline='\n', header=self.scanParam+(u'\tDat1\tErr1\tDat2\tErr2'),
+                      footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n'))
+
+    def chk_gateInt_stateChanged(self):
+        '''integrate 1 gate to append to data acq file'''
+        # set parameters for dataAcquisition()
+        self.gateInt = self.chk_gateInt.isChecked()
+        if self.gateInt:  
+            # get average from scope, not data eval
+            self.btn_startDataAcq.setEnabled(False)
+            self.gateIntVal = 0.0
+            print 'Integrate TOF gate 1'
+        else:
+            self.scopeThread.avgSweeps = 1
+            self.inp_avgSweeps.setValue(1)
+            self.out_gateInt.setText('Inactive')
+            self.btn_startDataAcq.setEnabled(True)
+                                          
     def setGateField(self, cursorPos):
         # convert to mus
         cursorPos = np.around(1E6*cursorPos, decimals=2)
@@ -247,7 +397,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
      
     def setExtractionDelay(self):
         cursorPos = self.ScopeDisplay.line1.value()
-        self.pulseGen.setDelay(6, float(('{:1.10f}').format(cursorPos + self.scopeThread.scope.trigOffsetC1)))
+        self.pulseGen.setDelay(6, float(('{:1.11f}').format(cursorPos + self.scopeThread.scope.trigOffsetC1)))
         
     def centerWindow(self):
         frm = self.frameGeometry()
@@ -257,7 +407,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         
     def enableControlsScan(self, boolEnbl):
         # lock controls when scanning to avoid DAU to interfere with measurement
-        self.tabWidget_ScanParam.setEnabled(boolEnbl)
         self.groupBox_Laser.setEnabled(boolEnbl)
         self.groupBox_MCP.setEnabled(boolEnbl)
         self.groupBox_Extraction.setEnabled(boolEnbl)
@@ -265,6 +414,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.groupBox_DevControl.setEnabled(boolEnbl)      
         self.groupBox_TOF.setEnabled(boolEnbl)      
         self.groupBox_Decelerator.setEnabled(boolEnbl)
+        self.scanModeSelect.setEnabled(boolEnbl)
+        self.inp_fileName.setEnabled(boolEnbl)
+        self.chk_gateInt.setEnabled(boolEnbl)
+        self.out_gateInt.setEnabled(boolEnbl)
     
     def enableControlsScope(self, boolEnbl):
         # when starting up scan controls locked, only when scope read out activated
@@ -272,13 +425,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.tabWidget_ScanParam.setEnabled(boolEnbl)
         self.groupBox_TOF.setEnabled(boolEnbl)
         
-    def inp_aveSweeps_changed(self):
+    def inp_avgSweeps_changed(self):
         # sets avg on scope or avg in data eval after readout
-        if self.inp_aveSweeps.hasFocus():
+        if self.inp_avgSweeps.hasFocus():
             if not(self.scopeMon):
-                self.scope.setSweeps(self.inp_aveSweeps.value())
+                self.scope.setSweeps(self.inp_avgSweeps.value())
             else:
-                self.scopeThread.avgSweeps = self.inp_aveSweeps.value()
+                self.scopeThread.avgSweeps = self.inp_avgSweeps.value()
                 print 'Avg sweeps for data eval changed to ' + str(self.scopeThread.avgSweeps)
                 # reset data buffer
                 self.dataBuf = []            
@@ -288,7 +441,48 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             
     def chk_invertTrace2_clicked(self):
         if not(self.scopeMon): self.scope.invertTrace('C2', self.chk_invertTrace2.isChecked())
+     
+    def connectLasers(self):    
+        if self.chk_connectLasers.isChecked():
+            self.UVLaser = SirahLaserController('UV')
+            if self.UVLaser.OpenLaser():
+                QtGui.QMessageBox.warning(self, 'Sirah Laser Error',
+                "Close Sirah Control interface for UV laser.", QtGui.QMessageBox.Ok)
+                self.laserErr = True
+                self.chk_connectLasers.setChecked(False)
+                return
+            self.VUVLaser = SirahLaserController('VUV')
+            print 'VUV'
+            if self.VUVLaser.OpenLaser():
+                QtGui.QMessageBox.warning(self, 'Sirah Laser Error',
+                "Close Sirah Control interface for VUV laser.", QtGui.QMessageBox.Ok)
+                self.laserErr = True
+                self.chk_connectLasers.setChecked(False)
+                self.UVLaser.CloseLaser()
+                return
+            else:
+                self.inp_setWL_UV.setEnabled(True)
+                self.inp_setWL_VUV.setEnabled(True)
+                self.inp_setWL_UV.setValue(self.UVLaser.GetWavelength())
+                self.inp_setWL_VUV.setValue(self.VUVLaser.GetWavelength())
+                self.laserErr = False
+                
+        elif not(self.chk_connectLasers.isChecked()) and not(self.laserErr):         
+            self.UVLaser.CloseLaser()
+            self.VUVLaser.CloseLaser()
+            self.inp_setWL_UV.setEnabled(False)
+            self.inp_setWL_VUV.setEnabled(False)
+        else: pass
+        
+    def setWavelengths(self, laser):
+        if laser == 'UV' and self.inp_setWL_UV.hasFocus():
+            self.setLaser = LaserThread(self.UVLaser, self.inp_setWL_UV.value(), self.inp_setWL_UV)
+            self.setLaser.start()
             
+        elif laser == 'VUV' and self.inp_setWL_VUV.hasFocus():
+            self.setLaser = LaserThread(self.VUVLaser, self.inp_setWL_VUV.value(), self.inp_setWL_VUV)
+            self.setLaser.start()
+     
     def readGauge_clicked(self):
         '''create maxi gauge thread and _run()'''
         # create controller connection within scope thread
@@ -321,7 +515,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def closeEvent(self, event):
         self.blockSignals(True)
         if not(self.setPotBool):
-            reply = QtGui.QMessageBox.question(self, '',
+            reply = QtGui.QMessageBox.question(self, 'RSE Control',
                 "Shut down experiment control?", QtGui.QMessageBox.Yes | 
                 QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)  
             if reply == QtGui.QMessageBox.Yes:
@@ -352,11 +546,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_invertTrace1.setChecked(True)
         self.pulseGen = PulseGeneratorController()
         self.pulseGen.screenUpdate('ON')
-        time.sleep(0.1)
+        #time.sleep(0.1)
+        #self.pulseGen.read()
         self.inp_extractDelay.setValue((float(self.pulseGen.readDelay(6)) + abs(trigOffsetC1))*1E6)
         print '-----------------------------------------------------------------------------'
+        print 'Initiate Lasers when not Sirah Control interfaces closed'
 
     def shutDownExperiment(self):
+        self.blockSignals(True)
         print 'Releasing controllers:'
         self.analogIO.closeDevice()
         self.DIOCard.releaseCard()
@@ -372,9 +569,79 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.PressureThread.terminate()
         if hasattr(self, 'pulseGen'):
             self.pulseGen.closeConnection()
+        if self.chk_connectLasers.isChecked():
+            self.UVLaser.CloseLaser()
+            self.VUVLaser.CloseLaser()
         self.WfWin.close()
         
 # subclass qthread (not recommended officially, old style)
+class scopeThread(QtCore.QThread):
+    def __init__(self, scopeRead=True, dispOff=False, avgSweeps=1):
+        QtCore.QThread.__init__(self)
+        self.scopeRead = scopeRead
+        self.scope = LeCroyScopeControllerVISA()
+        # averages for data eval with single traces from scope
+        self.avgSweeps = avgSweeps
+        self.scope.setSweeps(1)
+        self.scope.invertTrace('C1', False)
+        self.scope.setScales()
+        if dispOff:
+            self.scope.dispOff()
+        
+    dataReady = QtCore.pyqtSignal(object)
+    # override
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        #self.scope.dispOff()
+        while self.scopeRead:
+            data = self.scope.armwaitread()
+            self.dataReady.emit(data) 
+        # return control to scope
+        self.scope.dispOn()
+        self.scope.invertTrace('C1', True)
+        self.scope.trigModeNormal()
+        self.scope.closeConnection()
+        self.quit()
+        return     
+        
+class LaserThread(QtCore.QThread):
+    '''do goto in thread'''
+    def __init__(self, laser, value, disp):
+        QtCore.QThread.__init__(self)
+        self.laser = laser
+        self.value = value
+        self.disp = disp
+      
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        self.laser.Goto(self.value)
+        self.disp.setValue(self.laser.GetWavelength())
+        self.quit()
+        return
+        
+class LaserBurstThread(QtCore.QThread):
+    '''do goto in thread'''
+    def __init__(self, laser, start, stop, step):
+        QtCore.QThread.__init__(self)
+        self.laser = laser
+        self.startParam = start
+        self.stopParam = stop
+        self.stepParam = step
+    burstReady = QtCore.pyqtSignal() 
+    
+    def __del__(self):
+        self.wait()
+
+    def run(self):
+        self.laser.StartBurst(self.startParam, self.stopParam, self.stepParam)
+        self.burstReady.emit()
+        self.quit()
+        return   
+            
 class PressureThread(QtCore.QThread):
     def __init__(self, ReadActive, MainState):
         QtCore.QThread.__init__(self)
@@ -398,45 +665,6 @@ class PressureThread(QtCore.QThread):
         self.MaxiGauge.disconnect()
         self.quit()
         return
-      
-class scopeThread(QtCore.QThread):
-    def __init__(self, scopeRead=True, dispOff=False):
-        QtCore.QThread.__init__(self)
-        self.scopeRead = scopeRead
-        self.scope = LeCroyScopeControllerVISA()
-        # averages for data eval with single traces from scope
-        self.avgSweeps = 1
-        self.scope.setSweeps(1)
-        self.scope.invertTrace('C1', False)
-        self.scope.setScales()
-        if dispOff:
-            self.scope.dispOff()
-        # TODO
-        self.accumT = 0
-        self.iT = 0
-        
-    dataReady = QtCore.pyqtSignal(object)
-    # override
-    def __del__(self):
-        self.wait()
-
-    def run(self):
-        #self.scope.dispOff()
-        while self.scopeRead:
-            start = time.clock()
-            data = self.scope.armwaitread()
-            self.dataReady.emit(data)
-            self.accumT = self.accumT + (time.clock() - start)*1000
-            self.iT = self.iT + 1
-            #TODO
-           # print (self.accumT/self.iT)
-        # return control to scope
-        self.scope.dispOn()
-        self.scope.invertTrace('C1', True)
-        self.scope.trigModeNormal()
-        self.scope.closeConnection()
-        self.quit()
-        return     
 
 class waveformGenThread(QtCore.QThread):
     def __init__(self, wfOutActive, DIOCard=None):
@@ -670,7 +898,7 @@ class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
            
     def closeEvent(self, event):
         if self.setPotBool:
-            reply = QtGui.QMessageBox.question(self, '',
+            reply = QtGui.QMessageBox.question(self, 'MCP Control Warning',
             "Abort Potential Ramp?", QtGui.QMessageBox.Yes | 
             QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)
             if reply == QtGui.QMessageBox.Yes:

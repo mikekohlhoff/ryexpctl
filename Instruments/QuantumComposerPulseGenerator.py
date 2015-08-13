@@ -32,7 +32,6 @@ class PulseGeneratorController:
         print '-----------------------------------------------------------------------------'
         try:
             import visa
-            from pyvisa.resources import MessageBasedResource
             if sys.platform == 'darwin':
                 raise OSError
             rm = visa.ResourceManager()
@@ -58,8 +57,6 @@ class PulseGeneratorController:
     def screenUpdate(self, state):
         '''turn on automatic update of the screen'''
         self.__delayGen.write(':DISPLAY:MODE ' + state)
-        time.sleep(0.1)
-        self.__delayGen.read()
 
     def switchChl(self, channel, state):
         self.__delayGen.write(':PULS{:d}:STAT {:d}'.format(channel, state))
@@ -67,17 +64,24 @@ class PulseGeneratorController:
     def setDelay(self, channel, delayVal):
         '''set delay of respective channel'''
         # delay set in s 
-        self.__delayGen.write(":PULS{:d}:DELAY {:1.10f}".format(channel, delayVal))
+        self.__delayGen.write(":PULS{:d}:DELAY {:1.11f}".format(channel, delayVal))
      
     def readDelay(self, channel):
         '''read delay of respective channel'''
-        self.__delayGen.write(":PULS{:d}:DELAY?".format(channel))
-        return self.__delayGen.read()
+        ret = 'ok'
+        while 'ok' in ret:
+            self.__delayGen.write(":PULS{:d}:DELAY?".format(channel))
+            ret = self.__delayGen.read()
+        return ret
 
     def setWidth(self, channel, widthVal):
         '''set delay of respective channel'''
         # pulse width set in s 
         self.__delayGen.write(":PULS{:d}:WIDTH {:f}".format(channel, widthVal))
+        
+    def read(self):
+        '''excess visa read externally'''
+        self.__delayGen.read()
         
     def closeConnection(self):
         self.__delayGen.close()
@@ -85,21 +89,21 @@ class PulseGeneratorController:
 if __name__ == '__main__':
     delGen = PulseGeneratorController()
     import time
-    delGen.readDelay(8)
-    time.sleep(1)
-    delGen.screenUpdate('ON')
-    delGen.readDelay(8)
-    delGen.switchChl(8, False)
-    time.sleep(2)
-    delGen.switchChl(8, True)
-    time.sleep(1)
-    delGen.setDelay(8, 0.001)
-    time.sleep(1)
-    delGen.setDelay(8, 0)
-    time.sleep(1)
-    delGen.setWidth(8, 0.001)
-    time.sleep(1)
-    delGen.setWidth(8, 0.000001)
-    time.sleep(1)
-    delGen.readDelay(8)
+    #delGen.readDelay(8)
+    #time.sleep(1)
+    #delGen.screenUpdate('ON')
+##    delGen.readDelay(8)
+##    delGen.switchChl(8, False)
+##    time.sleep(2)
+##    delGen.switchChl(8, True)
+##    time.sleep(1)
+##    delGen.setDelay(8, 0.001)
+##    time.sleep(1)
+##    delGen.setDelay(8, 0)
+##    time.sleep(1)
+##    delGen.setWidth(8, 0.001)
+##    time.sleep(1)
+##    delGen.setWidth(8, 0.000001)
+##    time.sleep(1)
+##    delGen.readDelay(8)
     delGen.closeConnection()

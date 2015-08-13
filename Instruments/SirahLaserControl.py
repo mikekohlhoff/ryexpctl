@@ -29,33 +29,44 @@ class SirahLaserSimulator:
     def LaserScanBurstCancel(self, ObjPtr): pass
         
 class SirahLaserController:
-    '''interface to USB87P4'''
+    '''interface to USB87P4
+        reconstructed from details in library call in LabVIEW. Probably.
+    '''
+    
     def __init__(self, LaserType):
         print '-----------------------------------------------------------------------'
         try:
             if sys.platform == 'darwin':
                 raise OSError
-            self.__SirahLaser = ctypes.cdll.LoadLibrary(os.getcwd() + '\SirahLaserObject.dll')
-            mode = 'Hardware driver .dll found'
+            self.__SirahLaser = ctypes.cdll.LoadLibrary('SirahLaserObject.dll')
+            mode = 'Hardware driver .dll for Sirah Laser found'
         except OSError:
             self.__SirahLaser = SirahLaserSimulator(LaserType)
-            mode = 'OSError, enter simulation mode'
+            mode = 'OSError for initiating Sirah Laser, enter simulation mode'
         except AttributeError:
             self.__SirahLaser = SirahLaserSimulator(LaserType)
-            mode = 'Hardware not present, enter simulation mode'
-
+            mode = 'Hardware not present for Sirah Laser, enter simulation mode'
+        
         self.__LaserType = LaserType
-        self.__FileName = ctypes.c_char_p(os.getcwd() + '\Sirah Control ' + LaserType + '\Sirah Laser.ini')
+        self.__FileName = ctypes.c_char_p(os.path.join('C:\\Users\\tpsadmin\\Desktop\\Documents\\RSE Control', 'Sirah Control ' + LaserType, 'Sirah Laser.ini'))
         self.__ObjPtr = ctypes.c_uint32()
         self.__nPositionMode = ctypes.c_int16(0)
         self.__dBacklashMode = ctypes.c_int16(0)
+        print mode + ', ' + self.__LaserType + ' Laser'
 
     def OpenLaser(self):
         '''Create reference to laser'''
-        ret = self.__SirahLaser.LaserCreate(self.__FileName, ctypes.byref(self.__ObjPtr))
+        try:
+            ret = self.__SirahLaser.LaserCreate(self.__FileName, ctypes.byref(self.__ObjPtr))
+        except WindowsError: pass
+        print '-----------------------------------------------------------------------'    
         if ret != 0:
             self.GetLastError()
             print "Consider port being blocked by reference not properly close"
+            return 1
+        else:
+            print 'Connected to Sirah Laser, ' + self.__LaserType + ' Laser'
+            return 0
 
     def GetLastError(self):
         '''Error handling if return !=0'''
@@ -130,16 +141,16 @@ if __name__ == '__main__':
     UVLaser = SirahLaserController('UV')
     print UVLaser._SirahLaserController__LaserType
     UVLaser.OpenLaser()
-    lambdaOld = UVLaser.GetWavelength()
-    print 'lambda old ' + str(lambdaOld)
+   # lambdaOld = UVLaser.GetWavelength()
+   # print 'lambda old ' + str(lambdaOld)
     time.sleep(0.5)
-    UVLaser.StartBurst(lambdaOld, lambdaOld+1.0, 0.1)
+    #UVLaser.StartBurst(lambdaOld, lambdaOld+1.0, 0.1)
     cont = True
-    while cont:
-        (wl, cont) = UVLaser.NextBurst()    
-        print wl
-        time.sleep(0.2)
-    UVLaser.CancelBurst()
-    UVLaser.Goto(lambdaOld)
+    #while cont:
+     #   (wl, cont) = UVLaser.NextBurst()    
+    #    print wl
+    #    time.sleep(0.2)
+   # UVLaser.CancelBurst()
+    #UVLaser.Goto(lambdaOld)
     print UVLaser.GetWavelength()
     UVLaser.CloseLaser()

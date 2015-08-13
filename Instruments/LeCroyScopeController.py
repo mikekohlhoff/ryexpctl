@@ -25,7 +25,11 @@ class LeCroyScopeSimulatorVISA:
         return self.lastCommand
 
     def read_raw(self):
-        if self.lastCommand == 'ARM;WAIT;C1:WF? DESC;':
+        if self.lastCommand == 'C1:WF? DESC;':
+            data = 16*'.' + struct.pack(wdf, 0, 0, 346, 8000, 1000, 0, 1, 0, 11, 1, 0, 0, 1, 1, 1, 1,1,1, 1, 1)
+            return data
+            
+        elif self.lastCommand == 'C2:WF? DESC;':
             data = 16*'.' + struct.pack(wdf, 0, 0, 346, 8000, 1000, 0, 1, 0, 11, 1, 0, 0, 1, 1, 1, 1,1,1, 1, 1)
             return data
 
@@ -47,6 +51,7 @@ class LeCroyScopeControllerVISA:
             import visa
             # introduced this fix, cf. pyvisa issue #168
             from pyvisa.resources import MessageBasedResource
+            from pyvisa.errors import VisaIOError
             rm = visa.ResourceManager()
             self.__scope = rm.open_resource("VICP::169.254.201.2::INSTR", resource_pyclass=MessageBasedResource)
             # CORD LO for intel based computers, CORD HI default
@@ -57,6 +62,9 @@ class LeCroyScopeControllerVISA:
 
         except ImportError:
             print "Can't load visa/scope driver, using simulator for scope"
+            self.__scope = LeCroyScopeSimulatorVISA()
+        except VisaIOError:
+            print "Scope is probably turned off, enter simulator."
             self.__scope = LeCroyScopeSimulatorVISA()
 
     def initialize(self):

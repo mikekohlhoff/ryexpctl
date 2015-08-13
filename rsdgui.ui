@@ -9,12 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>900</width>
-    <height>567</height>
+    <width>971</width>
+    <height>628</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -56,8 +56,8 @@
   <widget class="PyQtGraphWidgetScope" name="ScopeDisplay">
    <property name="geometry">
     <rect>
-     <x>5</x>
-     <y>5</y>
+     <x>25</x>
+     <y>25</y>
      <width>410</width>
      <height>274</height>
     </rect>
@@ -92,9 +92,9 @@
   <widget class="QGroupBox" name="groupBox_Scope">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>5</y>
-     <width>136</width>
+     <x>455</x>
+     <y>30</y>
+     <width>146</width>
      <height>136</height>
     </rect>
    </property>
@@ -117,7 +117,7 @@
    <widget class="QCheckBox" name="chk_invertTrace1">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>15</x>
       <y>80</y>
       <width>92</width>
       <height>21</height>
@@ -137,7 +137,7 @@
    <widget class="QCheckBox" name="chk_invertTrace2">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>15</x>
       <y>105</y>
       <width>92</width>
       <height>21</height>
@@ -157,7 +157,7 @@
    <widget class="QCheckBox" name="chk_readScope">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>15</x>
       <y>20</y>
       <width>92</width>
       <height>21</height>
@@ -174,10 +174,10 @@
      <string>Read Scope</string>
     </property>
    </widget>
-   <widget class="QSpinBox" name="inp_aveSweeps">
+   <widget class="QSpinBox" name="inp_avgSweeps">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>15</x>
       <y>50</y>
       <width>40</width>
       <height>22</height>
@@ -233,7 +233,7 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>55</x>
+      <x>60</x>
       <y>55</y>
       <width>61</width>
       <height>16</height>
@@ -263,7 +263,7 @@
      <string>Avg Sweeps</string>
     </property>
    </widget>
-   <zorder>inp_aveSweeps</zorder>
+   <zorder>inp_avgSweeps</zorder>
    <zorder>label</zorder>
    <zorder>chk_invertTrace1</zorder>
    <zorder>chk_readScope</zorder>
@@ -272,8 +272,8 @@
   <widget class="PyQtGraphWidgetData" name="DataDisplay">
    <property name="geometry">
     <rect>
-     <x>5</x>
-     <y>280</y>
+     <x>25</x>
+     <y>330</y>
      <width>410</width>
      <height>274</height>
     </rect>
@@ -294,10 +294,10 @@
   <widget class="QGroupBox" name="groupBox_Extraction">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>150</y>
-     <width>136</width>
-     <height>86</height>
+     <x>455</x>
+     <y>180</y>
+     <width>146</width>
+     <height>141</height>
     </rect>
    </property>
    <property name="font">
@@ -317,8 +317,8 @@
    <widget class="QDoubleSpinBox" name="inp_extractDelay">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>50</y>
+      <x>15</x>
+      <y>55</y>
       <width>40</width>
       <height>22</height>
      </rect>
@@ -359,12 +359,15 @@
     <property name="decimals">
      <number>2</number>
     </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
+    </property>
    </widget>
    <widget class="QLabel" name="label_15">
     <property name="geometry">
      <rect>
-      <x>55</x>
-      <y>55</y>
+      <x>60</x>
+      <y>60</y>
       <width>86</width>
       <height>16</height>
      </rect>
@@ -382,7 +385,7 @@
    <widget class="QLabel" name="label_11">
     <property name="geometry">
      <rect>
-      <x>55</x>
+      <x>60</x>
       <y>25</y>
       <width>49</width>
       <height>16</height>
@@ -401,7 +404,7 @@
    <widget class="QSpinBox" name="inp_voltExtract">
     <property name="geometry">
      <rect>
-      <x>11</x>
+      <x>15</x>
       <y>23</y>
       <width>40</width>
       <height>22</height>
@@ -450,15 +453,92 @@
      <number>0</number>
     </property>
    </widget>
+   <widget class="QSpinBox" name="inp_voltOptic1">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>90</y>
+      <width>40</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>40</width>
+      <height>16777215</height>
+     </size>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
+    <property name="wrapping">
+     <bool>false</bool>
+    </property>
+    <property name="frame">
+     <bool>true</bool>
+    </property>
+    <property name="buttonSymbols">
+     <enum>QAbstractSpinBox::NoButtons</enum>
+    </property>
+    <property name="keyboardTracking">
+     <bool>true</bool>
+    </property>
+    <property name="minimum">
+     <number>0</number>
+    </property>
+    <property name="maximum">
+     <number>4000</number>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_12">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>95</y>
+      <width>56</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Ion Optic1</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_DataAcq">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>245</y>
-     <width>136</width>
-     <height>126</height>
+     <x>790</x>
+     <y>290</y>
+     <width>156</width>
+     <height>311</height>
     </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Ignored" vsizetype="Ignored">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
    </property>
    <property name="font">
     <font>
@@ -477,8 +557,8 @@
    <widget class="QPushButton" name="btn_startDataAcq">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>25</y>
+      <x>15</x>
+      <y>30</y>
       <width>90</width>
       <height>22</height>
      </rect>
@@ -508,8 +588,8 @@
    <widget class="QComboBox" name="scanModeSelect">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>55</y>
+      <x>15</x>
+      <y>110</y>
       <width>86</width>
       <height>26</height>
      </rect>
@@ -538,28 +618,15 @@
     </item>
     <item>
      <property name="text">
-      <string>DelaysTODO</string>
+      <string>Delay</string>
      </property>
     </item>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>145</x>
-      <y>40</y>
-      <width>91</width>
-      <height>13</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>TODO file handling</string>
-    </property>
    </widget>
    <widget class="QCheckBox" name="chk_gateInt">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>85</y>
+      <x>15</x>
+      <y>255</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -579,7 +646,7 @@
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>105</y>
+      <y>275</y>
       <width>106</width>
       <height>22</height>
      </rect>
@@ -619,19 +686,138 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
-   <zorder>label_2</zorder>
+   <widget class="QProgressBar" name="progressBarScan">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>60</y>
+      <width>120</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="value">
+     <number>0</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>150</y>
+      <width>91</width>
+      <height>13</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>File Name</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>95</y>
+      <width>91</width>
+      <height>13</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Scan Mode</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="inp_fileName">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>165</y>
+      <width>106</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>200</y>
+      <width>91</width>
+      <height>13</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Comment</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="inp_fileComment">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>215</y>
+      <width>106</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+   </widget>
    <zorder>scanModeSelect</zorder>
    <zorder>btn_startDataAcq</zorder>
    <zorder>chk_gateInt</zorder>
    <zorder>out_gateInt</zorder>
+   <zorder>progressBarScan</zorder>
+   <zorder>label_2</zorder>
+   <zorder>label_3</zorder>
+   <zorder>inp_fileName</zorder>
+   <zorder>label_4</zorder>
+   <zorder>inp_fileComment</zorder>
   </widget>
   <widget class="QGroupBox" name="groupBox_TOF">
    <property name="geometry">
     <rect>
-     <x>580</x>
-     <y>5</y>
-     <width>146</width>
-     <height>111</height>
+     <x>620</x>
+     <y>30</y>
+     <width>151</width>
+     <height>106</height>
     </rect>
    </property>
    <property name="font">
@@ -991,10 +1177,10 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_MCP">
    <property name="geometry">
     <rect>
-     <x>580</x>
-     <y>215</y>
-     <width>146</width>
-     <height>126</height>
+     <x>620</x>
+     <y>150</y>
+     <width>151</width>
+     <height>131</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -1017,8 +1203,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QPushButton" name="btn_startMCP">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>90</y>
+      <x>15</x>
+      <y>95</y>
       <width>90</width>
       <height>22</height>
      </rect>
@@ -1042,14 +1228,14 @@ p, li { white-space: pre-wrap; }
      </font>
     </property>
     <property name="text">
-     <string>Start Up MCP</string>
+     <string>Ramp MCP/Phos</string>
     </property>
    </widget>
    <widget class="QSpinBox" name="inp_voltPhos">
     <property name="geometry">
      <rect>
-      <x>11</x>
-      <y>55</y>
+      <x>15</x>
+      <y>60</y>
       <width>40</width>
       <height>22</height>
      </rect>
@@ -1109,7 +1295,7 @@ p, li { white-space: pre-wrap; }
     </property>
     <property name="geometry">
      <rect>
-      <x>11</x>
+      <x>15</x>
       <y>25</y>
       <width>40</width>
       <height>22</height>
@@ -1170,7 +1356,7 @@ p, li { white-space: pre-wrap; }
    <widget class="QLabel" name="label_26">
     <property name="geometry">
      <rect>
-      <x>57</x>
+      <x>60</x>
       <y>30</y>
       <width>21</width>
       <height>16</height>
@@ -1189,8 +1375,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QLabel" name="label_27">
     <property name="geometry">
      <rect>
-      <x>57</x>
-      <y>60</y>
+      <x>60</x>
+      <y>65</y>
       <width>23</width>
       <height>16</height>
      </rect>
@@ -1214,10 +1400,10 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_Laser">
    <property name="geometry">
     <rect>
-     <x>580</x>
-     <y>125</y>
-     <width>146</width>
-     <height>81</height>
+     <x>620</x>
+     <y>295</y>
+     <width>151</width>
+     <height>116</height>
     </rect>
    </property>
    <property name="font">
@@ -1231,84 +1417,12 @@ p, li { white-space: pre-wrap; }
    <property name="title">
     <string>Sirah Laser</string>
    </property>
-   <widget class="QSpinBox" name="inp_setW_VUV">
+   <widget class="QDoubleSpinBox" name="inp_setWL_UV">
     <property name="geometry">
      <rect>
-      <x>11</x>
-      <y>23</y>
-      <width>40</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>40</width>
-      <height>16777215</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="mouseTracking">
-     <bool>true</bool>
-    </property>
-    <property name="wrapping">
-     <bool>false</bool>
-    </property>
-    <property name="frame">
-     <bool>true</bool>
-    </property>
-    <property name="buttonSymbols">
-     <enum>QAbstractSpinBox::NoButtons</enum>
-    </property>
-    <property name="keyboardTracking">
-     <bool>true</bool>
-    </property>
-    <property name="minimum">
-     <number>0</number>
-    </property>
-    <property name="maximum">
-     <number>5000</number>
-    </property>
-    <property name="value">
-     <number>0</number>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_13">
-    <property name="geometry">
-     <rect>
-      <x>55</x>
+      <x>15</x>
       <y>25</y>
-      <width>56</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>8</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Set WL VUV</string>
-    </property>
-   </widget>
-   <widget class="QSpinBox" name="inp_setWL_UV">
-    <property name="geometry">
-     <rect>
-      <x>11</x>
-      <y>51</y>
-      <width>40</width>
+      <width>62</width>
       <height>22</height>
      </rect>
     </property>
@@ -1320,7 +1434,7 @@ p, li { white-space: pre-wrap; }
     </property>
     <property name="maximumSize">
      <size>
-      <width>40</width>
+      <width>62</width>
       <height>16777215</height>
      </size>
     </property>
@@ -1345,21 +1459,21 @@ p, li { white-space: pre-wrap; }
     <property name="keyboardTracking">
      <bool>true</bool>
     </property>
-    <property name="minimum">
-     <number>0</number>
+    <property name="decimals">
+     <number>4</number>
     </property>
     <property name="maximum">
-     <number>5000</number>
+     <double>1000.000000000000000</double>
     </property>
-    <property name="value">
-     <number>0</number>
+    <property name="singleStep">
+     <double>0.000100000000000</double>
     </property>
    </widget>
    <widget class="QLabel" name="label_14">
     <property name="geometry">
      <rect>
-      <x>55</x>
-      <y>55</y>
+      <x>80</x>
+      <y>30</y>
       <width>50</width>
       <height>16</height>
      </rect>
@@ -1375,14 +1489,106 @@ p, li { white-space: pre-wrap; }
      <string>Set WL UV</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="chk_connectLasers">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>90</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Connect Lasers</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_13">
+    <property name="geometry">
+     <rect>
+      <x>80</x>
+      <y>66</y>
+      <width>56</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Set WL VUV</string>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="inp_setWL_VUV">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>60</y>
+      <width>62</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>62</width>
+      <height>16777215</height>
+     </size>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
+    <property name="wrapping">
+     <bool>false</bool>
+    </property>
+    <property name="frame">
+     <bool>true</bool>
+    </property>
+    <property name="buttonSymbols">
+     <enum>QAbstractSpinBox::NoButtons</enum>
+    </property>
+    <property name="keyboardTracking">
+     <bool>true</bool>
+    </property>
+    <property name="decimals">
+     <number>4</number>
+    </property>
+    <property name="maximum">
+     <double>1000.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.000100000000000</double>
+    </property>
+   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_DevControl">
    <property name="geometry">
     <rect>
-     <x>740</x>
-     <y>5</y>
-     <width>151</width>
-     <height>236</height>
+     <x>790</x>
+     <y>30</y>
+     <width>156</width>
+     <height>246</height>
     </rect>
    </property>
    <property name="font">
@@ -1399,8 +1605,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QCheckBox" name="chk_Excimer">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>20</y>
+      <x>15</x>
+      <y>25</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1419,8 +1625,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QCheckBox" name="chk_PulseValve">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>95</y>
+      <x>15</x>
+      <y>100</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1439,8 +1645,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QCheckBox" name="chk_LaserVUV">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>45</y>
+      <x>15</x>
+      <y>50</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1459,8 +1665,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QCheckBox" name="chk_LaserUV">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>70</y>
+      <x>15</x>
+      <y>75</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1479,8 +1685,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QCheckBox" name="chk_readMainGauge">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>120</y>
+      <x>15</x>
+      <y>125</y>
       <width>146</width>
       <height>18</height>
      </rect>
@@ -1499,8 +1705,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QTextBrowser" name="out_readMainGauge">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>140</y>
+      <x>15</x>
+      <y>150</y>
       <width>106</width>
       <height>22</height>
      </rect>
@@ -1543,8 +1749,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QCheckBox" name="chk_readSourceGauge">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>170</y>
+      <x>15</x>
+      <y>185</y>
       <width>146</width>
       <height>18</height>
      </rect>
@@ -1563,8 +1769,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QTextBrowser" name="out_readSourceGauge">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>190</y>
+      <x>15</x>
+      <y>210</y>
       <width>106</width>
       <height>22</height>
      </rect>
@@ -1616,10 +1822,10 @@ p, li { white-space: pre-wrap; }
   <widget class="QTabWidget" name="tabWidget_ScanParam">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>380</y>
-     <width>306</width>
-     <height>176</height>
+     <x>455</x>
+     <y>430</y>
+     <width>316</width>
+     <height>171</height>
     </rect>
    </property>
    <property name="font">
@@ -1629,17 +1835,17 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
-   <widget class="QWidget" name="tab_2">
+   <widget class="QWidget" name="Extraction">
     <attribute name="title">
      <string>Voltage Scan</string>
     </attribute>
     <widget class="QSpinBox" name="inp_incrField">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>75</y>
+       <x>15</x>
+       <y>80</y>
        <width>40</width>
        <height>22</height>
       </rect>
@@ -1684,14 +1890,14 @@ p, li { white-space: pre-wrap; }
       <number>5000</number>
      </property>
      <property name="value">
-      <number>0</number>
+      <number>1</number>
      </property>
     </widget>
     <widget class="QLabel" name="label_21">
      <property name="geometry">
       <rect>
-       <x>55</x>
-       <y>80</y>
+       <x>60</x>
+       <y>85</y>
        <width>61</width>
        <height>16</height>
       </rect>
@@ -1709,8 +1915,8 @@ p, li { white-space: pre-wrap; }
     <widget class="QSpinBox" name="inp_startField">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>15</y>
+       <x>15</x>
+       <y>10</y>
        <width>40</width>
        <height>22</height>
       </rect>
@@ -1761,7 +1967,7 @@ p, li { white-space: pre-wrap; }
     <widget class="QSpinBox" name="inp_stopField">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>15</x>
        <y>45</y>
        <width>40</width>
        <height>22</height>
@@ -1813,8 +2019,8 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_25">
      <property name="geometry">
       <rect>
-       <x>55</x>
-       <y>20</y>
+       <x>60</x>
+       <y>15</y>
        <width>106</width>
        <height>16</height>
       </rect>
@@ -1832,7 +2038,7 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_30">
      <property name="geometry">
       <rect>
-       <x>55</x>
+       <x>60</x>
        <y>50</y>
        <width>111</width>
        <height>16</height>
@@ -1851,9 +2057,9 @@ p, li { white-space: pre-wrap; }
     <widget class="QTextBrowser" name="out_voltMon">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>15</x>
        <y>115</y>
-       <width>106</width>
+       <width>40</width>
        <height>22</height>
       </rect>
      </property>
@@ -1895,9 +2101,9 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_31">
      <property name="geometry">
       <rect>
-       <x>120</x>
+       <x>60</x>
        <y>120</y>
-       <width>81</width>
+       <width>101</width>
        <height>16</height>
       </rect>
      </property>
@@ -1908,18 +2114,13 @@ p, li { white-space: pre-wrap; }
       </font>
      </property>
      <property name="text">
-      <string>Voltage Monitor</string>
+      <string>Voltage Monitor (V)</string>
      </property>
     </widget>
-   </widget>
-   <widget class="QWidget" name="tab">
-    <attribute name="title">
-     <string>Wavelength Scan</string>
-    </attribute>
-    <widget class="QComboBox" name="laserSelectScan">
+    <widget class="QComboBox" name="voltageSelectScan">
      <property name="geometry">
       <rect>
-       <x>200</x>
+       <x>210</x>
        <y>15</y>
        <width>86</width>
        <height>26</height>
@@ -1939,21 +2140,58 @@ p, li { white-space: pre-wrap; }
      </property>
      <item>
       <property name="text">
-       <string>VUV laser</string>
+       <string>Extraction</string>
       </property>
      </item>
      <item>
       <property name="text">
-       <string>UV laser</string>
+       <string>Ion Optics 1</string>
       </property>
      </item>
     </widget>
-    <widget class="QSpinBox" name="inp_incrWL">
+   </widget>
+   <widget class="QWidget" name="WL">
+    <attribute name="title">
+     <string>Wavelength Scan</string>
+    </attribute>
+    <widget class="QComboBox" name="laserSelectScan">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>75</y>
-       <width>40</width>
+       <x>210</x>
+       <y>15</y>
+       <width>86</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="font">
+      <font>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+     <item>
+      <property name="text">
+       <string>UV Laser</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>VUV Laser</string>
+      </property>
+     </item>
+    </widget>
+    <widget class="QDoubleSpinBox" name="inp_incrWL">
+     <property name="geometry">
+      <rect>
+       <x>15</x>
+       <y>80</y>
+       <width>62</width>
        <height>22</height>
       </rect>
      </property>
@@ -1965,7 +2203,7 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="minimumSize">
       <size>
-       <width>40</width>
+       <width>62</width>
        <height>22</height>
       </size>
      </property>
@@ -1996,21 +2234,24 @@ p, li { white-space: pre-wrap; }
      <property name="keyboardTracking">
       <bool>true</bool>
      </property>
-     <property name="minimum">
-      <number>0</number>
+     <property name="decimals">
+      <number>4</number>
      </property>
      <property name="maximum">
-      <number>5000</number>
+      <double>1000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.000100000000000</double>
      </property>
      <property name="value">
-      <number>0</number>
+      <double>0.000100000000000</double>
      </property>
     </widget>
     <widget class="QLabel" name="label_22">
      <property name="geometry">
       <rect>
-       <x>55</x>
-       <y>80</y>
+       <x>80</x>
+       <y>85</y>
        <width>37</width>
        <height>16</height>
       </rect>
@@ -2028,8 +2269,8 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_19">
      <property name="geometry">
       <rect>
-       <x>55</x>
-       <y>20</y>
+       <x>80</x>
+       <y>15</y>
        <width>42</width>
        <height>16</height>
       </rect>
@@ -2047,7 +2288,7 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_20">
      <property name="geometry">
       <rect>
-       <x>55</x>
+       <x>80</x>
        <y>50</y>
        <width>40</width>
        <height>16</height>
@@ -2063,12 +2304,12 @@ p, li { white-space: pre-wrap; }
       <string>Stop WL</string>
      </property>
     </widget>
-    <widget class="QSpinBox" name="inp_startWL">
+    <widget class="QDoubleSpinBox" name="inp_startWL">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>15</y>
-       <width>40</width>
+       <x>15</x>
+       <y>10</y>
+       <width>62</width>
        <height>22</height>
       </rect>
      </property>
@@ -2080,7 +2321,7 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="minimumSize">
       <size>
-       <width>40</width>
+       <width>62</width>
        <height>22</height>
       </size>
      </property>
@@ -2111,22 +2352,22 @@ p, li { white-space: pre-wrap; }
      <property name="keyboardTracking">
       <bool>true</bool>
      </property>
-     <property name="minimum">
-      <number>0</number>
+     <property name="decimals">
+      <number>4</number>
      </property>
      <property name="maximum">
-      <number>5000</number>
+      <double>1000.000000000000000</double>
      </property>
-     <property name="value">
-      <number>0</number>
+     <property name="singleStep">
+      <double>0.000100000000000</double>
      </property>
     </widget>
-    <widget class="QSpinBox" name="inp_stopWL">
+    <widget class="QDoubleSpinBox" name="inp_stopWL">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>15</x>
        <y>45</y>
-       <width>40</width>
+       <width>62</width>
        <height>22</height>
       </rect>
      </property>
@@ -2138,7 +2379,7 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="minimumSize">
       <size>
-       <width>40</width>
+       <width>62</width>
        <height>22</height>
       </size>
      </property>
@@ -2169,22 +2410,22 @@ p, li { white-space: pre-wrap; }
      <property name="keyboardTracking">
       <bool>true</bool>
      </property>
-     <property name="minimum">
-      <number>0</number>
+     <property name="decimals">
+      <number>4</number>
      </property>
      <property name="maximum">
-      <number>5000</number>
+      <double>1000.000000000000000</double>
      </property>
-     <property name="value">
-      <number>0</number>
+     <property name="singleStep">
+      <double>0.000100000000000</double>
      </property>
     </widget>
     <widget class="QTextBrowser" name="out_WLMon">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>15</x>
        <y>115</y>
-       <width>106</width>
+       <width>62</width>
        <height>22</height>
       </rect>
      </property>
@@ -2226,9 +2467,9 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_32">
      <property name="geometry">
       <rect>
-       <x>120</x>
+       <x>80</x>
        <y>120</y>
-       <width>101</width>
+       <width>126</width>
        <height>16</height>
       </rect>
      </property>
@@ -2239,7 +2480,7 @@ p, li { white-space: pre-wrap; }
       </font>
      </property>
      <property name="text">
-      <string>Wavelength Monitor</string>
+      <string>Wavelength Monitor (nm)</string>
      </property>
     </widget>
     <zorder>inp_incrWL</zorder>
@@ -2256,12 +2497,12 @@ p, li { white-space: pre-wrap; }
     <attribute name="title">
      <string>Delay Scan</string>
     </attribute>
-    <widget class="QSpinBox" name="inp_stopDelay">
+    <widget class="QDoubleSpinBox" name="inp_stopDelay">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>15</x>
        <y>45</y>
-       <width>40</width>
+       <width>72</width>
        <height>22</height>
       </rect>
      </property>
@@ -2273,7 +2514,7 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="minimumSize">
       <size>
-       <width>40</width>
+       <width>72</width>
        <height>22</height>
       </size>
      </property>
@@ -2304,22 +2545,28 @@ p, li { white-space: pre-wrap; }
      <property name="keyboardTracking">
       <bool>true</bool>
      </property>
+     <property name="decimals">
+      <number>5</number>
+     </property>
      <property name="minimum">
-      <number>0</number>
+      <double>-1000.000000000000000</double>
      </property>
      <property name="maximum">
-      <number>5000</number>
+      <double>1000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.000250000000000</double>
      </property>
      <property name="value">
-      <number>0</number>
+      <double>0.000000000000000</double>
      </property>
     </widget>
-    <widget class="QSpinBox" name="inp_incrDelay">
+    <widget class="QDoubleSpinBox" name="inp_incrDelay">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>75</y>
-       <width>40</width>
+       <x>15</x>
+       <y>80</y>
+       <width>72</width>
        <height>22</height>
       </rect>
      </property>
@@ -2331,7 +2578,7 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="minimumSize">
       <size>
-       <width>40</width>
+       <width>72</width>
        <height>22</height>
       </size>
      </property>
@@ -2362,22 +2609,25 @@ p, li { white-space: pre-wrap; }
      <property name="keyboardTracking">
       <bool>true</bool>
      </property>
-     <property name="minimum">
-      <number>0</number>
+     <property name="decimals">
+      <number>5</number>
      </property>
      <property name="maximum">
-      <number>5000</number>
+      <double>1000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.000250000000000</double>
      </property>
      <property name="value">
-      <number>0</number>
+      <double>0.000250000000000</double>
      </property>
     </widget>
-    <widget class="QTextBrowser" name="out_WLMon_2">
+    <widget class="QTextBrowser" name="out_delayMon">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>15</x>
        <y>115</y>
-       <width>106</width>
+       <width>72</width>
        <height>22</height>
       </rect>
      </property>
@@ -2389,7 +2639,7 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="minimumSize">
       <size>
-       <width>40</width>
+       <width>72</width>
        <height>22</height>
       </size>
      </property>
@@ -2416,12 +2666,12 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
     </widget>
-    <widget class="QSpinBox" name="inp_startDelay">
+    <widget class="QDoubleSpinBox" name="inp_startDelay">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>15</y>
-       <width>40</width>
+       <x>15</x>
+       <y>10</y>
+       <width>72</width>
        <height>22</height>
       </rect>
      </property>
@@ -2433,7 +2683,7 @@ p, li { white-space: pre-wrap; }
      </property>
      <property name="minimumSize">
       <size>
-       <width>40</width>
+       <width>72</width>
        <height>22</height>
       </size>
      </property>
@@ -2464,22 +2714,28 @@ p, li { white-space: pre-wrap; }
      <property name="keyboardTracking">
       <bool>true</bool>
      </property>
+     <property name="decimals">
+      <number>5</number>
+     </property>
      <property name="minimum">
-      <number>0</number>
+      <double>-1000.000000000000000</double>
      </property>
      <property name="maximum">
-      <number>5000</number>
+      <double>1000.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.000250000000000</double>
      </property>
      <property name="value">
-      <number>0</number>
+      <double>0.000000000000000</double>
      </property>
     </widget>
     <widget class="QLabel" name="label_33">
      <property name="geometry">
       <rect>
-       <x>55</x>
-       <y>80</y>
-       <width>37</width>
+       <x>90</x>
+       <y>85</y>
+       <width>71</width>
        <height>16</height>
       </rect>
      </property>
@@ -2490,13 +2746,13 @@ p, li { white-space: pre-wrap; }
       </font>
      </property>
      <property name="text">
-      <string>Incr WL</string>
+      <string>Incr Delay(μs)</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_34">
      <property name="geometry">
       <rect>
-       <x>120</x>
+       <x>90</x>
        <y>120</y>
        <width>101</width>
        <height>16</height>
@@ -2509,15 +2765,15 @@ p, li { white-space: pre-wrap; }
       </font>
      </property>
      <property name="text">
-      <string>Delay Monitor</string>
+      <string>Delay Monitor (μs)</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_35">
      <property name="geometry">
       <rect>
-       <x>55</x>
-       <y>20</y>
-       <width>42</width>
+       <x>90</x>
+       <y>15</y>
+       <width>81</width>
        <height>16</height>
       </rect>
      </property>
@@ -2525,18 +2781,19 @@ p, li { white-space: pre-wrap; }
       <font>
        <weight>50</weight>
        <bold>false</bold>
+       <kerning>true</kerning>
       </font>
      </property>
      <property name="text">
-      <string>Start WL</string>
+      <string>Start Delay(μs)</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_36">
      <property name="geometry">
       <rect>
-       <x>55</x>
+       <x>90</x>
        <y>50</y>
-       <width>40</width>
+       <width>76</width>
        <height>16</height>
       </rect>
      </property>
@@ -2547,18 +2804,55 @@ p, li { white-space: pre-wrap; }
       </font>
      </property>
      <property name="text">
-      <string>Stop WL</string>
+      <string>Stop Delay(μs)</string>
      </property>
+    </widget>
+    <widget class="QComboBox" name="delaySelectScan">
+     <property name="geometry">
+      <rect>
+       <x>180</x>
+       <y>15</y>
+       <width>116</width>
+       <height>26</height>
+      </rect>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="font">
+      <font>
+       <weight>50</weight>
+       <bold>false</bold>
+      </font>
+     </property>
+     <item>
+      <property name="text">
+       <string>Extraction</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Rydberg Excitation</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Photolysis</string>
+      </property>
+     </item>
     </widget>
    </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_Decelerator">
    <property name="geometry">
     <rect>
-     <x>740</x>
-     <y>250</y>
-     <width>151</width>
-     <height>86</height>
+     <x>455</x>
+     <y>340</y>
+     <width>146</width>
+     <height>71</height>
     </rect>
    </property>
    <property name="font">
@@ -2575,7 +2869,7 @@ p, li { white-space: pre-wrap; }
    <widget class="QCheckBox" name="chk_editWF">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>15</x>
       <y>25</y>
       <width>131</width>
       <height>20</height>
@@ -2597,109 +2891,6 @@ p, li { white-space: pre-wrap; }
     </property>
    </widget>
   </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>745</x>
-     <y>425</y>
-     <width>86</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <weight>75</weight>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Scan Settings</string>
-   </property>
-  </widget>
-  <widget class="QProgressBar" name="progressBarScan">
-   <property name="geometry">
-    <rect>
-     <x>760</x>
-     <y>515</y>
-     <width>120</width>
-     <height>24</height>
-    </rect>
-   </property>
-   <property name="value">
-    <number>24</number>
-   </property>
-  </widget>
-  <widget class="QSpinBox" name="inp_voltOptic1">
-   <property name="geometry">
-    <rect>
-     <x>830</x>
-     <y>355</y>
-     <width>40</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="sizePolicy">
-    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-     <horstretch>0</horstretch>
-     <verstretch>0</verstretch>
-    </sizepolicy>
-   </property>
-   <property name="maximumSize">
-    <size>
-     <width>40</width>
-     <height>16777215</height>
-    </size>
-   </property>
-   <property name="font">
-    <font>
-     <weight>50</weight>
-     <bold>false</bold>
-    </font>
-   </property>
-   <property name="mouseTracking">
-    <bool>true</bool>
-   </property>
-   <property name="wrapping">
-    <bool>false</bool>
-   </property>
-   <property name="frame">
-    <bool>true</bool>
-   </property>
-   <property name="buttonSymbols">
-    <enum>QAbstractSpinBox::NoButtons</enum>
-   </property>
-   <property name="keyboardTracking">
-    <bool>true</bool>
-   </property>
-   <property name="minimum">
-    <number>0</number>
-   </property>
-   <property name="maximum">
-    <number>4000</number>
-   </property>
-   <property name="value">
-    <number>0</number>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_12">
-   <property name="geometry">
-    <rect>
-     <x>855</x>
-     <y>385</y>
-     <width>31</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <weight>50</weight>
-     <bold>false</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Optic1</string>
-   </property>
-  </widget>
   <zorder>groupBox_MCP</zorder>
   <zorder>groupBox_Extraction</zorder>
   <zorder>groupBox_Decelerator</zorder>
@@ -2712,10 +2903,6 @@ p, li { white-space: pre-wrap; }
   <zorder>layoutWidget</zorder>
   <zorder>DataDisplay</zorder>
   <zorder>groupBox_Laser</zorder>
-  <zorder>label_3</zorder>
-  <zorder>progressBarScan</zorder>
-  <zorder>inp_voltOptic1</zorder>
-  <zorder>label_12</zorder>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
