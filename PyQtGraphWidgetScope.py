@@ -46,6 +46,8 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
            self.scopeWidget.removeItem(self.scopeWidget.listDataItems()[0])
         # average traces, invert data, no integration over gate
         data = (sum(dataIn)/len(dataIn))*-1
+        # substract baseline
+        data = data - np.mean(data[0:100])
         plotTime = np.arange(np.size(data))*timeincr
         self.scopeWidget.plot(plotTime, data, pen=pg.mkPen('k', width=1.2))
         return data
@@ -53,6 +55,7 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
     def plotDataAcq(self, dataIn, cursorPos, timeincr, linePos):
         # average traces
         data = (sum(dataIn)/len(dataIn))*-1
+        data = data - np.mean(data[0:100])
         plotTime = np.arange(np.size(data))*timeincr
         self.scopeWidget.plot(plotTime, data, pen=pg.mkPen('k', width=1), clear=True)
         

@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 import os
 import sys
+import pickle
 
 # UI related
 from PyQt4 import QtCore, QtGui, uic
@@ -44,6 +45,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.gateInt = False
         self.pressThread = False
         self.setPotBool = False
+        # if program crashes, reset MCP/Phos analog output
+        self.shutdownStatus = [False, 0, 0]
         # waveform generation window
         self.WfWin = waveformWindow(self.DIOCard)
         self.initUI()
@@ -67,11 +70,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_extractDelay.editingFinished.connect(self.setExtractionDelay)
         self.btn_startMCP.clicked.connect(self.startMCPPhos)
         self.chk_connectLasers.clicked.connect(self.connectLasers)
+        self.inp_voltMCP.valueChanged.connect(self.saveMCPVoltage)
+        self.inp_voltPhos.valueChanged.connect(self.saveMCPVoltage)
         
         # function in module as slot
-        self.inp_voltExtract.editingFinished.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
-        self.inp_voltOptic1.editingFinished.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
-        self.inp_voltMCP.editingFinished.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
+        self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
+        self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
+        # todo to changed, same for extr/optics (set increment to 10V here as well)
+        self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
         self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
         self.WfWin.winClose.connect(lambda: self.chk_editWF.setChecked(False))
@@ -79,6 +85,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_LaserUV.stateChanged.connect(lambda: self.pulseGen.switchChl(5, self.chk_LaserUV.isChecked()))
         self.chk_LaserVUV.stateChanged.connect(lambda: self.pulseGen.switchChl(4, self.chk_LaserVUV.isChecked()))
         self.chk_PulseValve.stateChanged.connect(lambda: self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked()))
+        self.chk_ExtractionPulse.stateChanged.connect(lambda: self.pulseGen.switchChl(6, self.chk_ExtractionPulse.isChecked()))
         self.ScopeDisplay.line1.sigPositionChanged.connect(lambda: self.inp_extractDelay.setValue(self.ScopeDisplay.line1.value()*1E6))
         self.inp_extractDelay.valueChanged.connect(lambda: self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6))
         self.inp_setWL_UV.editingFinished.connect(lambda: self.setWavelengths('UV'))
@@ -102,6 +109,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         currentIndex=self.tabWidget_ScanParam.currentIndex()
         currentWidget=self.tabWidget_ScanParam.currentWidget()
         self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex())
+        self.chk_LaserUV.setChecked(True)
+        self.chk_LaserVUV.setChecked(True)
+        self.chk_Excimer.setChecked(True)
+        self.pulseGen.switchChl(1, False)
+        self.pulseGen.switchChl(6, False)
         
 	# set size of window
         self.setWindowTitle('RSE CONTROL')
@@ -130,15 +142,23 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.enableControlsScan(True)
         self.groupBox_DataAcq.setEnabled(True)
         self.setPotBool = False
+        self.saveMCPVoltage()
         
     def setVoltText(self, text):
         self.inp_voltMCP.setValue(int(text[0]))
         self.inp_voltPhos.setValue(int(text[1]))
         
+    def saveMCPVoltage(self):
+        self.shutdownStatus[1] = self.inp_voltMCP.value()
+        self.shutdownStatus[2] =  self.inp_voltPhos.value()
+        file = open('storeMCPPhos.pckl', 'w')
+        pickle.dump(self.shutdownStatus, file)
+        file.close()
+        
     def chk_readScope_clicked(self):
         '''create scope thread and _run()'''
         self.scopeMon = self.chk_readScope.isChecked()
-        if self.scopeMon:
+        if self.scopeMon:           
             # have scope connection within scope thread
             self.scope.closeConnection()
             self.dataBuf = []
@@ -147,6 +167,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
             self.enableControlsScope(True)
+            self.inp_extractDelay.setValue((float(self.pulseGen.readDelay(6)) + abs(self.scopeThread.scope.trigOffsetC1))*1E6)
             self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6)
             self.chk_invertTrace1.setChecked(False)
             self.ScopeDisplay.lr1.setMovable(True)
@@ -157,6 +178,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.enableControlsScope(False)
             self.chk_invertTrace1.setChecked(True)
             self.scope = LeCroyScopeControllerVISA()
+            # TODO set averages back to scope
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
             self.ScopeDisplay.line1.setMovable(False)
@@ -185,6 +207,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.line1Pos = self.ScopeDisplay.line1.value()
         else:
             # abort scan
+            if 'Wavelength' in self.scanParam:
+                self.devParam.CancelBurst()
             self.scopeThread.scopeRead = False
             if len(self.DataDisplay.dataTrace1) > 0:
                 self.openSaveFile()
@@ -249,8 +273,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             elif 'Photo' in self.scanParam:
                 # Fire channel
                 self.devParam = 2
-            # clear io buffer
-            #self.pulseGen.read()
             self.beforescanParam = float(self.pulseGen.readDelay(self.devParam))               
             self.scanSetDevice()
         # determine scan direction
@@ -292,9 +314,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 if self.setParam == self.stopParam:
                     # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
                     self.btn_startDataAcq_clicked()
-                    # Sirah lasers sweep with StartBurst()
-                    if 'Wavelength' in self.scanParam:
-                        self.devParam.CancelBurst()
                 else:
                     # step scan parameter
                     if not('Wavelength' in self.scanParam):
@@ -328,13 +347,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 self.out_WLMon.setText('{:3.4f}'.format(self.setParam))
                 return
             elif not self.scanMode and 'VUV' in self.scanParam:
-                self.setLaser = LaserThread(self.devParam, self.setParam, self.inp_setWL_UV)
+                self.setLaser = LaserThread(self.devParam, self.setParam, self.inp_setWL_VUV)
                 self.setLaser.start()
                 self.out_WLMon.setText('{:3.4f}'.format(self.setParam))
                 return
             (wl, cont) = self.devParam.NextBurst()    
-            self.setParam = wl
-            print wl
+            self.setParam = float('{:.5f}'.format(wl))
             outVal = '{:3.4f}'.format(wl)
             # if sum(steps) != stop - start
             if not cont: self.setParam = self.stopParam
@@ -493,7 +511,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if not(self.pressThread):
             self.PressureThread = PressureThread(True, MainState)
             self.PressureThread.pressReadReady.connect(self.setPressRead)
-            self.PressureThread.start(priority=QtCore.QThread.LowPriority)
+            self.PressureThread.start()
             self.pressThread = True
         else:
             self.PressureThread.MainState = MainState            
@@ -533,27 +551,42 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # USB analog input/output
         self.analogIO = USB87P4Controller()
         self.analogIO.openDevice()
+        file = open('storeMCPPhos.pckl')
+        lastVal = pickle.load(file)
+        file.close()
+        lastMCP = lastVal[1]
+        lastPhos = lastVal[2]
+        if lastMCP != 0 or lastPhos != 0:
+            reply = QtGui.QMessageBox.question(self, 'RSE Control',
+                "Restore MCP and Phosphor screen voltages to {:d}/{:d} (V)?".format(lastMCP, lastPhos), QtGui.QMessageBox.Yes | 
+                QtGui.QMessageBox.Cancel, QtGui.QMessageBox.Cancel)  
+            if reply == QtGui.QMessageBox.Yes:
+                self.inp_voltMCP.setValue(lastMCP)
+                self.inp_voltPhos.setValue(lastPhos)
+                self.analogIO.writeAOMCP(lastMCP)
+                self.analogIO.writeAOPhos(lastPhos)
+            else: pass
         # waveform generator
         self.DIOCard = DIOCardController()
         self.DIOCard.configureCardDO()
+        self.pulseGen = PulseGeneratorController()
+        time.sleep(0.1)
+        self.pulseGen.screenUpdate('ON')
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()
-        #TODO self.scope.initialize()
-        self.scope.setScales()
-        trigOffsetC1 = self.scope.trigOffsetC1
+        self.scope.initialize()
         self.scope.invertTrace('C1', True)
         self.chk_invertTrace1.setChecked(True)
-        self.pulseGen = PulseGeneratorController()
-        self.pulseGen.screenUpdate('ON')
-        #time.sleep(0.1)
-        #self.pulseGen.read()
-        self.inp_extractDelay.setValue((float(self.pulseGen.readDelay(6)) + abs(trigOffsetC1))*1E6)
         print '-----------------------------------------------------------------------------'
         print 'Initiate Lasers when not Sirah Control interfaces closed'
 
     def shutDownExperiment(self):
         self.blockSignals(True)
+        self.analogIO.writeAOExtraction(0)
+        self.analogIO.writeAOIonOptic1(0)
+        self.shutdownStatus[0] = True
+        self.saveMCPVoltage()
         print 'Releasing controllers:'
         self.analogIO.closeDevice()
         self.DIOCard.releaseCard()
@@ -657,7 +690,7 @@ class PressureThread(QtCore.QThread):
     def run(self):
         while self.ReadActive:
             self.MaxiGauge.gaugeSwitch(4, self.MainState)
-            self.msleep(100)
+            self.msleep(200)
             ps = self.MaxiGauge.pressures()
             MainPress = "{:2.3e} mbar".format(ps[3].pressure)
             SourcePress = "{:2.3e} mbar".format(ps[0].pressure)
@@ -685,7 +718,7 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
         self.setWindowTitle('Waveform Control')
-        self.setFixedSize(196, 258)
+        self.setFixedSize(196, 300)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         
         # card configured with 20MHz (sampleRate)
@@ -755,7 +788,7 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         if self.chk_plotWF.isChecked():
             self.setFixedSize(640, 300)
         else:
-            self.setFixedSize(196, 258)
+            self.setFixedSize(196, 300)
 
 class StartMCPThread(QtCore.QThread):
     def __init__(self, setPotBool, analogIO, stepTime, finalMCP, finalPhos, rampTime, startMCP, startPhos):
@@ -812,7 +845,7 @@ class StartMCPThread(QtCore.QThread):
                     i -= 1
                     j -= ratio
                 self.valueSet.emit([i,int(j),self.startMCP])
-                time.sleep(0.1)
+                time.sleep(0.05)
             self.quit()
             return
         else:

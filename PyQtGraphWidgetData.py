@@ -31,11 +31,13 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
     def integrator(self, dataIn, cPos):
         # average scope traces and invert
         data = (sum(dataIn)/len(dataIn))*-1
+        # substract baseline
+        data = data - np.mean(data[0:100])
         # std deviation for average
         dataIn = np.vstack(dataIn)
         err = np.std(dataIn, axis=0)
         # TOF windows
-        intTrace = [sum(data[cPos[0]:cPos[1]]), sum(data[cPos[2]:cPos[3]])]
+        intTrace = [sum(data[cPos[0]:cPos[1]]), sum(data[cPos[2]:cPos[3]])]       
         # error propagation
         err = [np.sqrt(sum(np.square(err[cPos[0]:cPos[1]]))), np.sqrt(sum(np.square(err[cPos[2]:cPos[3]])))]
         return intTrace, err

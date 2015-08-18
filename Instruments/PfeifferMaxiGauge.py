@@ -271,18 +271,13 @@ if __name__ == '__main__':
     mg = MaxiGauge('COM1')
     print(mg.checkDevice())
     print(mg.pressures())
-    for i in range(6):
-        ps = mg.pressures()
-        print "Sensor {:d} {:4e} mbar".format(i+1, ps[i].pressure)
+    #for i in range(6):
+    #    ps = mg.pressures()
+    #    print "Sensor {:d} {:4e} mbar".format(i+1, ps[i].pressure)
     import time
     start = time.clock()
-    mg.gaugeSwitch(1, 'ON')
-    time.sleep(1)
-    mg.gaugeSwitch(1, 'OFF')
-    time.sleep(1)
-    mg.gaugeSwitch(4, 'ON')
+    #mg.gaugeSwitch(4, 'ON')
     #time.sleep(1)
-    mg.gaugeSwitch(4, 'OFF')
-    print 'time: ' + str(time.clock() - start)
+    #mg.gaugeSwitch(4, 'OFF')
     mg.disconnect()
     
