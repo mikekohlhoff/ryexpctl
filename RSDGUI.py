@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 import sys
 import pickle
+import math
 
 # UI related
 from PyQt4 import QtCore, QtGui, uic
@@ -76,7 +77,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # function in module as slot
         self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
-        # todo to changed, same for extr/optics (set increment to 10V here as well)
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
         self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
@@ -92,6 +92,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_setWL_VUV.editingFinished.connect(lambda: self.setWavelengths('VUV'))
         self.scanModeSelect.currentIndexChanged.connect(lambda: self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex()))
         self.tabWidget_ScanParam.currentChanged.connect(lambda: self.scanModeSelect.setCurrentIndex(self.tabWidget_ScanParam.currentIndex()))
+        self.inp_setDelayLasers.valueChanged.connect(lambda: self.pulseGen.setDelay(4, self.inp_setDelayLasers.value()*1E-6))
+        self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         
         # defaults
         self.inp_avgSweeps.setValue(1)
@@ -114,8 +116,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_Excimer.setChecked(True)
         self.pulseGen.switchChl(1, False)
         self.pulseGen.switchChl(6, False)
+        self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
+        self.calcRydVelocity()
         
-	# set size of window
+        # set size of window
         self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
         self.setFixedSize(971, 628)
@@ -126,6 +130,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         '''display control window for decelerator waveform generation'''
         self.chk_editWF.setEnabled(False)
         self.WfWin.show()
+        
+    def calcRydVelocity(self):
+        '''Calculate atom beam velocity by flight time'''
+        # thesis Eric 46+/-8cm
+        dist = 0.46
+        self.out_velMon.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
         
     def startMCPPhos(self):
         '''display controls to ramp MCP/Phos voltages'''
@@ -178,7 +188,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.enableControlsScope(False)
             self.chk_invertTrace1.setChecked(True)
             self.scope = LeCroyScopeControllerVISA()
-            # TODO set averages back to scope
+            self.chk_invertTrace1_clicked()
+            self.scope.setSweeps(self.inp_avgSweeps.value())
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
             self.ScopeDisplay.line1.setMovable(False)
@@ -266,7 +277,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # set delay generator channel for scan
             if 'Rydberg' in self.scanParam:
                 # Fire channel
-                self.devParam = 3
+                self.devParam = 4
             elif 'Extract' in self.scanParam:
                 # Fire channel
                 self.devParam = 6 
@@ -333,7 +344,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             err = np.std(dataIn, axis=0)
             # error propagation
             self.gateIntErr = np.sqrt(sum(np.square(err[cPos[0]:cPos[1]])))
-            self.out_gateInt.setText('{:.2f} '.format(self.gateIntVal) + QtCore.QString(u'±') + ' {:.2f}'.format( self.gateIntErr))
+            self.out_gateInt.setText('{:.2f} '.format(self.gateIntVal) + QtCore.QString(u'±') + ' {:.2f}'.format(self.gateIntErr))
     
     def scanSetDevice(self):        
         if 'Voltage' in self.scanParam:
@@ -548,6 +559,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def initHardware(self):
         print '-----------------------------------------------------------------------------'
         print 'Initialising hardware'
+        self.pulseGen = PulseGeneratorController()
         # USB analog input/output
         self.analogIO = USB87P4Controller()
         self.analogIO.openDevice()
@@ -569,12 +581,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # waveform generator
         self.DIOCard = DIOCardController()
         self.DIOCard.configureCardDO()
-        self.pulseGen = PulseGeneratorController()
-        time.sleep(0.1)
-        self.pulseGen.screenUpdate('ON')
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
-        self.scope = LeCroyScopeControllerVISA()
+        self.scope = LeCroyScopeControllerVISA()       
         self.scope.initialize()
         self.scope.invertTrace('C1', True)
         self.chk_invertTrace1.setChecked(True)

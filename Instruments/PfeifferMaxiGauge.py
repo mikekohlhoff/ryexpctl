@@ -34,7 +34,7 @@ class MaxiGauge (object):
             self.connection = serial.Serial(serialPort, baudrate=baud, timeout=0.2)
         except serial.serialutil.SerialException as se:
             raise MaxiGaugeError(se)
-        #self.send(C['ETX']) ### We might reset the connection first, but it doesn't really matter:
+        self.send(C['ETX']) ### We might reset the connection first, but it doesn't really matter:
 
     def checkDevice(self):
         message = "The Display Contrast is currently set to %d (out of 20).\n" % self.displayContrast()
@@ -138,7 +138,7 @@ class MaxiGauge (object):
         return returncode[:-(len(LINE_TERMINATION)+1)]
         
     def disconnect(self):
-        #self.send(C['ETX'])
+        self.send(C['ETX'])
         if hasattr(self, 'connection') and self.connection: 
             self.connection.close()
 
