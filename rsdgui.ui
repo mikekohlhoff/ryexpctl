@@ -1008,6 +1008,9 @@ p, li { white-space: pre-wrap; }
     <property name="maximum">
      <double>1000.000000000000000</double>
     </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
+    </property>
    </widget>
    <widget class="QDoubleSpinBox" name="inp_gate1Stop">
     <property name="geometry">
@@ -1059,6 +1062,9 @@ p, li { white-space: pre-wrap; }
     </property>
     <property name="maximum">
      <double>1000.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
     </property>
    </widget>
    <widget class="QLabel" name="label_17">
@@ -1143,6 +1149,9 @@ p, li { white-space: pre-wrap; }
     <property name="maximum">
      <double>1000.000000000000000</double>
     </property>
+    <property name="singleStep">
+     <double>0.010000000000000</double>
+    </property>
    </widget>
    <widget class="QDoubleSpinBox" name="inp_gate2Stop">
     <property name="geometry">
@@ -1196,7 +1205,7 @@ p, li { white-space: pre-wrap; }
      <double>1000.000000000000000</double>
     </property>
     <property name="singleStep">
-     <double>0.000000000000000</double>
+     <double>0.010000000000000</double>
     </property>
    </widget>
   </widget>
@@ -1492,7 +1501,7 @@ p, li { white-space: pre-wrap; }
      <double>1000.000000000000000</double>
     </property>
     <property name="singleStep">
-     <double>0.000100000000000</double>
+     <double>0.000250000000000</double>
     </property>
    </widget>
    <widget class="QLabel" name="label_14">
@@ -1604,7 +1613,7 @@ p, li { white-space: pre-wrap; }
      <double>1000.000000000000000</double>
     </property>
     <property name="singleStep">
-     <double>0.000100000000000</double>
+     <double>0.000250000000000</double>
     </property>
    </widget>
   </widget>
@@ -1861,7 +1870,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="Extraction">
     <attribute name="title">
@@ -2264,16 +2273,16 @@ p, li { white-space: pre-wrap; }
       <bool>true</bool>
      </property>
      <property name="decimals">
-      <number>4</number>
+      <number>5</number>
      </property>
      <property name="maximum">
       <double>1000.000000000000000</double>
      </property>
      <property name="singleStep">
-      <double>0.000100000000000</double>
+      <double>0.000250000000000</double>
      </property>
      <property name="value">
-      <double>0.000500000000000</double>
+      <double>0.000250000000000</double>
      </property>
     </widget>
     <widget class="QLabel" name="label_22">
@@ -2993,7 +3002,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>60</x>
-      <y>55</y>
+      <y>50</y>
       <width>96</width>
       <height>31</height>
      </rect>
@@ -3055,28 +3064,28 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
-  </widget>
-  <widget class="QLabel" name="label_28">
-   <property name="geometry">
-    <rect>
-     <x>515</x>
-     <y>420</y>
-     <width>81</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <weight>50</weight>
-     <bold>false</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Velocity Rydberg atoms (m/s)</string>
-   </property>
-   <property name="wordWrap">
-    <bool>true</bool>
-   </property>
+   <widget class="QLabel" name="label_28">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>90</y>
+      <width>81</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Velocity Rydberg atoms (m/s)</string>
+    </property>
+    <property name="wordWrap">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
   <zorder>groupBox_MCP</zorder>
   <zorder>groupBox_Extraction</zorder>
@@ -3090,7 +3099,6 @@ p, li { white-space: pre-wrap; }
   <zorder>layoutWidget</zorder>
   <zorder>DataDisplay</zorder>
   <zorder>groupBox_Laser</zorder>
-  <zorder>label_28</zorder>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>

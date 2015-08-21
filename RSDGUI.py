@@ -193,6 +193,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
             self.ScopeDisplay.line1.setMovable(False)
+            self.chk_gateInt.setChecked(False)
 
     def btn_startDataAcq_clicked(self):
         # set parameters for dataAcquisition()
@@ -240,8 +241,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         
     def setScanParams(self):
         self.scanParam = str(self.scanModeSelect.currentText())
-        fileName = self.scanParam + 'Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
-        self.savePath = os.path.join('C:\\Users\\tpsadmin\\Desktop\\Documents\\Data Mike\\Data\\2015', fileName)
         if self.scanParam == 'Voltage':
             self.scanParam = self.scanParam + ' ' + str(self.voltageSelectScan.currentText())
             self.startParam = self.inp_startField.value()
@@ -258,13 +257,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.stepParam = self.inp_incrWL.value()
             self.setParam = self.startParam
             self.setOutParam = self.out_WLMon
-            if 'UV' in self.scanParam:
-                self.beforescanParam = self.inp_setWL_UV.value()
-                self.devParam = self.UVLaser
-            elif 'VUV' in self.scanParam:
+            if 'VUV' in self.scanParam:
                 self.beforescanParam = self.inp_setWL_VUV.value()
                 self.devParam = self.VUVLaser
-            self.burstStart = LaserBurstThread(self.devParam, self.startParam, self.stopParam, self.stepParam)
+            else:
+                self.beforescanParam = self.inp_setWL_UV.value()
+                self.devParam = self.UVLaser
+            self.setOutParam.setText(str(self.beforescanParam))
+            self.burstStart = LaserBurstThread(self.devParam, self.startParam, self.stopParam, self.stepParam, self.scanParam)
             self.burstStart.burstReady.connect(self.resetDatBuf)
             self.burstStart.start()
         elif 'Delay' in self.scanParam:
@@ -337,7 +337,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 del self.dataBuf[0]
             dataIn = self.dataBuf[:]
             data = self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincrC1)
-            cPos = [self.inp_gate1Start.value(), self.inp_gate1Stop.value()]
+            cPos = [round(self.cursorPos[0]/self.scopeThread.scope.timeincrC1), 
+                   round(self.cursorPos[1]/self.scopeThread.scope.timeincrC1)]
             self.gateIntVal = sum(data[cPos[0]:cPos[1]])
             # std deviation for average
             dataErr = np.vstack(dataIn)
@@ -375,7 +376,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.setOutParam.setText(str(outVal))
     
     def openSaveFile(self):
-        savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', self.savePath, '(*.txt)')
+        fileName = self.scanParam + 'Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
+        filePath = os.path.join('C:\\Users\\tpsadmin\\Desktop\\Documents\\Data Mike\\Raw Data\\2015', fileName)
+        savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', filePath, '(*.txt)')
         saveData = np.hstack((np.vstack(np.asarray(self.DataDisplay.paramTrace)), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
                             np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
                             np.vstack(np.asarray(self.DataDisplay.errTrace2))))
@@ -398,7 +401,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if self.gateInt:  
             # get average from scope, not data eval
             self.btn_startDataAcq.setEnabled(False)
-            self.gateIntVal = 0.0
+            self.out_gateInt.setText('0')
             print 'Integrate TOF gate 1'
         else:
             self.scopeThread.avgSweeps = 1
@@ -481,7 +484,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 self.chk_connectLasers.setChecked(False)
                 return
             self.VUVLaser = SirahLaserController('VUV')
-            print 'VUV'
             if self.VUVLaser.OpenLaser():
                 QtGui.QMessageBox.warning(self, 'Sirah Laser Error',
                 "Close Sirah Control interface for VUV laser.", QtGui.QMessageBox.Ok)
@@ -667,18 +669,20 @@ class LaserThread(QtCore.QThread):
         
 class LaserBurstThread(QtCore.QThread):
     '''do goto in thread'''
-    def __init__(self, laser, start, stop, step):
+    def __init__(self, laser, start, stop, step, dev):
         QtCore.QThread.__init__(self)
         self.laser = laser
         self.startParam = start
         self.stopParam = stop
         self.stepParam = step
+        self.dev = dev
     burstReady = QtCore.pyqtSignal() 
     
     def __del__(self):
         self.wait()
 
     def run(self):
+        print 'Setting laser to initial burst parameters for ' + self.dev + ' scan'
         self.laser.StartBurst(self.startParam, self.stopParam, self.stepParam)
         self.burstReady.emit()
         self.quit()
