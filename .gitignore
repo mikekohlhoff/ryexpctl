@@ -5,3 +5,4 @@ Instruments/*.pyc
 *.pyc
 *.pckl
 storeMCPPhos.pckl
+*.pckl
