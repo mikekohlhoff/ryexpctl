@@ -78,7 +78,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
-        self.inp_voltPhos.editingFinished.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
+        self.inp_voltPhos.valueChanged.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
         self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
         self.WfWin.winClose.connect(lambda: self.chk_editWF.setChecked(False))
         self.chk_Excimer.stateChanged.connect(lambda: self.pulseGen.switchChl(2, self.chk_Excimer.isChecked()))
@@ -86,8 +86,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_LaserVUV.stateChanged.connect(lambda: self.pulseGen.switchChl(4, self.chk_LaserVUV.isChecked()))
         self.chk_PulseValve.stateChanged.connect(lambda: self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked()))
         self.chk_ExtractionPulse.stateChanged.connect(lambda: self.pulseGen.switchChl(6, self.chk_ExtractionPulse.isChecked()))
-        self.ScopeDisplay.line1.sigPositionChanged.connect(lambda: self.inp_extractDelay.setValue(self.ScopeDisplay.line1.value()*1E6))
-        self.inp_extractDelay.valueChanged.connect(lambda: self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6))
         self.inp_setWL_UV.editingFinished.connect(lambda: self.setWavelengths('UV'))
         self.inp_setWL_VUV.editingFinished.connect(lambda: self.setWavelengths('VUV'))
         self.scanModeSelect.currentIndexChanged.connect(lambda: self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex()))
@@ -172,17 +170,17 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # have scope connection within scope thread
             self.scope.closeConnection()
             self.dataBuf = []
-            self.inp_avgSweeps.setValue(1)
-            self.scopeThread = scopeThread(True, False)
+            self.scopeThread = scopeThread(True, False, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
             self.enableControlsScope(True)
-            self.inp_extractDelay.setValue((float(self.pulseGen.readDelay(6)) + abs(self.scopeThread.scope.trigOffsetC1))*1E6)
-            self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6)
             self.chk_invertTrace1.setChecked(False)
             self.ScopeDisplay.lr1.setMovable(True)
             self.ScopeDisplay.lr2.setMovable(True)
             self.ScopeDisplay.line1.setMovable(True)
+            self.inp_extractDelay.setValue((float(self.pulseGen.readDelay(6)) + abs(self.scopeThread.scope.trigOffsetC1))*1E6)
+            self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6)
+            print "Scope offset to trigger: " + str(self.scopeThread.scope.trigOffsetC1)
         else:
             self.scopeThread.scopeRead = False
             self.enableControlsScope(False)
@@ -224,8 +222,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.scopeRead = False
             if len(self.DataDisplay.dataTrace1) > 0:
                 self.openSaveFile()
-            self.scopeThread = scopeThread(True, False)
-            self.inp_avgSweeps.setValue(1)
+            self.scopeThread = scopeThread(True, False, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority) 
             # reset devices to value before scan
@@ -233,10 +230,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.setParam = self.beforescanParam
             self.scanSetDevice()
             self.progressBarScan.setValue(0)
-            self.enableControlsScan(True)
-            # reconnect signals for extraction control in scope display, should have done it this way for the linReg as well
-            self.ScopeDisplay.line1.sigPositionChanged.connect(lambda: self.inp_extractDelay.setValue(self.ScopeDisplay.line1.value()*1E6))
-            self.ScopeDisplay.line1.sigPositionChanged.connect(self.setExtractionDelay)
+            self.enableControlsScan(True)          
             print 'DATA ACQ OFF'
         
     def setScanParams(self):
@@ -317,7 +311,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             del self.dataBuf[0:self.scopeThread.avgSweeps]
             if self.scopeMon and not(self.scanMode):
                 # scope monitor plotting
-                self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincrC1)      
+                self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincrC1)                
             elif self.scopeMon and self.scanMode:
                 # scan plotting
                 self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1, self.line1Pos)
@@ -428,8 +422,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.ScopeDisplay.setCursors(1E-6*cursorPos)
      
     def setExtractionDelay(self):
-        cursorPos = self.ScopeDisplay.line1.value()
-        self.pulseGen.setDelay(6, float(('{:1.11f}').format(cursorPos + self.scopeThread.scope.trigOffsetC1)))
+        val = self.inp_extractDelay.value()*1E-6
+        self.ScopeDisplay.line1.setValue(val)
+        self.pulseGen.setDelay(6, float(('{:1.11f}').format(val + self.scopeThread.scope.trigOffsetC1)))
         
     def centerWindow(self):
         frm = self.frameGeometry()
