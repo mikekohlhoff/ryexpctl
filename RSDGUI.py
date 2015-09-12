@@ -94,6 +94,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         
         # defaults
+        self.saveFilePath = 'C:\\Users\\tpsadmin\\Desktop\\Documents\\Data Mike\\Raw Data\\2015'
         self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
@@ -178,8 +179,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.ScopeDisplay.lr1.setMovable(True)
             self.ScopeDisplay.lr2.setMovable(True)
             self.ScopeDisplay.line1.setMovable(True)
-            self.inp_extractDelay.setValue((float(self.pulseGen.readDelay(6)) + abs(self.scopeThread.scope.trigOffsetC1))*1E6)
-            self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6)
+            self.inp_extractDelay.setValue(float(self.pulseGen.readDelay(6))*1E6)
+            self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6 + self.scopeThread.scope.trigOffsetC1)
             print "Scope offset to trigger: " + str(self.scopeThread.scope.trigOffsetC1)
         else:
             self.scopeThread.scopeRead = False
@@ -371,12 +372,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     
     def openSaveFile(self):
         fileName = self.scanParam + 'Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
-        filePath = os.path.join('C:\\Users\\tpsadmin\\Desktop\\Documents\\Data Mike\\Raw Data\\2015', fileName)
+        filePath = os.path.join(self.saveFilePath, fileName)
         savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', filePath, '(*.txt)')
+        print self.saveFilePath
         saveData = np.hstack((np.vstack(np.asarray(self.DataDisplay.paramTrace)), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
                             np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
                             np.vstack(np.asarray(self.DataDisplay.errTrace2))))
         if str(savePath):
+            self.saveFilePath = os.path.dirname(str(savePath))
             print 'Save data file'
             if 'Voltage' in self.scanParam:
                 fmtIn = '%.3f'
@@ -422,9 +425,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.ScopeDisplay.setCursors(1E-6*cursorPos)
      
     def setExtractionDelay(self):
-        val = self.inp_extractDelay.value()*1E-6
-        self.ScopeDisplay.line1.setValue(val)
-        self.pulseGen.setDelay(6, float(('{:1.11f}').format(val + self.scopeThread.scope.trigOffsetC1)))
+        if self.inp_extractDelay.hasFocus():
+            val = self.inp_extractDelay.value()*1E-6
+            self.ScopeDisplay.line1.setValue(val + self.scopeThread.scope.trigOffsetC1)
+            self.pulseGen.setDelay(6, float(('{:1.11f}').format(val)))
         
     def centerWindow(self):
         frm = self.frameGeometry()
