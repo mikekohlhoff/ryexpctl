@@ -167,7 +167,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def chk_readScope_clicked(self):
         '''create scope thread and _run()'''
         self.scopeMon = self.chk_readScope.isChecked()
-        if self.scopeMon:           
+        if self.scopeMon:
+            file = open('lastGateTimes.pckl')
+            lastTimes = pickle.load(file)
+            file.close()
+            self.inp_gate1Start.setValue(lastTimes[0])
+            self.inp_gate1Stop.setValue(lastTimes[1])
+            self.inp_gate2Start.setValue(lastTimes[2])
+            self.inp_gate2Stop.setValue(lastTimes[3])    
             # have scope connection within scope thread
             self.scope.closeConnection()
             self.dataBuf = []
@@ -197,6 +204,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def btn_startDataAcq_clicked(self):
         # set parameters for dataAcquisition()
         self.scanMode = not(self.scanMode)
+        # set last used gate times        
+        file = open('lastGateTimes.pckl', 'w')
+        pickle.dump([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
+                  self.inp_gate2Start.value(), self.inp_gate2Stop.value()], file)
+        file.close()
         if self.scanMode:
             self.scanMode = False
             if str(self.scanModeSelect.currentText()) == 'Wavelength' and not(self.chk_connectLasers.isChecked()):

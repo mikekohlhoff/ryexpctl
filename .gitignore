@@ -5,4 +5,5 @@ Instruments/*.pyc
 *.pyc
 *.pckl
 storeMCPPhos.pckl
+lastGateTimes.pckl
 *.pckl
