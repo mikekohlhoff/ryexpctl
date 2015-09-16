@@ -67,9 +67,10 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
         # actual averaged data
         self.dataWidget.plot(X, self.dataTrace1, pen=mkPen('#0000A0', width=1.5, style=QtCore.Qt.DashLine))
         self.dataWidget.plot(X, self.dataTrace2, pen=mkPen('#347C17', width=1.5, style=QtCore.Qt.DashLine))
-        # overlay with scatter to discern parameter spacing
-        self.dataWidget.plot(X, self.dataTrace1, symbolBrush='#0000A0', symbolSize=4)
-        self.dataWidget.plot(X, self.dataTrace2, symbolBrush='#347C17', symbolSize=4)
+		# overlay with scatter to discern parameter spacing
+        if 'Voltage' in scanParam:
+			self.dataWidget.plot(X, self.dataTrace1, symbolBrush='#0000A0', symbolSize=4)
+			self.dataWidget.plot(X, self.dataTrace2, symbolBrush='#347C17', symbolSize=4)
         
         if 'Voltage' in scanParam:
             self.dataWidget.setLabel('bottom', scanParam, units='V')
