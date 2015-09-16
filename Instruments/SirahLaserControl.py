@@ -48,7 +48,7 @@ class SirahLaserController:
             mode = 'Hardware not present for Sirah Laser, enter simulation mode'
         
         self.__LaserType = LaserType
-        self.__FileName = ctypes.c_char_p(os.path.join('C:\\Users\\tpsadmin\\Desktop\\Documents\\RSE Control', 'Sirah Control ' + LaserType, 'Sirah Laser.ini'))
+        self.__FileName = ctypes.c_char_p(os.path.join('C:\\Users\\tpsgroup\\Desktop\\Documents\\RSE Control', 'Sirah Control ' + LaserType, 'Sirah Laser.ini'))
         self.__ObjPtr = ctypes.c_uint32()
         self.__nPositionMode = ctypes.c_int16(0)
         self.__dBacklashMode = ctypes.c_int16(0)
