@@ -94,7 +94,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         
         # defaults
-        self.saveFilePath = 'C:\\Users\\tpsadmin\\Desktop\\Documents\\Data Mike\\Raw Data\\2015'
+        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2015'
         self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
@@ -132,7 +132,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         
     def calcRydVelocity(self):
         '''Calculate atom beam velocity by flight time'''
-        # thesis Eric 46+/-8cm
+        # thesis Eric 46+/-0.8cm
         dist = 0.46
         self.out_velMon.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
         
@@ -222,12 +222,15 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.scopeRead = False
             time.sleep(0.4)
             # set scan parameters
+            self.enableControlsScan(False)
+            self.line1Pos = self.ScopeDisplay.line1.value()
             self.setScanParams()
             self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
+            # set scan flag in thread
+            if not('Wavelength' in self.scanParam):         
+                self.resetDatBuf()
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
-            self.enableControlsScan(False)
-            self.line1Pos = self.ScopeDisplay.line1.value()
         else:
             # abort scan
             if 'Wavelength' in self.scanParam:
@@ -298,20 +301,17 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scanDirection = 1
         else:
             self.scanDirection = -1
-        # set scan flag in thread
-        if not('Wavelength' in self.scanParam):         
-            self.resetDatBuf()   
 
     def resetDatBuf(self):
         #reset recorded data
+        self.scanMode = True
+        print 'DATA ACQ ON'
         self.dataBuf = []
         self.DataDisplay.dataTrace1 = []
         self.DataDisplay.dataTrace2 = []
         self.DataDisplay.errTrace1 = []
         self.DataDisplay.errTrace2 = []
         self.DataDisplay.paramTrace = []
-        self.scanMode = True
-        print 'DATA ACQ ON'
            
     def dataAcquisition(self, data):
         # add data       
@@ -328,8 +328,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             elif self.scopeMon and self.scanMode:
                 # scan plotting
                 self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1, self.line1Pos)
-                self.DataDisplay.plot(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)     
-                if self.setParam == self.stopParam:
+                self.DataDisplay.plot(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)
+                # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
+                if abs(self.setParam - self.stopParam) < 25E-11:
                     # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
                     self.btn_startDataAcq_clicked()
                 else:
@@ -373,17 +374,16 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             (wl, cont) = self.devParam.NextBurst()    
             self.setParam = float('{:.5f}'.format(wl))
             outVal = '{:3.4f}'.format(wl)
-            # if sum(steps) != stop - start
+            # if sum(WLsteps) != abs(WLstop - WLstart)
             if not cont: self.setParam = self.stopParam
         elif 'Delay' in self.scanParam:
-             self.setParam = float('{:.11f}'.format(self.setParam))
              self.pulseGen.setDelay(self.devParam, float('{:1.11f}'.format(self.setParam)))
              outVal = '{:4.5f}'.format(self.setParam*1E6)
         self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
         self.setOutParam.setText(str(outVal))
     
     def openSaveFile(self):
-        fileName = self.scanParam + 'Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
+        fileName = self.scanParam + ' Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
         filePath = os.path.join(self.saveFilePath, fileName)
         savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', filePath, '(*.txt)')
         print self.saveFilePath
@@ -597,7 +597,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()       
-        self.scope.initialize()
+        #TODO self.scope.initialize()
         self.scope.invertTrace('C1', True)
         self.chk_invertTrace1.setChecked(True)
         print '-----------------------------------------------------------------------------'

@@ -1873,7 +1873,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>2</number>
    </property>
    <widget class="QWidget" name="Extraction">
     <attribute name="title">
@@ -2593,10 +2593,10 @@ p, li { white-space: pre-wrap; }
       <number>5</number>
      </property>
      <property name="minimum">
-      <double>-1000.000000000000000</double>
+      <double>0.000000000000000</double>
      </property>
      <property name="maximum">
-      <double>1000.000000000000000</double>
+      <double>10000.000000000000000</double>
      </property>
      <property name="singleStep">
       <double>0.000250000000000</double>
@@ -2762,10 +2762,10 @@ p, li { white-space: pre-wrap; }
       <number>5</number>
      </property>
      <property name="minimum">
-      <double>-1000.000000000000000</double>
+      <double>0.000000000000000</double>
      </property>
      <property name="maximum">
-      <double>1000.000000000000000</double>
+      <double>10000.000000000000000</double>
      </property>
      <property name="singleStep">
       <double>0.000250000000000</double>
