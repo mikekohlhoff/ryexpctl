@@ -97,7 +97,7 @@ class LeCroyScopeControllerVISA:
         self.__scope.write("VBS 'app.acquisition.C1.AverageSweeps=" + str(numberSweeps) + "'")
 
     def clearSweeps(self):
-        self._scope.write('*CLS;CLSW')
+        self.__scope.write('*CLS;CLSW')
 
     def getWFDescription(self, channel):
         self.__scope.write('{:s}:WF? DESC;'.format(channel))

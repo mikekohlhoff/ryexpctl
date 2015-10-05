@@ -57,8 +57,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_avgSweeps.editingFinished.connect(self.inp_avgSweeps_changed)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
-        self.chk_invertTrace1.clicked.connect(self.chk_invertTrace1_clicked)
-        self.chk_invertTrace2.clicked.connect(self.chk_invertTrace2_clicked)
         self.chk_editWF.clicked.connect(self.showWfWin)
         self.chk_readMainGauge.clicked.connect(self.readGauge_clicked)
         self.chk_readSourceGauge.clicked.connect(self.readGauge_clicked)
@@ -182,7 +180,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
             self.enableControlsScope(True)
-            self.chk_invertTrace1.setChecked(False)
             self.ScopeDisplay.lr1.setMovable(True)
             self.ScopeDisplay.lr2.setMovable(True)
             self.ScopeDisplay.line1.setMovable(True)
@@ -192,9 +189,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         else:
             self.scopeThread.scopeRead = False
             self.enableControlsScope(False)
-            self.chk_invertTrace1.setChecked(True)
-            self.scope = LeCroyScopeControllerVISA()
-            self.chk_invertTrace1_clicked()
+            self.scope = LeCroyScopeControllerVISA()            
             self.scope.setSweeps(self.inp_avgSweeps.value())
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
@@ -236,19 +231,23 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             if 'Wavelength' in self.scanParam:
                 self.devParam.CancelBurst()
             self.scopeThread.scopeRead = False
+            print 'DATA ACQ OFF'
+            # reset devices to value before scan
+            self.setParam = self.beforescanParam
+            self.scanSetDevice()
             if len(self.DataDisplay.dataTrace1) > 0:
                 self.openSaveFile()
+            else:
+                time.sleep(.4)
             self.scopeThread = scopeThread(True, False, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority) 
-            # reset devices to value before scan
             self.btn_startDataAcq.setText('Start Data Acq')
-            self.setParam = self.beforescanParam
-            self.scanSetDevice()
             self.progressBarScan.setValue(0)
-            self.enableControlsScan(True)          
-            print 'DATA ACQ OFF'
-        
+            self.enableControlsScan(True)
+            self.inp_fileComment.setText('')            
+            self.inp_fileName.setText('')
+                  
     def setScanParams(self):
         self.scanParam = str(self.scanModeSelect.currentText())
         if self.scanParam == 'Voltage':
@@ -259,7 +258,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.setParam = self.startParam
             self.setOutParam = self.out_voltMon
             self.beforescanParam = self.inp_voltExtract.value()
-            self.scanSetDevice()            
+            if self.stopParam > self.startParam:
+                self.scanDirection = 1
+            else:
+                self.scanDirection = -1            
+            self.scanSetDevice()
         elif self.scanParam == 'Wavelength':
             self.scanParam = self.scanParam + ' ' + str(self.laserSelectScan.currentText())
             self.startParam = self.inp_startWL.value()
@@ -276,6 +279,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.setOutParam.setText(str(self.beforescanParam))
             self.burstStart = LaserBurstThread(self.devParam, self.startParam, self.stopParam, self.stepParam, self.scanParam)
             self.burstStart.burstReady.connect(self.resetDatBuf)
+            if self.stopParam > self.startParam:
+                self.scanDirection = 1
+            else:
+                self.scanDirection = -1
             self.burstStart.start()
         elif 'Delay' in self.scanParam:
             self.scanParam = self.scanParam + ' ' + str(self.delaySelectScan.currentText())
@@ -294,25 +301,30 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             elif 'Photo' in self.scanParam:
                 # Fire channel
                 self.devParam = 2
-            self.beforescanParam = float(self.pulseGen.readDelay(self.devParam))               
+            self.beforescanParam = float(self.pulseGen.readDelay(self.devParam))
+            if self.stopParam > self.startParam:
+                self.scanDirection = 1
+            else:
+                self.scanDirection = -1            
             self.scanSetDevice()
-        # determine scan direction
-        if self.stopParam > self.startParam:
-            self.scanDirection = 1
-        else:
-            self.scanDirection = -1
-
-    def resetDatBuf(self):
-        #reset recorded data
-        self.scanMode = True
-        print 'DATA ACQ ON'
-        self.dataBuf = []
-        self.DataDisplay.dataTrace1 = []
-        self.DataDisplay.dataTrace2 = []
-        self.DataDisplay.errTrace1 = []
-        self.DataDisplay.errTrace2 = []
-        self.DataDisplay.paramTrace = []
-           
+        elif 'Velocity' in self.scanParam:
+            self.startParam = [self.inp_startFieldVel.value(), self.inp_startDelayVel.value()*1E-6] 
+            self.stopParam = [self.inp_stopFieldVel.value(), self.inp_stopDelayVel.value()*1E-6]
+            self.stepParam = [self.inp_incrFieldVel.value(), self.inp_incrDelayVel.value()*1E-6]
+            self.setParam = [self.startParam[0], self.startParam[1]]
+            self.setOutParam = [self.out_voltMonVel, self.out_delayMonVel]
+            self.devParam = 4
+            self.beforescanParam = [self.inp_voltExtract.value(), float(self.pulseGen.readDelay(self.devParam))]
+            self.scanDirection = [0, 0]
+            if self.stopParam[0] > self.startParam[0]: self.scanDirection[0] = 1
+            else: self.scanDirection[0] = -1 
+            if self.stopParam[1] > self.startParam[1]: self.scanDirection[1] = 1
+            else: self.scanDirection[1] = -1
+            self.numpoints = (1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])*(1+abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1])
+            self.datalen = 1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0]
+            self.countpoints = 0.0
+            self.scanSetDevice()
+     
     def dataAcquisition(self, data):
         # add data       
         self.dataBuf.append(data)
@@ -328,16 +340,42 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             elif self.scopeMon and self.scanMode:
                 # scan plotting
                 self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1, self.line1Pos)
-                self.DataDisplay.plot(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)
-                # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
-                if abs(self.setParam - self.stopParam) < 25E-11:
-                    # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
-                    self.btn_startDataAcq_clicked()
+                if 'Velocity' in self.scanParam:
+                    # assume matrix scans in order for i in delayvals: for j in voltvals = signal[i][j]
+                    # param[0]=voltage, param[1]=delay
+                    self.DataDisplay.plotMatrix(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1, self.datalen)
+                    if (abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
+                        # send signal to abort measurement
+                        self.countpoints += 1
+                        self.progressBarScan.setValue((self.countpoints/self.numpoints)*1E2)
+                        self.btn_startDataAcq_clicked()
+                    elif (abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
+                        # step delay when voltage trace finished
+                        self.setParam[0] = self.startParam[0]
+                        self.setParam[1] += self.scanDirection[1]*self.stepParam[1]
+                        self.countpoints += 1
+                        self.scanSetDevice()
+                        self.progressBarScan.setValue((self.countpoints/self.numpoints)*1E2)
+                    elif (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11)) or \
+                         (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11)):
+                        # step voltage, second or case account for last iteration of delay                   
+                        self.setParam[0] += self.scanDirection[0]*self.stepParam[0]
+                        self.countpoints += 1
+                        self.scanSetDevice()
+                        self.progressBarScan.setValue((self.countpoints/self.numpoints)*1E2)
                 else:
-                    # step scan parameter
-                    if not('Wavelength' in self.scanParam):
-                        self.setParam += self.scanDirection*self.stepParam                
-                    self.scanSetDevice()                   
+                    self.DataDisplay.plot(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)
+                    # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
+                    if abs(self.setParam - self.stopParam) < 25E-11:
+                        # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
+                        self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
+                        self.btn_startDataAcq_clicked()
+                    else:
+                        # step scan parameter
+                        if not('Wavelength' in self.scanParam):
+                            self.setParam += self.scanDirection*self.stepParam                
+                        self.scanSetDevice()
+                        self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)                        
         elif self.scopeMon and self.gateInt:
              # gate 1 integration
              # don't deque for < avgSweeps, calculate average and error from whole buffer
@@ -359,6 +397,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if 'Voltage' in self.scanParam:
             self.analogIO.writeAOExtraction(self.setParam)
             outVal = self.setParam
+            self.setOutParam.setText(str(outVal))
         elif 'Wavelength' in self.scanParam: 
             # reset laser to former wavelength
             if not self.scanMode and 'UV' in self.scanParam:
@@ -376,30 +415,58 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             outVal = '{:3.4f}'.format(wl)
             # if sum(WLsteps) != abs(WLstop - WLstart)
             if not cont: self.setParam = self.stopParam
+            self.setOutParam.setText(str(outVal))
         elif 'Delay' in self.scanParam:
              self.pulseGen.setDelay(self.devParam, float('{:1.11f}'.format(self.setParam)))
              outVal = '{:4.5f}'.format(self.setParam*1E6)
-        self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
-        self.setOutParam.setText(str(outVal))
+             self.setOutParam.setText(str(outVal))
+        elif 'Velocity' in self.scanParam:
+            self.analogIO.writeAOExtraction(self.setParam[0])
+            self.pulseGen.setDelay(self.devParam, float('{:1.11f}'.format(self.setParam[1])))
+            outVal = [self.setParam[0], '{:4.5f}'.format(self.setParam[1]*1E6)]
+            self.setOutParam[0].setText(str(outVal[0]))
+            self.setOutParam[1].setText(str(outVal[1]))
+    
+    def resetDatBuf(self):
+        #reset recorded data
+        self.scanMode = True
+        print 'DATA ACQ ON'
+        self.dataBuf = []
+        self.DataDisplay.dataTrace1 = []
+        self.DataDisplay.dataTrace2 = []
+        self.DataDisplay.errTrace1 = []
+        self.DataDisplay.errTrace2 = []
+        self.DataDisplay.paramTrace = []
     
     def openSaveFile(self):
         fileName = self.scanParam + ' Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
         filePath = os.path.join(self.saveFilePath, fileName)
         savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', filePath, '(*.txt)')
-        print self.saveFilePath
-        saveData = np.hstack((np.vstack(np.asarray(self.DataDisplay.paramTrace)), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
-                            np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
-                            np.vstack(np.asarray(self.DataDisplay.errTrace2))))
-        if str(savePath):
+        if not(str(savePath)): return
+        if 'Velocity' in self.scanParam :
+            voltage = np.asarray(self.DataDisplay.paramTrace)[:,0]
+            delay = np.asarray(self.DataDisplay.paramTrace)[:,1]
+            saveData = np.hstack((np.vstack(voltage), np.vstack(delay), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
+                                np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
+                                np.vstack(np.asarray(self.DataDisplay.errTrace2))))
+            dataStructure = 'Data structure: Voltage x Delay, ' + '{:.0f}'.format(1+(abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])) + \
+                            'x' + '{:.0f}'.format(1+(abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1])) 
+            fmtIn = ['%i', '%.11f', '%.3f', '%.3f', '%.3f', '%.3f']
+            np.savetxt(str(savePath), saveData,fmt=fmtIn, delimiter='\t', newline='\n', header=(u'Voltage\tRydDelay\tDat1\tErr1\tDat2\tErr2'),
+                      footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n' + '# ' + dataStructure + '\n'))
+        else:
+            saveData = np.hstack((np.vstack(np.asarray(self.DataDisplay.paramTrace)), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
+                                np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
+                                np.vstack(np.asarray(self.DataDisplay.errTrace2))))
             self.saveFilePath = os.path.dirname(str(savePath))
             print 'Save data file'
             if 'Voltage' in self.scanParam:
-                fmtIn = '%.3f'
+                fmtIn = ['%i' , '%.3f', '%.3f', '%.3f', '%.3f']
             elif 'Wavelength' in self.scanParam:
                 # smallest step .00025nm
-                fmtIn = '%.5f'
+                fmtIn = ['%.5f' , '%.3f', '%.3f', '%.3f', '%.3f']
             elif 'Delay' in self.scanParam:
-                fmtIn = '%.11f'
+                fmtIn = ['%.11f' , '%.3f', '%.3f', '%.3f', '%.3f']
             np.savetxt(str(savePath), saveData, fmt=fmtIn, delimiter='\t', newline='\n', header=self.scanParam+(u'\tDat1\tErr1\tDat2\tErr2'),
                       footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n'))
 
@@ -478,12 +545,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 print 'Avg sweeps for data eval changed to ' + str(self.scopeThread.avgSweeps)
                 # reset data buffer
                 self.dataBuf = []            
-    
-    def chk_invertTrace1_clicked(self):
-        if not(self.scopeMon): self.scope.invertTrace('C1', self.chk_invertTrace1.isChecked())
-            
-    def chk_invertTrace2_clicked(self):
-        if not(self.scopeMon): self.scope.invertTrace('C2', self.chk_invertTrace2.isChecked())
      
     def connectLasers(self):    
         if self.chk_connectLasers.isChecked():
@@ -597,9 +658,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()       
-        #TODO self.scope.initialize()
+        # TODO self.scope.initialize()
         self.scope.invertTrace('C1', True)
-        self.chk_invertTrace1.setChecked(True)
         print '-----------------------------------------------------------------------------'
         print 'Initiate Lasers when not Sirah Control interfaces closed'
 
@@ -649,7 +709,7 @@ class scopeThread(QtCore.QThread):
         self.wait()
 
     def run(self):
-        #self.scope.dispOff()
+        self.scope.clearSweeps()
         while self.scopeRead:
             data = self.scope.armwaitread()
             self.dataReady.emit(data) 
@@ -776,7 +836,7 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
             self.wfThread.wfOutActive = False
         else:
             self.wfThread = waveformGenThread(True, self.DIOCard)
-            self.wfThread.start(priority=QtCore.QThread.HighestPriority)
+            self.wfThread.start(priority=QtCore.QThread.HighPriority)
 
     def setPCBPotentials(self):
         # 10bit resolution per channel
