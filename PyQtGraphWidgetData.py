@@ -79,58 +79,65 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
         elif 'Delay' in scanParam:
             self.dataWidget.setLabel('bottom', scanParam, units='s')
                 
-    def plotMatrix(self, dataIn, setParam, cPosIn, scanParam, ti, tracelen):
+    def plotMatrix(self, dataIn, setParam, cPosIn, scanParam, ti, tracelen, countpoints, numpoints, mode):
         cPos = [round(cPosIn[0]/ti), round(cPosIn[1]/ti), round(cPosIn[2]/ti), round(cPosIn[3]/ti)]
-        data, err = self.integrator(dataIn, cPos)
-        # store data of whole measurement
+        data, err = self.integrator(dataIn, cPos)       
+        
+        # write data to buffer file
+        if countpoints == 1:
+            self.f = open('tempdata.txt', 'w')
+        if mode == 'Velocity':
+            line = str.format('{:d}', setParam[0]) + '\t' + str.format('{:.11f}', setParam[1]) + '\t' + str.format('{:.3f}', data[0]) + '\t' + \
+                              str.format('{:.3f}', err[0]) + '\t' + str.format('{:.3f}', data[1]) + '\t' + str.format('{:.3f}', err[1]) + '\n'                 
+        elif mode == 'Detection':
+            line = str.format('{:d}', setParam[0]) + '\t' + str.format('{:d}', setParam[1]) + '\t' + str.format('{:.3f}', data[0]) + '\t' + \
+                              str.format('{:.3f}', err[0]) + '\t' + str.format('{:.3f}', data[1]) + '\t' + str.format('{:.3f}', err[1]) + '\n'                 
+        self.f.write(line)
+        if countpoints == numpoints:
+            self.f.close()
+              
+        self.dataWidget.clear()
+        if hasattr(self, 'dataTracePrev1'):
+                self.dataWidget.plot(self.paramTracePrev, self.dataTracePrev1, pen=mkPen('#2a2a2a', width=0.5))
+                self.dataWidget.plot(self.paramTracePrev, self.dataTracePrev2, pen=mkPen('#2a2a2a', width=0.5))
+        
+        # store data for single trace current and last one before
         self.paramTrace.append([setParam[0],setParam[1]])    
-        self.dataTrace1.append(float(data[0]))
-        self.dataTrace2.append(float(data[1]))
-        self.errTrace1.append(float(err[0]))
-        self.errTrace2.append(float(err[1]))
+        self.dataTrace1.append(data[0])
+        self.dataTrace2.append(data[1])
+        self.errTrace1.append(err[0])
+        self.errTrace2.append(err[1])
+        
         # convert data for plotting
         param = np.asarray(self.paramTrace)[:,0]
         dat1 = np.asarray(self.dataTrace1)
         dat2 = np.asarray(self.dataTrace2)
         err1 = np.asarray(self.errTrace1)
         err2 = np.asarray(self.errTrace2)
+                            
+        errPlot1 = [dat1+0.5*err1, dat1-0.5*err1]
+        errPlot2 = [dat2+0.5*err2, dat2-0.5*err2]
         
-        self.dataWidget.clear()
-        if len(param[:]) > tracelen:
-            for i in range(len(param)/int(tracelen)):
-                if len(param) == (i+1)*tracelen:
-                    i -= 1
-                    break
-                plotx = param[0:tracelen]
-                ploty1 = dat1[i*tracelen:(i+1)*tracelen]
-                ploty2 = dat2[i*tracelen:(i+1)*tracelen]
-                self.dataWidget.plot(plotx, ploty1, pen=mkPen('#2a2a2a', width=1))
-                self.dataWidget.plot(plotx, ploty2, pen=mkPen('#2a2a2a', width=1))
-            plotx = param[(i+1)*tracelen:]
-            ploty1 = dat1[(i+1)*tracelen:]
-            ploty2 = dat2[(i+1)*tracelen:]
-            ploterr1 = err1[(i+1)*tracelen:]
-            ploterr2 = err2[(i+1)*tracelen:]
-        else:
-            plotx = param
-            ploty1 = dat1
-            ploty2 = dat2
-            ploterr1 = err1
-            ploterr2 = err2
-                
-        errPlot1 = [ploty1+0.5*ploterr1, ploty1-0.5*ploterr1]
-        errPlot2 = [ploty2+0.5*ploterr2, ploty2-0.5*ploterr2]
-        
-        e11 = self.dataWidget.plot(plotx, errPlot1[0], pen=mkPen('#0000A0', width=0.5))
-        e12 = self.dataWidget.plot(plotx, errPlot1[1], pen=mkPen('#0000A0', width=0.5))
-        e21 = self.dataWidget.plot(plotx, errPlot2[0], pen=mkPen('#347C17', width=0.5))
-        e22 = self.dataWidget.plot(plotx, errPlot2[1], pen=mkPen('#347C17', width=0.5))
+        e11 = self.dataWidget.plot(param, errPlot1[0], pen=mkPen('#0000A0', width=0.5))
+        e12 = self.dataWidget.plot(param, errPlot1[1], pen=mkPen('#0000A0', width=0.5))
+        e21 = self.dataWidget.plot(param, errPlot2[0], pen=mkPen('#347C17', width=0.5))
+        e22 = self.dataWidget.plot(param, errPlot2[1], pen=mkPen('#347C17', width=0.5))
         fillErr1 = pg.FillBetweenItem(e11, e12, brush=mkBrush(0,0,160,80))
         fillErr2 = pg.FillBetweenItem(e21, e22, brush=mkBrush(52,124,23,80))
         self.dataWidget.addItem(fillErr1)
         self.dataWidget.addItem(fillErr2)
         # actual averaged data
-        self.dataWidget.plot(plotx, ploty1, pen=mkPen('#0000A0', width=1.5, style=QtCore.Qt.DashLine))
-        self.dataWidget.plot(plotx, ploty2, pen=mkPen('#347C17', width=1.5, style=QtCore.Qt.DashLine))
+        self.dataWidget.plot(param, dat1, pen=mkPen('#0000A0', width=0.5, style=QtCore.Qt.DashLine))
+        self.dataWidget.plot(param, dat2, pen=mkPen('#347C17', width=0.5, style=QtCore.Qt.DashLine))
 
-        self.dataWidget.setLabel('bottom', 'Extraction Voltage', units='V')
+        self.dataWidget.setLabel('bottom', 'Extraction Voltage', units='V')           
+        if len(self.paramTrace) == tracelen and not(countpoints == numpoints):
+            self.paramTracePrev = np.asarray(self.paramTrace)[:,0]
+            self.dataTracePrev1 = self.dataTrace1
+            self.dataTracePrev2 = self.dataTrace2
+            
+            self.dataTrace1 = []
+            self.dataTrace2 = []
+            self.errTrace1 = []
+            self.errTrace2 = []
+            self.paramTrace = []     

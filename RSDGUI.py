@@ -16,10 +16,11 @@ from PyQt4 import QtCore, QtGui, uic
 ui_form = uic.loadUiType("rsdgui.ui")[0]
 ui_form_waveform = uic.loadUiType("rsdguiWfWin.ui")[0]
 ui_form_startmcp = uic.loadUiType("rsdguiStartMCP.ui")[0]
+ui_form_camwin = uic.loadUiType("rsdguiCameraWin.ui")[0]
+
 
 # integrating matplotlib figures
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-#from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg as NavigationToolbar
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import random
@@ -34,6 +35,7 @@ from Instruments.DCONUSB87P4 import USB87P4Controller
 from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
 from Instruments.SirahLaserControl import SirahLaserController
+from Instruments.AndorCamera import AndorController
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -71,6 +73,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_connectLasers.clicked.connect(self.connectLasers)
         self.inp_voltMCP.valueChanged.connect(self.saveMCPVoltage)
         self.inp_voltPhos.valueChanged.connect(self.saveMCPVoltage)
+        self.chk_openCamera.clicked.connect(self.openCamera)
         
         # function in module as slot
         self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
@@ -162,6 +165,17 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         pickle.dump(self.shutdownStatus, file)
         file.close()
         
+    def openCamera(self):
+        '''display controls for Andor camera'''
+        self.CamWin = CamWin()
+        self.CamWin.winClose.connect(self.closeCamera)
+        self.CamWin.show()
+        self.chk_openCamera.setEnabled(False)
+        
+    def closeCamera(self): 
+        self.chk_openCamera.setEnabled(True)
+        self.chk_openCamera.setChecked(False)
+        
     def chk_readScope_clicked(self):
         '''create scope thread and _run()'''
         self.scopeMon = self.chk_readScope.isChecked()
@@ -178,7 +192,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.dataBuf = []
             self.scopeThread = scopeThread(True, False, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
-            self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
+            self.scopeThread.start(priority=QtCore.QThread.HighPriority)   
             self.enableControlsScope(True)
             self.ScopeDisplay.lr1.setMovable(True)
             self.ScopeDisplay.lr2.setMovable(True)
@@ -225,7 +239,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # set scan flag in thread
             if not('Wavelength' in self.scanParam):         
                 self.resetDatBuf()
-            self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
+            self.scopeThread.start(priority=QtCore.QThread.HighPriority)
         else:
             # abort scan
             if 'Wavelength' in self.scanParam:
@@ -257,7 +271,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.stepParam = self.inp_incrField.value()
             self.setParam = self.startParam
             self.setOutParam = self.out_voltMon
-            self.beforescanParam = self.inp_voltExtract.value()
+            if 'Extraction' in self.scanParam:
+                self.devParam = 'Extraction'
+                self.beforescanParam = self.inp_voltExtract.value()
+            elif 'Ion' in self.scanParam:
+                self.devParam = 'Ion1'
+                self.beforescanParam = self.inp_voltOptic1.value()
             if self.stopParam > self.startParam:
                 self.scanDirection = 1
             else:
@@ -320,11 +339,28 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             else: self.scanDirection[0] = -1 
             if self.stopParam[1] > self.startParam[1]: self.scanDirection[1] = 1
             else: self.scanDirection[1] = -1
-            self.numpoints = (1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])*(1+abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1])
-            self.datalen = 1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0]
-            self.countpoints = 0.0
+            self.numpoints = ((1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])*(1+abs(float(self.stopParam[1]-self.startParam[1])/self.stepParam[1])))
+            self.numpoints = int(round(self.numpoints))
+            self.datalen = int(1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])
+            self.countpoints = 0
             self.scanSetDevice()
-     
+        elif 'Detection' in self.scanParam:
+            self.startParam = [self.inp_startFieldDet.value(), self.inp_startIonDet.value()] 
+            self.stopParam = [self.inp_stopFieldDet.value(), self.inp_stopIonDet.value()]
+            self.stepParam = [self.inp_incrFieldDet.value(), self.inp_incrIonDet.value()]
+            self.setParam = [self.startParam[0], self.startParam[1]]
+            self.setOutParam = [self.out_voltMonDet1, self.out_voltMonDet2]
+            self.beforescanParam = [self.inp_voltExtract.value(), self.inp_voltOptic1.value()]
+            self.scanDirection = [0, 0]
+            if self.stopParam[0] > self.startParam[0]: self.scanDirection[0] = 1
+            else: self.scanDirection[0] = -1 
+            if self.stopParam[1] > self.startParam[1]: self.scanDirection[1] = 1
+            else: self.scanDirection[1] = -1
+            self.numpoints = int((1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])*(1+abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1]))
+            self.datalen = int(1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])
+            self.countpoints = 0
+            self.scanSetDevice()
+            
     def dataAcquisition(self, data):
         # add data       
         self.dataBuf.append(data)
@@ -340,29 +376,28 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             elif self.scopeMon and self.scanMode:
                 # scan plotting
                 self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1, self.line1Pos)
-                if 'Velocity' in self.scanParam:
+                if ('Velocity' in self.scanParam) or ('Detection' in self.scanParam):
                     # assume matrix scans in order for i in delayvals: for j in voltvals = signal[i][j]
                     # param[0]=voltage, param[1]=delay
-                    self.DataDisplay.plotMatrix(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1, self.datalen)
+                    self.countpoints += 1
+                    self.DataDisplay.plotMatrix(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1, \
+                                                self.datalen, self.countpoints, self.numpoints, self.scanParam)
                     if (abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
                         # send signal to abort measurement
-                        self.countpoints += 1
-                        self.progressBarScan.setValue((self.countpoints/self.numpoints)*1E2)
+                        self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
                         self.btn_startDataAcq_clicked()
                     elif (abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
-                        # step delay when voltage trace finished
+                        # step delay/optic when voltage trace finished
                         self.setParam[0] = self.startParam[0]
                         self.setParam[1] += self.scanDirection[1]*self.stepParam[1]
-                        self.countpoints += 1
                         self.scanSetDevice()
-                        self.progressBarScan.setValue((self.countpoints/self.numpoints)*1E2)
+                        self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
                     elif (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11)) or \
                          (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11)):
                         # step voltage, second or case account for last iteration of delay                   
                         self.setParam[0] += self.scanDirection[0]*self.stepParam[0]
-                        self.countpoints += 1
                         self.scanSetDevice()
-                        self.progressBarScan.setValue((self.countpoints/self.numpoints)*1E2)
+                        self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
                 else:
                     self.DataDisplay.plot(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)
                     # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
@@ -395,7 +430,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     
     def scanSetDevice(self):        
         if 'Voltage' in self.scanParam:
-            self.analogIO.writeAOExtraction(self.setParam)
+            if self.devParam == 'Extraction':
+                self.analogIO.writeAOExtraction(self.setParam)
+            elif self.devParam == 'Ion1':
+                self.analogIO.writeAOIonOptic1(self.setParam)
             outVal = self.setParam
             self.setOutParam.setText(str(outVal))
         elif 'Wavelength' in self.scanParam: 
@@ -426,6 +464,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             outVal = [self.setParam[0], '{:4.5f}'.format(self.setParam[1]*1E6)]
             self.setOutParam[0].setText(str(outVal[0]))
             self.setOutParam[1].setText(str(outVal[1]))
+        elif 'Detection' in self.scanParam:
+            self.analogIO.writeAOExtraction(self.setParam[0])
+            self.analogIO.writeAOIonOptic1(self.setParam[1])
+            outVal = [self.setParam[0], self.setParam[1]]
+            self.setOutParam[0].setText(str(outVal[0]))
+            self.setOutParam[1].setText(str(outVal[1]))
     
     def resetDatBuf(self):
         #reset recorded data
@@ -439,26 +483,40 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.DataDisplay.paramTrace = []
     
     def openSaveFile(self):
-        fileName = self.scanParam + ' Scan' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
+        fileName = self.scanParam + ' Scan ' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
         filePath = os.path.join(self.saveFilePath, fileName)
         savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', filePath, '(*.txt)')
         if not(str(savePath)): return
-        if 'Velocity' in self.scanParam :
-            voltage = np.asarray(self.DataDisplay.paramTrace)[:,0]
-            delay = np.asarray(self.DataDisplay.paramTrace)[:,1]
-            saveData = np.hstack((np.vstack(voltage), np.vstack(delay), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
-                                np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
-                                np.vstack(np.asarray(self.DataDisplay.errTrace2))))
-            dataStructure = 'Data structure: Voltage x Delay, ' + '{:.0f}'.format(1+(abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])) + \
-                            'x' + '{:.0f}'.format(1+(abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1])) 
-            fmtIn = ['%i', '%.11f', '%.3f', '%.3f', '%.3f', '%.3f']
-            np.savetxt(str(savePath), saveData,fmt=fmtIn, delimiter='\t', newline='\n', header=(u'Voltage\tRydDelay\tDat1\tErr1\tDat2\tErr2'),
-                      footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n' + '# ' + dataStructure + '\n'))
+        if ('Velocity' in self.scanParam) or ('Detection' in self.scanParam):
+        
+            #voltage = np.asarray(self.DataDisplay.paramTrace)[:,0]
+            #delay = np.asarray(self.DataDisplay.paramTrace)[:,1]
+            #saveData = np.hstack((np.vstack(voltage), np.vstack(delay), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
+            #                    np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
+            #                    np.vstack(np.asarray(self.DataDisplay.errTrace2))))
+            f = open('tempdata.txt', 'r')
+            saveData = f.read()
+            f.close()
+            os.remove('tempdata.txt')
+            self.saveFilePath = os.path.dirname(str(savePath))
+            if 'Velocity' in self.scanParam:            
+                dataStructure = 'Data structure: Voltage x Delay, ' + '{:.0f}'.format(1+(abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])) + \
+                                'x' + '{:.0f}'.format(1+(abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1]))
+                header= u'VoltageExtraction\tDelayRydExc\tDat1\tErr1\tDat2\tErr2'                                
+            elif 'Detection' in self.scanParam:            
+                dataStructure = 'Data structure: Voltage Extraction x Voltage Ion Optic 1, ' + '{:.0f}'.format(1+(abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])) + \
+                                'x' + '{:.0f}'.format(1+(abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1])) 
+                header= u'VoltageExtraction\tVoltageIonO1\tDat1\tErr1\tDat2\tErr2'
+            f = open(str(savePath), 'w')
+            f.write('# Comment: ' + str(self.inp_fileComment.text()) + '\n')
+            f.write(dataStructure + '\n')
+            f.write(header + '\n')
+            f.write(saveData)
+            f.close()
         else:
             saveData = np.hstack((np.vstack(np.asarray(self.DataDisplay.paramTrace)), np.vstack(np.asarray(self.DataDisplay.dataTrace1)), 
                                 np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)), 
                                 np.vstack(np.asarray(self.DataDisplay.errTrace2))))
-            self.saveFilePath = os.path.dirname(str(savePath))
             print 'Save data file'
             if 'Voltage' in self.scanParam:
                 fmtIn = ['%i' , '%.3f', '%.3f', '%.3f', '%.3f']
@@ -658,7 +716,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()       
-        # TODO self.scope.initialize()
+        self.scope.initialize()
         self.scope.invertTrace('C1', True)
         print '-----------------------------------------------------------------------------'
         print 'Initiate Lasers when not Sirah Control interfaces closed'
@@ -952,11 +1010,10 @@ class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
         self.inp_finalMCP.setValue(1200)
         self.out_setMCP.setText(str(MCPVolt))
         self.out_setPhos.setText(str(PhosVolt))
-        
         self.inp_finalMCP.editingFinished.connect(self.calcCycleTime)
         self.inp_timeStep.editingFinished.connect(self.calcCycleTime)
         self.calcCycleTime()
-         
+               
     winClose = QtCore.pyqtSignal()
     setTextFinal = QtCore.pyqtSignal(object)
     
@@ -1010,8 +1067,8 @@ class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
         self.move(frm.topLeft())
         
     def settingComplete(self):
-       self.setPotBool = False
-       self.close()
+        self.setPotBool = False
+        self.close()
            
     def closeEvent(self, event):
         if self.setPotBool:
@@ -1031,8 +1088,96 @@ class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
             event.accept()
             self.winClose.emit()
             self.setTextFinal.emit([self.out_setMCP.toPlainText(), self.out_setPhos.toPlainText()])
+                  
+class CamThread(QtCore.QThread):
+    def __init__(self, camRead, trigmode, exp):
+        QtCore.QThread.__init__(self)    
+        self.cam = AndorController()
+        self.cam.initialize(trigmode, exp)
+        print 'foo'
+        self.camRead = camRead
 
+    dataReady = QtCore.pyqtSignal(object)
+    setReady = QtCore.pyqtSignal(object)
+    
+    def run(self):
+        print 'bar'
+        while self.camRead:
+            set = self.cam.startAcquisition()
+            self.setRead.emit(set)
+            cam.waitForImage()
+            img = self.cam.getImage()
+            self.dataReady.emit(img) 
+        self.quit()
+        return  
+                                 
+class CamWin(QtGui.QWidget, ui_form_camwin):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+        self.setupUi(self)
+        self.setWindowTitle('Camera Control Andor')
+        self.setFixedSize(862, 514)
+       
+        self.btn_startAcq.clicked.connect(self.startAcq)
+        self.btn_saveFig.clicked.connect(self.saveImg)
+        self.inp_exposure.valueChanged.connect(self.setExposure)
+        self.acqMode = False
+              
+    winClose = QtCore.pyqtSignal()            
+    def startAcq(self):
+        self.acqMode = not(self.acqMode)
+        self.enableCtrls(self.acqMode)
+        if self.acqMode:
+            self.btn_startAcq.setText('Abort Img Acq')
+            if self.trigModeSelect.currentText() == 'External':
+                trigmode = 1
+            elif self.trigModeSelect.currentText() == 'Internal':
+                trigmode = 0
+            exp = self.inp_exposure.value()*1E-3
+            self.camThread = CamThread(True, trigmode, exp)
+            self.camThread.dataReady.connect(self.imgDisplay)
+            self.camThread.setReady.connect(self.setTxtOut)
+            self.camThread.start()
+            print 'IMG ACQ ON'
+            # TODO
+            self.ts = time.time()
+            self.tn = 0
+            self.timee = 0
+        else:
+            self.camThread.camRead = False
+            self.btn_startAcq.setText('Start Img Acq')
+            print 'IMG ACQ OFF'
             
+    def imgDisplay(self, img):   
+        self.CamDisplay.plot()
+        self.timee += time.time() - self.ts
+        self.tn += 0
+        print 'Avg cycle time: ' + str(self.timee/self.tn)
+        self.ts = time.time()
+    
+    def setExposure(self):
+        if not(hasattr(self, 'camThread')): return
+        if not(self.camThread.camRead): return
+        self.camThread.cam.setExposure(self.inp_exposure.value()*1E-3)
+    
+    def setTxtOut(self, read):
+        self.out_temp.setText(str(read[0]))
+        self.out_gain.setText(str(read[1]))
+        
+    def enableCtrls(self, bool):
+        bool = not(bool)
+        self.trigModeSelect.setEnabled(bool)
+        
+    def saveImg(self):
+        self.CamDisplay.saveImg()
+       
+    def closeEvent(self, event):
+        if self.acqMode and hasattr(self, 'camThread'):
+            self.camThread.camRead = False
+        event.accept()
+        self.winClose.emit()
+    
+             
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)

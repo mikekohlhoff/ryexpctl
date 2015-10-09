@@ -1,0 +1,20 @@
+from PyQt4 import QtGui
+from PyQt4 import QtCore
+import pyqtgraph as pg
+import numpy as np
+import math
+from pyqtgraph import mkPen
+from pyqtgraph import mkBrush
+
+# UI related
+from PyQt4 import QtCore, QtGui, uic
+ui_form = uic.loadUiType("rsdgui.ui")[0]
+
+class PyQtGraphWidgetData(QtGui.QGraphicsView):
+
+
+if __name__ == "__main__":
+
+    app = QtGui.QApplication(sys.argv)
+    myapp = Alfonso()
+    app.exec_()
