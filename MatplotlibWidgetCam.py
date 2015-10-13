@@ -30,17 +30,22 @@ class MatplotlibWidgetCam(QGraphicsView):
         self.canvas.ax.set_axis_off()
         self.savePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2015'
         self.cmap = plt.cm.bone
+        self.mpl_toolbar = NavigationToolbar(self.canvas, self)
 
-    def plot(self, img):
+    def plot(self, img, auto, v):
         self.canvas.ax.clear()
-        print 'Img Display'
-        #self.ax.imshow(img)
-        #self.axCam.imshow(self.lastImage, cmap = self.cmap)#, vmin=450, vmax=650)
-        #print self.lastImage.min()
-        #print self.lastImage.max()
+        if auto:
+            self.canvas.ax.imshow(img, cmap = self.cmap)
+        else:
+            self.canvas.ax.imshow(img, cmap = self.cmap, vmin=v[0], vmax=v[1])
+        self.canvas.fig.patch.set_alpha(0)
+        self.canvas.ax.set_axis_off()
+        self.canvas.fig.tight_layout()
+        self.canvas.draw()
+        return [img.min(), img.max()]
         
     def saveImg(self):
         savepath = QFileDialog.getSaveFileName(self, 'Save Image to File', self.savePath, 'Image Files(*.pdf *.png)')
         if not savepath: return
-        #self.canvas.fig.savefig(str(savepath))
+        self.canvas.fig.savefig(str(savepath))
   

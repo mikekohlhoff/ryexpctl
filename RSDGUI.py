@@ -36,6 +36,7 @@ from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
 from Instruments.SirahLaserControl import SirahLaserController
 from Instruments.AndorCamera import AndorController
+from Instruments.AndorCamera import AndorControllerAT
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -498,7 +499,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             saveData = f.read()
             f.close()
             os.remove('tempdata.txt')
-            self.saveFilePath = os.path.dirname(str(savePath))
             if 'Velocity' in self.scanParam:            
                 dataStructure = 'Data structure: Voltage x Delay, ' + '{:.0f}'.format(1+(abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])) + \
                                 'x' + '{:.0f}'.format(1+(abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1]))
@@ -527,7 +527,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 fmtIn = ['%.11f' , '%.3f', '%.3f', '%.3f', '%.3f']
             np.savetxt(str(savePath), saveData, fmt=fmtIn, delimiter='\t', newline='\n', header=self.scanParam+(u'\tDat1\tErr1\tDat2\tErr2'),
                       footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n'))
-
+        self.saveFilePath = os.path.dirname(str(savePath))
+        
     def chk_gateInt_stateChanged(self):
         '''integrate 1 gate to append to data acq file'''
         # set parameters for dataAcquisition()
@@ -1090,22 +1091,27 @@ class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
             self.setTextFinal.emit([self.out_setMCP.toPlainText(), self.out_setPhos.toPlainText()])
                   
 class CamThread(QtCore.QThread):
-    def __init__(self, camRead, trigmode, exp):
+    def __init__(self, camRead, trigmode, exp, accums, gain):
         QtCore.QThread.__init__(self)    
         self.cam = AndorController()
+        print 'Initialising camera'
         self.cam.initialize(trigmode, exp)
-        print 'foo'
         self.camRead = camRead
-
+        self.exposure = exp
+        self.accums = accums
+        self.gain = gain
+        
     dataReady = QtCore.pyqtSignal(object)
     setReady = QtCore.pyqtSignal(object)
     
     def run(self):
-        print 'bar'
         while self.camRead:
+            self.cam.setExposure(self.exposure)
+            self.cam.setAccumulations(self.accums)
+            self.cam.setGain(self.gain)
             set = self.cam.startAcquisition()
-            self.setRead.emit(set)
-            cam.waitForImage()
+            self.setReady.emit(set)
+            self.cam.waitForImage()
             img = self.cam.getImage()
             self.dataReady.emit(img) 
         self.quit()
@@ -1120,53 +1126,78 @@ class CamWin(QtGui.QWidget, ui_form_camwin):
        
         self.btn_startAcq.clicked.connect(self.startAcq)
         self.btn_saveFig.clicked.connect(self.saveImg)
-        self.inp_exposure.valueChanged.connect(self.setExposure)
+        self.inp_exposure.editingFinished.connect(self.setDevCtl)
+        self.inp_accums.editingFinished.connect(self.setDevCtl)
+        self.inp_gain.editingFinished.connect(self.setDevCtl)
+        self.inp_vmin.editingFinished.connect(self.setImgCtl)
+        self.inp_vmin.editingFinished.connect(self.setImgCtl)
+        
         self.acqMode = False
-              
+        self.vmin = self.inp_vmin.value()
+        self.vmax = self.inp_vmax.value()  
+        self.boxImg.setEnabled(False)
+        
     winClose = QtCore.pyqtSignal()            
     def startAcq(self):
-        self.acqMode = not(self.acqMode)
+        self.acqMode = self.btn_startAcq.isChecked()
         self.enableCtrls(self.acqMode)
         if self.acqMode:
-            self.btn_startAcq.setText('Abort Img Acq')
             if self.trigModeSelect.currentText() == 'External':
                 trigmode = 1
             elif self.trigModeSelect.currentText() == 'Internal':
                 trigmode = 0
-            exp = self.inp_exposure.value()*1E-3
-            self.camThread = CamThread(True, trigmode, exp)
+            if trigmode == 0:
+                exp = self.inp_exposure.value()*1E-3
+            else: 
+                exp = 10E-6
+                self.inp_exposure.setValue(10E-3)
+            self.enableCtrls(False)
+            accums = self.inp_accums.value()
+            gain = self.inp_gain.value()
+            self.camThread = CamThread(True, trigmode, exp, accums, gain)
             self.camThread.dataReady.connect(self.imgDisplay)
             self.camThread.setReady.connect(self.setTxtOut)
-            self.camThread.start()
-            print 'IMG ACQ ON'
+            self.camThread.start()    
             # TODO
             self.ts = time.time()
             self.tn = 0
             self.timee = 0
         else:
             self.camThread.camRead = False
-            self.btn_startAcq.setText('Start Img Acq')
-            print 'IMG ACQ OFF'
+            self.enableCtrls(True)
             
-    def imgDisplay(self, img):   
-        self.CamDisplay.plot()
+    def imgDisplay(self, img):
+        v = [self.vmin, self.vmax]
+        auto = self.autoScaling.isChecked()
+        vauto = self.CamDisplay.plot(img, auto, v)
         self.timee += time.time() - self.ts
-        self.tn += 0
-        print 'Avg cycle time: ' + str(self.timee/self.tn)
+        self.tn += 1
+        if self.tn%10==0:
+            print 'Avg cycle time in ms: ' + '{:.1f}'.format(1E3*(self.timee/self.tn))
         self.ts = time.time()
-    
-    def setExposure(self):
+        self.inp_vmin.setEnabled(not(auto))
+        self.inp_vmax.setEnabled(not(auto))
+        self.out_vmin.setText(str(vauto[0]))
+        self.out_vmax.setText(str(vauto[1]))
+        
+    def setDevCtl(self):
         if not(hasattr(self, 'camThread')): return
         if not(self.camThread.camRead): return
-        self.camThread.cam.setExposure(self.inp_exposure.value()*1E-3)
+        self.camThread.exposure = self.inp_exposure.value()*1E-3
+        self.camThread.accums = self.inp_accums.value()
+        self.camThread.gain = self.inp_gain.value()
+    
+    def setImgCtl(self):
+        self.vmin = self.inp_vmin.value()
+        self.vmax = self.inp_vmax.value()
     
     def setTxtOut(self, read):
         self.out_temp.setText(str(read[0]))
         self.out_gain.setText(str(read[1]))
         
     def enableCtrls(self, bool):
-        bool = not(bool)
         self.trigModeSelect.setEnabled(bool)
+        self.boxImg.setEnabled(not(bool))
         
     def saveImg(self):
         self.CamDisplay.saveImg()
@@ -1174,6 +1205,7 @@ class CamWin(QtGui.QWidget, ui_form_camwin):
     def closeEvent(self, event):
         if self.acqMode and hasattr(self, 'camThread'):
             self.camThread.camRead = False
+            self.camThread.cam.shutdown()
         event.accept()
         self.winClose.emit()
     

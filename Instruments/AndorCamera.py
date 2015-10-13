@@ -77,7 +77,7 @@ class AndorSimulator:
     def SetExposureTime(self, exposureTime): pass
     def StartAcquisition(self):
         self.acqStart = time.clock()
-    def Shutdown(self): pass
+    def ShutDown(self): pass
     def GetNumberVSSpeeds(self, speeds): pass
     def SetEMCCDGain(self, gain): pass
     def GetEMCCDGain(self, gain): pass
@@ -94,30 +94,36 @@ class AndorController:
 
     def initialize(self, trigmode, exp):
         '''initialize camera'''
-        print self.__andor.Initialize("")
+        self.__andor.Initialize(ctypes.c_char_p(''))
         self.__andor.SetShutter(ctypes.c_int(0), ctypes.c_int(0), ctypes.c_int(95), ctypes.c_int(0))
         px = ctypes.c_int(0)
         py = ctypes.c_int(0)
         self.__andor.GetDetector(ctypes.byref(px), ctypes.byref(py))
-        self.size_x, self.size_y = px.value, py.value
-        
+        self.size_x, self.size_y = px.value, py.value  
         self.__andor.SetImage(ctypes.c_int(1), ctypes.c_int(1), ctypes.c_int(1), px, ctypes.c_int(1), py)
         # mode 4: Image
         self.__andor.SetReadMode(ctypes.c_int(4))
-        nspeeds = ctypes.c_int(0)
-        self.__andor.GetNumberVSSpeeds(ctypes.byref(nspeeds))
-        self.__andor.SetVSSpeed(ctypes.c_int(nspeeds.value - 1))
+        self.__andor.SetVSSpeed(ctypes.c_int(0))
         # mode 0: internal, 1: ext, 6: ext start
-        print self.__andor.SetTriggerMode(ctypes.c_int(trigmode))
-        self.__andor.SetHSSpeed(0, 0)
-        #exposure time in seconds
-        print self.setExposure(exp)
-        #self.__andor.GetAcquisitionTimings # might not be necessary?
-        print self.__andor.SetAcquisitionMode(ctypes.c_int(2))
+        self.__andor.SetTriggerMode(ctypes.c_int(trigmode))
+        # 0: disabled, 1: enabled
+        self.__andor.SetFastExtTrigger(ctypes.c_int(1))
+        self.__andor.SetHSSpeed(ctypes.c_int(0), ctypes.c_int(0))
+        # exposure time in seconds
+        self.setExposure(exp)
+        self.__andor.GetAcquisitionTimings # might not be necessary?
         # mode 1: single scan, mode 2: accumulate
-        print self.__andor.SetNumberAccumulations(ctypes.c_int(1))
-
+        self.__andor.SetAcquisitionMode(ctypes.c_int(2))
+        self.__andor.SetNumberAccumulations(ctypes.c_int(1))
+        self.__andor.GetAcquisitionTimings
+                
+    def setAccumulations(self, num):
+        self.__andor.SetNumberAccumulations(ctypes.c_int(num))
         
+    def setGain(self, gain):
+        gain = ctypes.c_int(gain)
+        self.__andor.SetEMCCDGain(gain)
+                
     def setExposure(self, exp):
         self.__andor.SetExposureTime(ctypes.c_float(exp))
         
@@ -128,13 +134,82 @@ class AndorController:
         '''start acquisition'''
         temp = ctypes.c_int(0)
         self.__andor.GetTemperature(ctypes.byref(temp))
+        gain = ctypes.c_int(0)
+        self.__andor.GetEMCCDGain(ctypes.byref(gain))
+        self.__andor.StartAcquisition()
+        return [temp.value, gain.value]
+    
+    def shutdown(self):
+        '''turn off camera'''
+        self.__andor.ShutDown()
+    
+    def waitForImage(self):
+        self.__andor.WaitForAcquisition()
+    
+    def getImage(self):
+        '''retrieve oldest image available'''
+        # TODO: Size is wrong if Binning is != 1
+        img = numpy.zeros((self.size_y, self.size_x), dtype=numpy.uint16)
+        self.__andor.GetMostRecentImage16(img.ctypes.data, ctypes.c_ulong(self.size_x*self.size_y))
+        return img
+
+    def getNumberAvailableImages(self):
+        '''return number of images available on camera'''
+        status = ctypes.c_int(0)
+        self.__andor.GetStatus(ctypes.byref(status))
+        if status.value != DRV_IDLE:
+            return 0
+        first = ctypes.c_long(0)
+        last = ctypes.c_long(0)
+        self.__andor.GetNumberNewImages(ctypes.byref(first), ctypes.byref(last))
+        return last.value - first.value + 1
+
+        
+class AndorControllerAT:
+    '''interface to andor camera'''
+    def __init__(self):
+        try:
+            self.__andor = ctypes.windll.atmcd32d
+        except AttributeError:
+            print "WARN: can't load Andor driver, using simulator"
+            self.__andor = AndorSimulator()
+
+    def initialize(self):
+        '''initialize camera'''
+        print self.__andor.Initialize("")
+        self.__andor.SetShutter(ctypes.c_int(0), ctypes.c_int(0), ctypes.c_int(95), ctypes.c_int(0))
+        px = ctypes.c_int(0)
+        py = ctypes.c_int(0)
+        self.__andor.GetDetector(ctypes.byref(px), ctypes.byref(py))
+        self.size_x, self.size_y = px.value, py.value
+        
+        self.__andor.SetImage(ctypes.c_int(1), ctypes.c_int(1), ctypes.c_int(1), px, ctypes.c_int(1), py)
+        self.__andor.SetReadMode(ctypes.c_int(4))
+        nspeeds = ctypes.c_int(0)
+        self.__andor.GetNumberVSSpeeds(ctypes.byref(nspeeds))
+        self.__andor.SetVSSpeed(ctypes.c_int(nspeeds.value - 1))
+        print self.__andor.SetTriggerMode(ctypes.c_int(0))
+        self.__andor.SetHSSpeed(0, 0)
+        print self.setExposure(0.01)
+        #self.__andor.GetAcquisitionTimings # might not be necessary?
+        print self.__andor.SetAcquisitionMode(ctypes.c_int(2))
+        print self.__andor.SetNumberAccumulations(ctypes.c_int(1))
+        
+        
+    def setExposure(self, exp):
+        self.__andor.SetExposureTime(ctypes.c_float(exp))
+    
+    def startAcquisition(self):
+        '''start acquisition'''
+        temp = ctypes.c_int(0)
+        self.__andor.GetTemperature(ctypes.byref(temp))
         print 'current camera temperature: ', temp.value
         gain = ctypes.c_int(10)
         self.__andor.SetEMCCDGain(gain)
         gain = ctypes.c_int(0)
         self.__andor.GetEMCCDGain(ctypes.byref(gain))
         self.__andor.StartAcquisition()
-        return [temp.value, gain]
+        return [temp.value, gain.value]
     
     def shutdown(self):
         '''turn off camera'''
