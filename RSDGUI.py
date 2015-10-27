@@ -190,8 +190,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.inp_gate2Stop.setValue(lastTimes[3])    
             # have scope connection within scope thread
             self.scope.closeConnection()
-            self.dataBuf = []
-            self.scopeThread = scopeThread(True, False, self.inp_avgSweeps.value())
+            self.dataBuf1 = []
+            self.dataBuf2 = []
+            self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighPriority)   
             self.enableControlsScope(True)
@@ -202,6 +203,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6 + self.scopeThread.scope.trigOffsetC1)
             print "Scope offset to trigger: " + str(self.scopeThread.scope.trigOffsetC1)
         else:
+            file = open('lastGateTimes.pckl', 'w')
+            pickle.dump([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
+            self.inp_gate2Start.value(), self.inp_gate2Stop.value()], file)
+            file.close()
             self.scopeThread.scopeRead = False
             self.enableControlsScope(False)
             self.scope = LeCroyScopeControllerVISA()            
@@ -210,6 +215,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.ScopeDisplay.lr2.setMovable(False)
             self.ScopeDisplay.line1.setMovable(False)
             self.chk_gateInt.setChecked(False)
+            self.scope.dispOn()
 
     def btn_startDataAcq_clicked(self):
         # set parameters for dataAcquisition()
@@ -254,7 +260,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 self.openSaveFile()
             else:
                 time.sleep(.4)
-            self.scopeThread = scopeThread(True, False, self.inp_avgSweeps.value())
+            self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority) 
             self.btn_startDataAcq.setText('Start Data Acq')
@@ -283,6 +289,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             else:
                 self.scanDirection = -1            
             self.scanSetDevice()
+            self.deviceRelax(0.8)
         elif self.scanParam == 'Wavelength':
             self.scanParam = self.scanParam + ' ' + str(self.laserSelectScan.currentText())
             self.startParam = self.inp_startWL.value()
@@ -327,6 +334,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             else:
                 self.scanDirection = -1            
             self.scanSetDevice()
+            self.deviceRelax(0.8)
         elif 'Velocity' in self.scanParam:
             self.startParam = [self.inp_startFieldVel.value(), self.inp_startDelayVel.value()*1E-6] 
             self.stopParam = [self.inp_stopFieldVel.value(), self.inp_stopDelayVel.value()*1E-6]
@@ -345,6 +353,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.datalen = int(1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])
             self.countpoints = 0
             self.scanSetDevice()
+            self.deviceRelax(0.8)
         elif 'Detection' in self.scanParam:
             self.startParam = [self.inp_startFieldDet.value(), self.inp_startIonDet.value()] 
             self.stopParam = [self.inp_stopFieldDet.value(), self.inp_stopIonDet.value()]
@@ -361,28 +370,33 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.datalen = int(1+abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])
             self.countpoints = 0
             self.scanSetDevice()
+            self.deviceRelax(0.8)
             
     def dataAcquisition(self, data):
         # add data       
-        self.dataBuf.append(data)
+        self.dataBuf1.append(data[0])
+        self.dataBuf2.append(data[1])
         self.cursorPos = self.ScopeDisplay.getCursors()         
         self.setGateField(self.cursorPos)
-        if len(self.dataBuf) >= self.scopeThread.avgSweeps and not(self.gateInt):
+        if len(self.dataBuf1) >= self.scopeThread.avgSweeps and not(self.gateInt):
             # deque trace buffer when average shots is reached
-            dataIn = self.dataBuf[0:self.scopeThread.avgSweeps]
-            del self.dataBuf[0:self.scopeThread.avgSweeps]
+            dataIn1 = self.dataBuf1[0:self.scopeThread.avgSweeps]
+            dataIn2 = self.dataBuf2[0:self.scopeThread.avgSweeps]
+            del self.dataBuf1[0:self.scopeThread.avgSweeps]
+            del self.dataBuf2[0:self.scopeThread.avgSweeps]
             if self.scopeMon and not(self.scanMode):
                 # scope monitor plotting
-                self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincrC1)                
+                self.ScopeDisplay.plotMon(dataIn1, dataIn2, self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)                
             elif self.scopeMon and self.scanMode:
                 # scan plotting
-                self.ScopeDisplay.plotDataAcq(dataIn, self.cursorPos, self.scopeThread.scope.timeincrC1, self.line1Pos)
+                self.ScopeDisplay.plotDataAcq(dataIn1, dataIn2, self.cursorPos, self.scopeThread.scope.timeincrC1, \
+                                              self.scopeThread.scope.timeincrC2, self.line1Pos)
                 if ('Velocity' in self.scanParam) or ('Detection' in self.scanParam):
                     # assume matrix scans in order for i in delayvals: for j in voltvals = signal[i][j]
                     # param[0]=voltage, param[1]=delay
                     self.countpoints += 1
-                    self.DataDisplay.plotMatrix(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1, \
-                                                self.datalen, self.countpoints, self.numpoints, self.scanParam)
+                    self.DataDisplay.plotMatrix(dataIn1, dataIn2, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1, \
+                                                self.scopeThread.scope.timeincrC2, self.datalen, self.countpoints, self.numpoints, self.scanParam)
                     if (abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
                         # send signal to abort measurement
                         self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
@@ -392,6 +406,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                         self.setParam[0] = self.startParam[0]
                         self.setParam[1] += self.scanDirection[1]*self.stepParam[1]
                         self.scanSetDevice()
+                        self.deviceRelax(0.8)
                         self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
                     elif (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11)) or \
                          (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11)):
@@ -400,7 +415,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                         self.scanSetDevice()
                         self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
                 else:
-                    self.DataDisplay.plot(dataIn, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1)
+                    self.DataDisplay.plot(dataIn1, dataIn2, self.setParam, self.cursorPos, self.scanParam, \
+                                          self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
                     # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
                     if abs(self.setParam - self.stopParam) < 25E-11:
                         # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
@@ -415,10 +431,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         elif self.scopeMon and self.gateInt:
              # gate 1 integration
              # don't deque for < avgSweeps, calculate average and error from whole buffer
-            if len(self.dataBuf) > self.scopeThread.avgSweeps:
-                del self.dataBuf[0]
-            dataIn = self.dataBuf[:]
-            data = self.ScopeDisplay.plotMon(dataIn, self.scopeThread.scope.timeincrC1)
+            if len(self.dataBuf1) > self.scopeThread.avgSweeps:
+                del self.dataBuf1[0]
+            dataIn = self.dataBuf1[:]
+            data = self.ScopeDisplay.plotMonGate(dataIn, self.scopeThread.scope.timeincrC1)
             cPos = [round(self.cursorPos[0]/self.scopeThread.scope.timeincrC1), 
                    round(self.cursorPos[1]/self.scopeThread.scope.timeincrC1)]
             self.gateIntVal = sum(data[cPos[0]:cPos[1]])
@@ -428,6 +444,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # error propagation
             self.gateIntErr = np.sqrt(sum(np.square(err[cPos[0]:cPos[1]])))
             self.out_gateInt.setText('{:.2f} '.format(self.gateIntVal) + QtCore.QString(u'±') + ' {:.2f}'.format(self.gateIntErr))
+    
+    def deviceRelax(self, sleeptime):
+        # allow for e.g. power supplies to settle potentials
+        self.scopeThread.blockSignals(True)
+        time.sleep(sleeptime)
+        self.dataBuf1 = []
+        self.dataBuf2 = []
+        self.scopeThread.blockSignals(False)
     
     def scanSetDevice(self):        
         if 'Voltage' in self.scanParam:
@@ -476,12 +500,15 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         #reset recorded data
         self.scanMode = True
         print 'DATA ACQ ON'
-        self.dataBuf = []
+        self.dataBuf1 = []
+        self.dataBuf2 = []
         self.DataDisplay.dataTrace1 = []
         self.DataDisplay.dataTrace2 = []
         self.DataDisplay.errTrace1 = []
         self.DataDisplay.errTrace2 = []
         self.DataDisplay.paramTrace = []
+        self.dataTracePrev1 = []
+        self.dataTracePrev2 = []
     
     def openSaveFile(self):
         fileName = self.scanParam + ' Scan ' + '{:s}'.format(self.inp_fileName.text()) + time.strftime("%y%m%d") + time.strftime("%H%M")
@@ -603,7 +630,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 self.scopeThread.avgSweeps = self.inp_avgSweeps.value()
                 print 'Avg sweeps for data eval changed to ' + str(self.scopeThread.avgSweeps)
                 # reset data buffer
-                self.dataBuf = []            
+                self.dataBuf1 = [] 
+                self.dataBuf2 = []                
      
     def connectLasers(self):    
         if self.chk_connectLasers.isChecked():
@@ -718,7 +746,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()       
         self.scope.initialize()
-        self.scope.invertTrace('C1', True)
+        self.scope.invertTrace(True)
         print '-----------------------------------------------------------------------------'
         print 'Initiate Lasers when not Sirah Control interfaces closed'
 
@@ -757,7 +785,7 @@ class scopeThread(QtCore.QThread):
         # averages for data eval with single traces from scope
         self.avgSweeps = avgSweeps
         self.scope.setSweeps(1)
-        self.scope.invertTrace('C1', False)
+        self.scope.invertTrace(False)
         self.scope.setScales()
         if dispOff:
             self.scope.dispOff()
@@ -771,10 +799,10 @@ class scopeThread(QtCore.QThread):
         self.scope.clearSweeps()
         while self.scopeRead:
             data = self.scope.armwaitread()
-            self.dataReady.emit(data) 
+            self.dataReady.emit(data)
         # return control to scope
         self.scope.dispOn()
-        self.scope.invertTrace('C1', True)
+        self.scope.invertTrace(True)
         self.scope.trigModeNormal()
         self.scope.closeConnection()
         self.quit()
@@ -1130,7 +1158,7 @@ class CamWin(QtGui.QWidget, ui_form_camwin):
         self.inp_accums.editingFinished.connect(self.setDevCtl)
         self.inp_gain.editingFinished.connect(self.setDevCtl)
         self.inp_vmin.editingFinished.connect(self.setImgCtl)
-        self.inp_vmin.editingFinished.connect(self.setImgCtl)
+        self.inp_vmax.editingFinished.connect(self.setImgCtl)
         
         self.acqMode = False
         self.vmin = self.inp_vmin.value()
@@ -1158,10 +1186,6 @@ class CamWin(QtGui.QWidget, ui_form_camwin):
             self.camThread.dataReady.connect(self.imgDisplay)
             self.camThread.setReady.connect(self.setTxtOut)
             self.camThread.start()    
-            # TODO
-            self.ts = time.time()
-            self.tn = 0
-            self.timee = 0
         else:
             self.camThread.camRead = False
             self.enableCtrls(True)
@@ -1170,11 +1194,6 @@ class CamWin(QtGui.QWidget, ui_form_camwin):
         v = [self.vmin, self.vmax]
         auto = self.autoScaling.isChecked()
         vauto = self.CamDisplay.plot(img, auto, v)
-        self.timee += time.time() - self.ts
-        self.tn += 1
-        if self.tn%10==0:
-            print 'Avg cycle time in ms: ' + '{:.1f}'.format(1E3*(self.timee/self.tn))
-        self.ts = time.time()
         self.inp_vmin.setEnabled(not(auto))
         self.inp_vmax.setEnabled(not(auto))
         self.out_vmin.setText(str(vauto[0]))

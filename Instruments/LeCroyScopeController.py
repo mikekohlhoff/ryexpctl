@@ -95,6 +95,7 @@ class LeCroyScopeControllerVISA:
     def setSweeps(self, numberSweeps):
         '''set number of sweeps for averaging'''
         self.__scope.write("VBS 'app.acquisition.C1.AverageSweeps=" + str(numberSweeps) + "'")
+        self.__scope.write("VBS 'app.acquisition.C2.AverageSweeps=" + str(numberSweeps) + "'")
 
     def clearSweeps(self):
         self.__scope.write('*CLS;CLSW')
@@ -123,23 +124,31 @@ class LeCroyScopeControllerVISA:
         '''main function for readout in GUI'''
         self.__scope.write('ARM;WAIT;C1:WF? DAT1')
         data1 = self.__scope.read_raw()
+        self.__scope.write('C2:WF? DAT1')
+        data2 = self.__scope.read_raw()
         datC1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
-        return datC1
+        datC2 = 1.*(np.fromstring(data2[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
+        return [datC1, datC2]
 
     def getTimeTrace(self):
         '''return trace with time'''
         self.__scope.write('C1:WF? DAT1')
         data = self.__scope.read_raw()
-        waveform = 1.*(np.fromstring(data[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
-        plotTime = 1.*np.arange(np.size(waveform))*self.timeincrC1
-        return (plotTime, waveform)
+        self.__scope.write('C2:WF? DAT1')
+        data1 = self.__scope.read_raw()
+        waveform1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
+        plotTime1 = 1.*np.arange(np.size(waveform1))*self.timeincrC1
+        waveform2 = 1.*(np.fromstring(data2[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
+        plotTime2 = 1.*np.arange(np.size(waveform2))*self.timeincrC2
+        return [[plotTime1,waveform1],[plotTime2,waveform2]]
 
-    def invertTrace(self, chl, boolInv):
-        self.__scope.write("VBS? 'app.Acquisition." + chl + ".Invert=" + str(boolInv) + "'")
+    def invertTrace(self, boolInv):
+        self.__scope.write("VBS? 'app.Acquisition.C1.Invert=" + str(boolInv) + "'")
+        self.__scope.write("VBS? 'app.Acquisition.C2.Invert=" + str(boolInv) + "'")
         if boolInv:
-            print 'Invert scope trace ' + chl
+            print 'Invert scope trace'
         else:
-            print 'Scope trace ' + chl + ' non-inverted'
+            print 'Scope trace non-inverted'
 
     def closeConnection(self):
         self.__scope.close()

@@ -35,9 +35,9 @@ class MatplotlibWidgetCam(QGraphicsView):
     def plot(self, img, auto, v):
         self.canvas.ax.clear()
         if auto:
-            self.canvas.ax.imshow(img, cmap = self.cmap)
+            self.canvas.ax.imshow(img, cmap = self.cmap, interpolation='spline36',filternorm=1)
         else:
-            self.canvas.ax.imshow(img, cmap = self.cmap, vmin=v[0], vmax=v[1])
+            self.canvas.ax.imshow(img, cmap = self.cmap, vmin=v[0], vmax=v[1],interpolation='spline36',filternorm=1)
         self.canvas.fig.patch.set_alpha(0)
         self.canvas.ax.set_axis_off()
         self.canvas.fig.tight_layout()

@@ -27,24 +27,31 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
         self.errTrace1 = []
         self.errTrace2 = []
         self.paramTrace = []
+        self.dataTracePrev1 = []
+        self.dataTracePrev2 = []
         
-    def integrator(self, dataIn, cPos):
+    def integrator(self, dataIn1, dataIn2, cPos):
         # average scope traces and invert
-        data = (sum(dataIn)/len(dataIn))*-1
+        data1 = (sum(dataIn1)/len(dataIn1))*-1
+        data2 = (sum(dataIn2)/len(dataIn2))*-1
         # substract baseline
-        data = data - np.mean(data[0:100])
+        data1 = data1 - np.mean(data1[-2000:-1000])
+        data2 = data2 - np.mean(data2[-2000:-1000])
         # std deviation for average
-        dataIn = np.vstack(dataIn)
-        err = np.std(dataIn, axis=0)
+        dataerr1 = np.vstack(dataIn1)
+        dataerr2 = np.vstack(dataIn2)
+        err1 = np.std(dataerr1, axis=0)
+        err2 = np.std(dataerr2, axis=0)
         # TOF windows
-        intTrace = [sum(data[cPos[0]:cPos[1]]), sum(data[cPos[2]:cPos[3]])]       
+        intTrace = [sum(data1[cPos[0]:cPos[1]]), sum(data2[cPos[2]:cPos[3]])]       
         # error propagation
-        err = [np.sqrt(sum(np.square(err[cPos[0]:cPos[1]]))), np.sqrt(sum(np.square(err[cPos[2]:cPos[3]])))]
+        err = [np.sqrt(sum(np.square(err1[cPos[0]:cPos[1]]))), np.sqrt(sum(np.square(err2[cPos[2]:cPos[3]])))]
         return intTrace, err
     
-    def plot(self, dataIn, setParam, cPosIn, scanParam, ti):
-        cPos = [round(cPosIn[0]/ti), round(cPosIn[1]/ti), round(cPosIn[2]/ti), round(cPosIn[3]/ti)]
-        data, err = self.integrator(dataIn, cPos)
+    def plot(self, dataIn1, dataIn2, setParam, cPosIn, scanParam, ti1, ti2):
+        # gate1: trace1, gate2: trace2
+        cPos = [round(cPosIn[0]/ti1), round(cPosIn[1]/ti1), round(cPosIn[2]/ti2), round(cPosIn[3]/ti2)]
+        data, err = self.integrator(dataIn1, dataIn2, cPos)
             
         self.paramTrace.append(float(setParam))
         self.dataTrace1.append(float(data[0]))
@@ -79,9 +86,9 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
         elif 'Delay' in scanParam:
             self.dataWidget.setLabel('bottom', scanParam, units='s')
                 
-    def plotMatrix(self, dataIn, setParam, cPosIn, scanParam, ti, tracelen, countpoints, numpoints, mode):
-        cPos = [round(cPosIn[0]/ti), round(cPosIn[1]/ti), round(cPosIn[2]/ti), round(cPosIn[3]/ti)]
-        data, err = self.integrator(dataIn, cPos)       
+    def plotMatrix(self, dataIn1, dataIn2, setParam, cPosIn, scanParam, ti1, ti2, tracelen, countpoints, numpoints, mode):
+        cPos = [round(cPosIn[0]/ti1), round(cPosIn[1]/ti1), round(cPosIn[2]/ti2), round(cPosIn[3]/ti2)]
+        data, err = self.integrator(dataIn1, dataIn2, cPos)       
         
         # write data to buffer file
         if countpoints == 1:
@@ -97,7 +104,7 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
             self.f.close()
               
         self.dataWidget.clear()
-        if hasattr(self, 'dataTracePrev1'):
+        if len(self.dataTracePrev1) > 0:
                 self.dataWidget.plot(self.paramTracePrev, self.dataTracePrev1, pen=mkPen('#2a2a2a', width=0.5))
                 self.dataWidget.plot(self.paramTracePrev, self.dataTracePrev2, pen=mkPen('#2a2a2a', width=0.5))
         
