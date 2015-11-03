@@ -28,7 +28,7 @@
 import serial
 
 class MaxiGauge (object):
-    def __init__(self, serialPort, baud=9600, debug=False):
+    def __init__(self, serialPort, baud=19200, debug=False):
         self.debug=debug
         try:
             self.connection = serial.Serial(serialPort, baudrate=baud, timeout=0.2)
@@ -58,6 +58,14 @@ class MaxiGauge (object):
     def pressures(self):
         return [self.pressure(i+1) for i in range(6)]
 
+    def pressureSensor(self, i):
+        '''
+        not in original github code
+        improve readout time by eliminating loop
+        from 230ms to 40ms
+        '''
+        return self.pressure(i)
+        
     def pressure(self, sensor):
         if sensor < 1 or sensor >6: raise MaxiGaugeError('Sensor can only be between 1 and 6. You choose ' + str(sensor))
         reading = self.send('PR%d' % sensor, 1)  ## reading will have the form x,x.xxxEsx <CR><LF> (see p.88)
@@ -70,14 +78,16 @@ class MaxiGauge (object):
         return PressureReading(sensor, status, pressure)
 
     def gaugeSwitch(self, sensor, state):
-        '''not in original github code'''
+        '''
+        not in original github code
+        '''
         #SEN [,x,x,x,x,x,x] <CR>[<LF>]
         #Sensors 1 ... 6
         #x = 0 -> No change, 1 -> Off, 2 -> On
         statusAll = list(',0,0,0,0,0,0')
-        ps = self.pressures()
+        ps = self.pressure(4)
         # 0 - sensor on, 4 - sensor off
-        stat = ps[sensor-1].status
+        stat = ps.status
         if stat != 4 and state == 'OFF':
             statusAll[2*sensor - 1] = '1'
             self.send('SEN' + "".join(statusAll))
@@ -86,7 +96,7 @@ class MaxiGauge (object):
             statusAll[2*sensor - 1] = '2'
             self.send('SEN' + "".join(statusAll))
             print 'Turn gauge #{:d} on'.format(sensor)                   
-
+              
     def debugMessage(self, message):
         if self.debug: print(repr(message))
 

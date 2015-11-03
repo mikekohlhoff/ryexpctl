@@ -23,7 +23,7 @@ def toDouble(buffer):
     dec, wh = struct.unpack('<Ii', bufferStr)
     return float(wh) + float(dec)/2**32
     
-class LabJackU3LJTick:
+class LabJackU3LJTick(object):
     """
     LabJack Python modules to set the value of DACA and DACB in a LJ-TickDAC
     """
@@ -45,6 +45,7 @@ class LabJackU3LJTick:
         self.dacPin = LabJackU3LJTick.DAC_PIN_DEFAULT
         
         self.loadDevice()
+        print 'LabJackTick found, Serial Number: ' + str(self.device.serialNumber)
      
     def loadDevice(self):
         try:
@@ -88,32 +89,36 @@ class LabJackU3LJTick:
 
         if 255 in response: print "Make sure the LabJackU3LJTick is properly attached"
     
-    def setDevice(self, valA, valB):
+    def setDevice(self, val, chl):
         """
         Changes DACA and DACB to the amounts specified by the user
         """
         # Determine pin numbers
         sclPin = self.dacPin + LabJackU3LJTick.U3_DAC_PIN_OFFSET
         sdaPin = sclPin + 1
-
-        # Get voltage for DACA
-        voltageA = float(valA)
-        voltageB = float(valB)
-
+        if val > 10: val = 10
+        if val < 0: val = 0
         # Make requests
-        try:
-            self.device.i2c(LabJackU3LJTick.DAC_ADDRESS, [48, int(((voltageA*self.aSlope)+self.aOffset)/256), int(((voltageA*self.aSlope)+self.aOffset)%256)], SDAPinNum = sdaPin, SCLPinNum = sclPin)
-            self.device.i2c(LabJackU3LJTick.DAC_ADDRESS, [49, int(((voltageB*self.bSlope)+self.bOffset)/256), int(((voltageB*self.bSlope)+self.bOffset)%256)], SDAPinNum = sdaPin, SCLPinNum = sclPin)
-        except:
-            print  "Error setting the LabJackU3LJTick. Is the device detached?\n\nPython error:" + str(sys.exc_info()[1])
-            
+        if chl == 'A':
+            voltageA = float(val)
+            try:
+                self.device.i2c(LabJackU3LJTick.DAC_ADDRESS, [48, int(((voltageA*self.aSlope)+self.aOffset)/256), int(((voltageA*self.aSlope)+self.aOffset)%256)], SDAPinNum = sdaPin, SCLPinNum = sclPin)
+            except:
+                print  "Error setting the LabJackU3LJTick. Is the device detached?\n\nPython error:" + str(sys.exc_info()[1])
+        elif chl == 'B':
+            voltageB = float(val)
+            try:
+                self.device.i2c(LabJackU3LJTick.DAC_ADDRESS, [49, int(((voltageB*self.bSlope)+self.bOffset)/256), int(((voltageB*self.bSlope)+self.bOffset)%256)], SDAPinNum = sdaPin, SCLPinNum = sclPin)
+            except:
+                print  "Error setting the LabJackU3LJTick. Is the device detached?\n\nPython error:" + str(sys.exc_info()[1])
+
     def closeDevice(self):
         if self.device is not None: self.device.close()
      
 if __name__ == '__main__':
     lj = LabJackU3LJTick()
-    print lj.device.serialNumber
-    valA = 3.5
-    valB = 4.7
-    lj.setDevice(valA, valB)
+    valA = 6
+    valB = 0
+    lj.setDevice(valA, 'A')
+    lj.setDevice(valB, 'B')
     lj.closeDevice()

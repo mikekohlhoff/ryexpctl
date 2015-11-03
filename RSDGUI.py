@@ -10,6 +10,7 @@ import os
 import sys
 import pickle
 import math
+import collections
 
 # UI related
 from PyQt4 import QtCore, QtGui, uic
@@ -17,7 +18,6 @@ ui_form = uic.loadUiType("rsdgui.ui")[0]
 ui_form_waveform = uic.loadUiType("rsdguiWfWin.ui")[0]
 ui_form_startmcp = uic.loadUiType("rsdguiStartMCP.ui")[0]
 ui_form_camwin = uic.loadUiType("rsdguiCameraWin.ui")[0]
-
 
 # integrating matplotlib figures
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -37,6 +37,8 @@ from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
 from Instruments.SirahLaserControl import SirahLaserController
 from Instruments.AndorCamera import AndorController
 from Instruments.AndorCamera import AndorControllerAT
+from Instruments.LabJackU3HV import LabJackU3LJTick
+from Instruments.PIDController import PIDControl
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -47,7 +49,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scopeMon = False
         self.scanMode = False
         self.gateInt = False
-        self.pressThread = False
         self.setPotBool = False
         # if program crashes, reset MCP/Phos analog output
         self.shutdownStatus = [False, 0, 0]
@@ -61,8 +62,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
         self.chk_editWF.clicked.connect(self.showWfWin)
-        self.chk_readMainGauge.clicked.connect(self.readGauge_clicked)
-        self.chk_readSourceGauge.clicked.connect(self.readGauge_clicked)
         self.chk_gateInt.stateChanged.connect(self.chk_gateInt_stateChanged)
         self.inp_gate1Start.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate1Stop.valueChanged.connect(self.setCursorsScopeWidget)
@@ -75,8 +74,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_voltMCP.valueChanged.connect(self.saveMCPVoltage)
         self.inp_voltPhos.valueChanged.connect(self.saveMCPVoltage)
         self.chk_openCamera.clicked.connect(self.openCamera)
-        
-        # function in module as slot
         self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
@@ -94,6 +91,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.tabWidget_ScanParam.currentChanged.connect(lambda: self.scanModeSelect.setCurrentIndex(self.tabWidget_ScanParam.currentIndex()))
         self.inp_setDelayLasers.valueChanged.connect(lambda: self.pulseGen.setDelay(4, self.inp_setDelayLasers.value()*1E-6))
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
+        self.chk_sourceControl.clicked.connect(self.switchPressThread)
+        self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
         
         # defaults
         self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2015'
@@ -119,11 +118,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.pulseGen.switchChl(6, False)
         self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
         self.calcRydVelocity()
-        
+        self.LabJack.setDevice(0, 'A')
+        self.LabJack.setDevice(0, 'B')
+     
         # set size of window
         self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
-        self.setFixedSize(971, 628)
+        # TODO self.setFixedSize(1010, 664)
+        self.setFixedSize(1095, 664)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
@@ -233,6 +235,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             if self.inp_avgSweeps.value() < 2:
                 QtGui.QMessageBox.critical(self, 'Data Acquistion Warning', "Average needs to be at least 2.", QtGui.QMessageBox.Ok)
                 return
+            if not(self.chk_sourceControl.isChecked()):
+                QtGui.QMessageBox.critical(self, 'Data Acquistion Warning', "Activate pulse valve PID control.", QtGui.QMessageBox.Ok)
+                return
+                
             self.btn_startDataAcq.setText('Abort Data Acq')
             # reconnect to scope to switch display otherwise access problems
             self.scopeThread.scopeRead = False
@@ -672,35 +678,72 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         elif laser == 'VUV' and self.inp_setWL_VUV.hasFocus():
             self.setLaser = LaserThread(self.VUVLaser, self.inp_setWL_VUV.value(), self.inp_setWL_VUV)
             self.setLaser.start()
-     
-    def readGauge_clicked(self):
-        '''create maxi gauge thread and _run()'''
-        # create controller connection within scope thread
-        MainActive = self.chk_readMainGauge.isChecked()
-        SourceActive = self.chk_readSourceGauge.isChecked()
-        if MainActive: MainState = 'ON'
-        else: MainState = 'OFF'       
-        if not(self.pressThread):
-            self.PressureThread = PressureThread(True, MainState)
-            self.PressureThread.pressReadReady.connect(self.setPressRead)
-            self.PressureThread.start()
-            self.pressThread = True
-        else:
-            self.PressureThread.MainState = MainState            
-        if not(MainActive) and not(SourceActive):
-            self.pressThread = False
-            time.sleep(2)        
-            self.PressureThread.ReadActive = False    
-        if not(MainActive):
-            self.out_readMainGauge.setText('Gauge turned off')
-        if not(SourceActive):
-            self.out_readSourceGauge.setText('Read out not active')
+    
+    def startPressThread(self):
+        '''create maxi gauge thread and _run() without feedback loop'''
+        self.PressureThread = PressureThread(True, 'OFF', self.chk_readMainGauge, self.MaxiGauge)
+        self.PressureThread.pressReadReady.connect(self.setPressRead)
+        self.PressureThread.start()
+        self.pressThread = True
+        self.inp_sourceChamber.setEnabled(False)
+        self.chk_readMainGauge.setEnabled(True)
+        self.sliderSource.setEnabled(True)
             
+    def startPressThreadData(self):
+        self.PressureThreadData = PressureThreadData(True, self.LabJack, self.MaxiGauge, self.inp_KP, self.inp_KI, \
+                                                     self.inp_KD, self.inp_sourceChamber)
+        self.PressureThreadData.pressReadReady.connect(self.setPressRead)
+        self.DataDisplay.dataTrace1 = []
+        self.PressureThreadData.start()
+        self.pressThread = False
+        self.inp_sourceChamber.setEnabled(True)
+        self.chk_readMainGauge.setEnabled(False)
+        self.chk_readMainGauge.setCheckState(QtCore.Qt.Unchecked)
+        self.sliderSource.setEnabled(False)
+            
+    def switchPressThread(self):
+        if self.pressThread:
+            if not(self.chk_PulseValve.isChecked()):
+                QtGui.QMessageBox.critical(self, 'PID Controller Warning', "Pulse valve trigger not enabled.", QtGui.QMessageBox.Ok)
+                self.inp_sourceChamber.blockSignals(True)
+                self.chk_sourceControl.setCheckState(QtCore.Qt.Unchecked)
+                self.inp_sourceChamber.blockSignals(False)
+                return
+            self.PressureThread.blockSignals(True)
+            self.PressureThread.ReadActive = False
+            time.sleep(0.6)
+            self.PressureThread.blockSignals(False)
+            self.chk_PulseValve.setEnabled(False)
+            self.startPressThreadData()
+        else:
+            self.PressureThreadData.ReadActive = False
+            time.sleep(0.2)
+            # reset to pressure before PID activated
+            val = float(self.sliderSource.value())/100
+            self.LabJack.setDevice(val, 'A')
+            self.chk_PulseValve.setEnabled(True)
+            self.startPressThread()
+    
     def setPressRead(self, pressRead):
-        if self.chk_readMainGauge.isChecked():
-            self.out_readMainGauge.setText(pressRead[0])
-        if self.chk_readSourceGauge.isChecked():
-            self.out_readSourceGauge.setText(pressRead[1])
+        self.out_readMainGauge.setText(pressRead[1])
+        if not(self.pressThread):
+            self.DataDisplay.plotpressure(pressRead[2], self.PressureThreadData.pid.getPoint())
+            # TODO
+            if self.PressureThreadData.dispincr%16==0:
+                self.out_readSourceGauge.setText(pressRead[0])
+                self.out_piderr.setText('{:.2f}'.format(abs(pressRead[3])))
+        else:
+            self.out_readSourceGauge.setText(pressRead[0])
+            if self.chk_PulseValve.isChecked():
+                self.DataDisplay.plotpressurewopid(pressRead[2])
+                self.out_piderr.setText('off')
+            else:
+                self.DataDisplay.dataTrace1 = []
+            
+    def setSliderVoltOut(self):
+        sender = self.sender()
+        val = float(sender.value())/100
+        self.LabJack.setDevice(val, 'A')
             
     def closeEvent(self, event):
         self.blockSignals(True)
@@ -745,10 +788,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()       
-        self.scope.initialize()
+        # TODO self.scope.initialize()
         self.scope.invertTrace(True)
+        self.MaxiGauge = MaxiGauge('COM1')
+        self.LabJack = LabJackU3LJTick()
+        self.startPressThread()      
         print '-----------------------------------------------------------------------------'
-        print 'Initiate Lasers when not Sirah Control interfaces closed'
 
     def shutDownExperiment(self):
         self.blockSignals(True)
@@ -758,6 +803,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.saveMCPVoltage()
         print 'Releasing controllers:'
         self.analogIO.closeDevice()
+        self.LabJack.setDevice(0, 'A')
+        self.LabJack.setDevice(0, 'B')
+        self.LabJack.closeDevice()
         self.DIOCard.releaseCard()
         if hasattr(self, 'scopeThread'):
             self.scopeThread.scopeRead = False
@@ -767,8 +815,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scope.closeConnection()            
         if hasattr(self.WfWin, 'wfThread'):
             self.WfWin.wfThread.terminate()
-        if hasattr(self, 'PressureThread'):
-            self.PressureThread.terminate()
+        if hasattr(self, 'PressureThread') and self.pressThread:
+            self.PressureThread.ReadActive = False
+            time.sleep(0.8)
+            self.MaxiGauge.disconnect()
+        if hasattr(self, 'PressureThreadData') and not(self.pressThread):
+            self.PressureThreadData.ReadActive = False
+            time.sleep(0.1)
+            self.MaxiGauge.disconnect()
         if hasattr(self, 'pulseGen'):
             self.pulseGen.closeConnection()
         if self.chk_connectLasers.isChecked():
@@ -847,12 +901,59 @@ class LaserBurstThread(QtCore.QThread):
         return   
             
 class PressureThread(QtCore.QThread):
-    def __init__(self, ReadActive, MainState):
+    def __init__(self, ReadActive, MainState, refmain, MaxiGauge):
         QtCore.QThread.__init__(self)
         self.ReadActive = ReadActive
-        self.MainState = MainState
-        self.MaxiGauge = MaxiGauge('COM1')
+        self.refmain = refmain
+        self.MaxiGauge = MaxiGauge
+        self.MaxiGauge.gaugeSwitch(4, 'OFF')
+         
+    pressReadReady = QtCore.pyqtSignal(object)
+    
+    def __del__(self):
+        self.wait()
         
+    def run(self):
+        '''
+        sensor 0 = source, 4 = main chamber
+        source not switched since it might not switch back to second stage
+        '''
+        while self.ReadActive:
+            if self.refmain.isChecked():
+                state = 'ON'
+                ps = self.MaxiGauge.pressureSensor(4)
+                MainPress = "{:2.2e} mbar".format(ps.pressure)
+            else: 
+                state = 'OFF'
+                MainPress = 'Gauge turned off'
+            self.MaxiGauge.gaugeSwitch(4, state) 
+            ps = self.MaxiGauge.pressureSensor(1)
+            SourcePress = "{:2.2e} mbar".format(ps.pressure)
+            # TODO
+            self.pressReadReady.emit([SourcePress, MainPress, ps.pressure])
+            # TODO
+            #self.msleep(400)      
+        self.quit()
+        return
+        
+class PressureThreadData(QtCore.QThread):
+    def __init__(self, ReadActive, LabJack, MaxiGauge, refKP, refKI, refKD, refval):
+        QtCore.QThread.__init__(self)
+        self.ReadActive = ReadActive
+        self.labjack = LabJack
+        self.mg = MaxiGauge
+        self.mg.gaugeSwitch(4, 'OFF')
+        # __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, Integrator_max=500, Integrator_min=-500):
+        self.pid = PIDControl(refKP.value(), refKI.value(), refKD.value(), 0, 0, 500, -500)
+        
+        self.kp = refKP
+        self.ki = refKI
+        self.kd = refKD
+        self.setpoint = refval
+        # input field in E-6
+        self.pid.setPoint(self.setpoint.value())
+        self.dispincr = 1
+
     pressReadReady = QtCore.pyqtSignal(object)
     
     def __del__(self):
@@ -860,13 +961,22 @@ class PressureThread(QtCore.QThread):
         
     def run(self):
         while self.ReadActive:
-            self.MaxiGauge.gaugeSwitch(4, self.MainState)
-            self.msleep(200)
-            ps = self.MaxiGauge.pressures()
-            MainPress = "{:2.3e} mbar".format(ps[3].pressure)
-            SourcePress = "{:2.3e} mbar".format(ps[0].pressure)
-            self.pressReadReady.emit([MainPress, SourcePress])
-        self.MaxiGauge.disconnect()
+            # check for change in setpoint
+            if self.setpoint.value() != self.pid.getPoint():
+                self.pid.setPoint(self.setpoint.value())
+            # output for front panel
+            ps = self.mg.pressureSensor(1)
+            SourcePress = "{:2.2e} mbar".format(ps.pressure)
+            self.pressReadReady.emit([SourcePress, 'Gauge turned off', ps.pressure, self.pid.getError()])
+            self.pid.setKp(self.kp.value())
+            self.pid.setKi(self.ki.value())
+            self.pid.setKd(self.kd.value())
+            # pressure scale to be set by coars and span:
+            # ~ 5E-7 - 10E-5
+            mv = self.pid.update(ps.pressure*1E6)
+            self.labjack.setDevice(mv, 'A')
+            self.dispincr += 1
+            
         self.quit()
         return
 

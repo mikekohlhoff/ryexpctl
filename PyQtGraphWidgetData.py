@@ -147,4 +147,14 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
             self.dataTrace2 = []
             self.errTrace1 = []
             self.errTrace2 = []
-            self.paramTrace = []     
+            self.paramTrace = []
+
+    def plotpressure(self, data, setval):
+        setval = setval*1E-6
+        self.dataTrace1.append(data)
+        self.dataWidget.plot(np.asarray(self.dataTrace1), pen=mkPen('r', width=1), clear=True)
+        self.dataWidget.addLine(y=setval, pen=pg.mkPen('b', width=1, style=QtCore.Qt.DashLine))
+        
+    def plotpressurewopid(self, data):
+        self.dataTrace1.append(data)
+        self.dataWidget.plot(np.asarray(self.dataTrace1), pen=mkPen('r', width=1), clear=True)
