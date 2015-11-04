@@ -124,8 +124,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # set size of window
         self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
-        # TODO self.setFixedSize(1010, 664)
-        self.setFixedSize(1095, 664)
+        self.setFixedSize(1018, 664)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
@@ -690,10 +689,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.sliderSource.setEnabled(True)
             
     def startPressThreadData(self):
-        self.PressureThreadData = PressureThreadData(True, self.LabJack, self.MaxiGauge, self.inp_KP, self.inp_KI, \
-                                                     self.inp_KD, self.inp_sourceChamber)
+        self.PressureThreadData = PressureThreadData(True, self.LabJack, self.MaxiGauge, self.inp_sourceChamber)
         self.PressureThreadData.pressReadReady.connect(self.setPressRead)
-        self.DataDisplay.dataTrace1 = []
         self.PressureThreadData.start()
         self.pressThread = False
         self.inp_sourceChamber.setEnabled(True)
@@ -713,7 +710,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.PressureThread.ReadActive = False
             time.sleep(0.6)
             self.PressureThread.blockSignals(False)
-            self.chk_PulseValve.setEnabled(False)
             self.startPressThreadData()
         else:
             self.PressureThreadData.ReadActive = False
@@ -721,24 +717,18 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # reset to pressure before PID activated
             val = float(self.sliderSource.value())/100
             self.LabJack.setDevice(val, 'A')
-            self.chk_PulseValve.setEnabled(True)
             self.startPressThread()
     
     def setPressRead(self, pressRead):
         self.out_readMainGauge.setText(pressRead[1])
         if not(self.pressThread):
-            self.DataDisplay.plotpressure(pressRead[2], self.PressureThreadData.pid.getPoint())
-            # TODO
-            if self.PressureThreadData.dispincr%16==0:
+            if self.PressureThreadData.dispincr%18==0:  
                 self.out_readSourceGauge.setText(pressRead[0])
-                self.out_piderr.setText('{:.2f}'.format(abs(pressRead[3])))
+                self.out_piderr.setText('{:3.1f}'.format((abs(pressRead[3])/self.inp_sourceChamber.value())*100))
         else:
             self.out_readSourceGauge.setText(pressRead[0])
             if self.chk_PulseValve.isChecked():
-                self.DataDisplay.plotpressurewopid(pressRead[2])
                 self.out_piderr.setText('off')
-            else:
-                self.DataDisplay.dataTrace1 = []
             
     def setSliderVoltOut(self):
         sender = self.sender()
@@ -788,7 +778,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()       
-        # TODO self.scope.initialize()
+        self.scope.initialize()
         self.scope.invertTrace(True)
         self.MaxiGauge = MaxiGauge('COM1')
         self.LabJack = LabJackU3LJTick()
@@ -929,33 +919,27 @@ class PressureThread(QtCore.QThread):
             self.MaxiGauge.gaugeSwitch(4, state) 
             ps = self.MaxiGauge.pressureSensor(1)
             SourcePress = "{:2.2e} mbar".format(ps.pressure)
-            # TODO
             self.pressReadReady.emit([SourcePress, MainPress, ps.pressure])
-            # TODO
-            #self.msleep(400)      
+            self.msleep(400)      
         self.quit()
         return
         
 class PressureThreadData(QtCore.QThread):
-    def __init__(self, ReadActive, LabJack, MaxiGauge, refKP, refKI, refKD, refval):
+    def __init__(self, ReadActive, LabJack, MaxiGauge, refval):
         QtCore.QThread.__init__(self)
         self.ReadActive = ReadActive
         self.labjack = LabJack
         self.mg = MaxiGauge
         self.mg.gaugeSwitch(4, 'OFF')
-        # __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, Integrator_max=500, Integrator_min=-500):
-        self.pid = PIDControl(refKP.value(), refKI.value(), refKD.value(), 0, 0, 500, -500)
-        
-        self.kp = refKP
-        self.ki = refKI
-        self.kd = refKD
+        # __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, 
+        # Integrator_max=500, Integrator_min=-500):
+        self.pid = PIDControl(0.01, 0.02, 0.01, 0, 0, 500, -500)
         self.setpoint = refval
         # input field in E-6
         self.pid.setPoint(self.setpoint.value())
         self.dispincr = 1
 
     pressReadReady = QtCore.pyqtSignal(object)
-    
     def __del__(self):
         self.wait()
         
@@ -968,15 +952,9 @@ class PressureThreadData(QtCore.QThread):
             ps = self.mg.pressureSensor(1)
             SourcePress = "{:2.2e} mbar".format(ps.pressure)
             self.pressReadReady.emit([SourcePress, 'Gauge turned off', ps.pressure, self.pid.getError()])
-            self.pid.setKp(self.kp.value())
-            self.pid.setKi(self.ki.value())
-            self.pid.setKd(self.kd.value())
-            # pressure scale to be set by coars and span:
-            # ~ 5E-7 - 10E-5
             mv = self.pid.update(ps.pressure*1E6)
             self.labjack.setDevice(mv, 'A')
             self.dispincr += 1
-            
         self.quit()
         return
 
