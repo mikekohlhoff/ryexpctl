@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1018</width>
-    <height>661</height>
+    <width>1054</width>
+    <height>688</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -56,10 +56,10 @@
   <widget class="PyQtGraphWidgetScope" name="ScopeDisplay">
    <property name="geometry">
     <rect>
-     <x>15</x>
-     <y>15</y>
-     <width>425</width>
-     <height>300</height>
+     <x>20</x>
+     <y>20</y>
+     <width>445</width>
+     <height>310</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -92,7 +92,7 @@
   <widget class="QGroupBox" name="groupBox_Scope">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>495</x>
      <y>20</y>
      <width>161</width>
      <height>86</height>
@@ -230,10 +230,10 @@
   <widget class="PyQtGraphWidgetData" name="DataDisplay">
    <property name="geometry">
     <rect>
-     <x>15</x>
-     <y>345</y>
-     <width>425</width>
-     <height>300</height>
+     <x>20</x>
+     <y>360</y>
+     <width>445</width>
+     <height>310</height>
     </rect>
    </property>
    <property name="sizePolicy">
@@ -252,7 +252,7 @@
   <widget class="QGroupBox" name="groupBox_Extraction">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>495</x>
      <y>120</y>
      <width>161</width>
      <height>166</height>
@@ -512,8 +512,8 @@
   <widget class="QGroupBox" name="groupBox_DataAcq">
    <property name="geometry">
     <rect>
-     <x>835</x>
-     <y>365</y>
+     <x>870</x>
+     <y>390</y>
      <width>166</width>
      <height>281</height>
     </rect>
@@ -814,7 +814,7 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_TOF">
    <property name="geometry">
     <rect>
-     <x>640</x>
+     <x>675</x>
      <y>20</y>
      <width>176</width>
      <height>106</height>
@@ -1192,7 +1192,7 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_MCP">
    <property name="geometry">
     <rect>
-     <x>640</x>
+     <x>675</x>
      <y>140</y>
      <width>176</width>
      <height>166</height>
@@ -1443,7 +1443,7 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_Laser">
    <property name="geometry">
     <rect>
-     <x>640</x>
+     <x>675</x>
      <y>320</y>
      <width>176</width>
      <height>121</height>
@@ -1628,10 +1628,10 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_DevControl">
    <property name="geometry">
     <rect>
-     <x>835</x>
+     <x>870</x>
      <y>20</y>
      <width>166</width>
-     <height>176</height>
+     <height>201</height>
     </rect>
    </property>
    <property name="font">
@@ -1649,7 +1649,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>20</y>
+      <y>45</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1669,7 +1669,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>95</y>
+      <y>120</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1689,7 +1689,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>45</y>
+      <y>70</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1709,7 +1709,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>70</y>
+      <y>95</y>
       <width>116</width>
       <height>18</height>
      </rect>
@@ -1729,7 +1729,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>120</y>
+      <y>145</y>
       <width>146</width>
       <height>18</height>
      </rect>
@@ -1749,7 +1749,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>140</y>
+      <y>165</y>
       <width>106</width>
       <height>22</height>
      </rect>
@@ -1789,20 +1789,41 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="chk_Fan">
+    <property name="geometry">
+     <rect>
+      <x>15</x>
+      <y>20</y>
+      <width>116</width>
+      <height>18</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>Tripling Fan</string>
+    </property>
+   </widget>
    <zorder>chk_Excimer</zorder>
    <zorder>chk_LaserUV</zorder>
    <zorder>chk_PulseValve</zorder>
    <zorder>chk_readMainGauge</zorder>
    <zorder>chk_LaserVUV</zorder>
    <zorder>out_readMainGauge</zorder>
+   <zorder>chk_Fan</zorder>
   </widget>
   <widget class="QTabWidget" name="tabWidget_ScanParam">
    <property name="geometry">
     <rect>
-     <x>460</x>
-     <y>460</y>
+     <x>495</x>
+     <y>465</y>
      <width>356</width>
-     <height>186</height>
+     <height>206</height>
     </rect>
    </property>
    <property name="font">
@@ -1812,7 +1833,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>4</number>
+    <number>0</number>
    </property>
    <widget class="QWidget" name="Voltage">
     <attribute name="title">
@@ -3999,7 +4020,7 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_Decelerator">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>495</x>
      <y>300</y>
      <width>161</width>
      <height>141</height>
@@ -4196,8 +4217,8 @@ p, li { white-space: pre-wrap; }
   <widget class="QGroupBox" name="groupBox_PulseValve">
    <property name="geometry">
     <rect>
-     <x>835</x>
-     <y>210</y>
+     <x>870</x>
+     <y>235</y>
      <width>166</width>
      <height>141</height>
     </rect>
@@ -4431,8 +4452,8 @@ p, li { white-space: pre-wrap; }
   <widget class="QLabel" name="label_49">
    <property name="geometry">
     <rect>
-     <x>957</x>
-     <y>320</y>
+     <x>992</x>
+     <y>345</y>
      <width>31</width>
      <height>16</height>
     </rect>

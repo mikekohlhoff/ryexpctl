@@ -39,6 +39,7 @@ from Instruments.AndorCamera import AndorController
 from Instruments.AndorCamera import AndorControllerAT
 from Instruments.LabJackU3HV import LabJackU3LJTick
 from Instruments.PIDController import PIDControl
+from Instruments.TenmaPowerSupply import TenmaPowerSupplyController
 
 class RSDControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -93,6 +94,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         self.chk_sourceControl.clicked.connect(self.switchPressThread)
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
+        self.chk_Fan.clicked.connect(lambda: self.powersupply.fancontrol(self.chk_Fan.isChecked()))
         
         # defaults
         self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2015'
@@ -124,7 +126,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # set size of window
         self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
-        self.setFixedSize(1018, 664)
+        self.setFixedSize(1054, 688)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
@@ -256,6 +258,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # abort scan
             if 'Wavelength' in self.scanParam:
                 self.devParam.CancelBurst()
+            self.scopeThread.scope.buzzBeep()
             self.scopeThread.scopeRead = False
             print 'DATA ACQ OFF'
             # reset devices to value before scan
@@ -460,8 +463,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     
     def scanSetDevice(self):        
         if 'Voltage' in self.scanParam:
-            if self.devParam == 'Extraction':
-                self.analogIO.writeAOExtraction(self.setParam)
+            if self.devParam == 'Extraction': pass
+                # TODO self.analogIO.writeAOExtraction(self.setParam)
             elif self.devParam == 'Ion1':
                 self.analogIO.writeAOIonOptic1(self.setParam)
             outVal = self.setParam
@@ -782,7 +785,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scope.invertTrace(True)
         self.MaxiGauge = MaxiGauge('COM1')
         self.LabJack = LabJackU3LJTick()
-        self.startPressThread()      
+        self.startPressThread()
+        self.powersupply = TenmaPowerSupplyController()
         print '-----------------------------------------------------------------------------'
 
     def shutDownExperiment(self):
