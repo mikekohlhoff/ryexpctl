@@ -258,7 +258,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # abort scan
             if 'Wavelength' in self.scanParam:
                 self.devParam.CancelBurst()
-            self.scopeThread.scope.buzzBeep()
             self.scopeThread.scopeRead = False
             print 'DATA ACQ OFF'
             # reset devices to value before scan
@@ -381,9 +380,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.deviceRelax(0.8)
             
     def dataAcquisition(self, data):
-        # add data       
-        self.dataBuf1.append(data[0])
-        self.dataBuf2.append(data[1])
+        # add data, substract baseline per trace
+        data1 = data[0] - np.mean(data[0][-2000:-1000])
+        data2 = data[1] - np.mean(data[1][-2000:-1000])
+        self.dataBuf1.append(data1)
+        self.dataBuf2.append(data2)
         self.cursorPos = self.ScopeDisplay.getCursors()         
         self.setGateField(self.cursorPos)
         if len(self.dataBuf1) >= self.scopeThread.avgSweeps and not(self.gateInt):
@@ -739,7 +740,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.LabJack.setDevice(val, 'A')
             
     def closeEvent(self, event):
-        self.blockSignals(True)
+        if hasattr(self, 'scopeThread'):
+            self.scopeThread.blockSignals(True)
         if not(self.setPotBool):
             reply = QtGui.QMessageBox.question(self, 'RSE Control',
                 "Shut down experiment control?", QtGui.QMessageBox.Yes | 
@@ -749,7 +751,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 self.shutDownExperiment()
             else:
                 event.ignore()
-                self.blockSignals(False)
+                if hasattr(self, 'scopeThread'):
+                    self.scopeThread.blockSignals(False)
         else:
             event.ignore()
 
@@ -794,13 +797,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.analogIO.writeAOExtraction(0)
         self.analogIO.writeAOIonOptic1(0)
         self.shutdownStatus[0] = True
-        self.saveMCPVoltage()
-        print 'Releasing controllers:'
-        self.analogIO.closeDevice()
+        self.saveMCPVoltage()  
         self.LabJack.setDevice(0, 'A')
         self.LabJack.setDevice(0, 'B')
-        self.LabJack.closeDevice()
-        self.DIOCard.releaseCard()
         if hasattr(self, 'scopeThread'):
             self.scopeThread.scopeRead = False
             time.sleep(.2)
@@ -822,6 +821,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if self.chk_connectLasers.isChecked():
             self.UVLaser.CloseLaser()
             self.VUVLaser.CloseLaser()
+        print 'Releasing controllers:'
+        self.analogIO.closeDevice()
+        self.LabJack.closeDevice()
+        self.DIOCard.releaseCard()
         self.WfWin.close()
         
 # subclass qthread (not recommended officially, old style)
