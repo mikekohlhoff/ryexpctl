@@ -39,24 +39,20 @@ class MatplotlibWidgetWFPot(QtGui.QWidget):
         if hasattr(wfPotentials, 'plotTime'):
             argX = wfPotentials.plotTime
             argY = wfPotentials.potentialsOut
-            self.canvas.ax.clear()
-            self.canvas.ax.plot(argX, argY[0,:], 'b', label="1", linewidth=1.5)
+            self.canvas.ax.clear()           
             self.canvas.ax.plot(argX, argY[1,:], 'r', label="2", linewidth=1.5)
-            self.canvas.ax.plot(argX, argY[2,:], 'g', label="3", linewidth=1.5)
-            self.canvas.ax.plot(argX, argY[3,:], 'b--', label="4", linewidth=1.5)
-            self.canvas.ax.plot(argX, argY[4,:], 'r--', label="5", linewidth=1.5)
-            self.canvas.ax.plot(argX, argY[5,:], 'g--', label="6", linewidth=1.5)
-            self.canvas.ax.axis([-2, wfPotentials.plotTime[-1]+0.5, wfPotentials.maxAmp*-2-10, wfPotentials.maxAmp*2+10])
+            self.canvas.ax.plot(argX, argY[3,:], 'b', label="4", linewidth=1.5)
+            self.canvas.ax.plot(argX, argY[5,:], 'g', label="6", linewidth=1.5)
+            self.canvas.ax.axis([-2, wfPotentials.plotTime[-1]+0.5, -50, wfPotentials.maxAmp*2+50])
             self.canvas.ax.grid(True)
             self.canvas.ax.set_title("Calculated PCB electrode potentials", fontsize=10)
             self.canvas.ax.set_xlabel("Time ($\mu$s)", fontsize=10)
             self.canvas.ax.set_ylabel("Amplitude (bits)", fontsize=10)
-            self.canvas.ax.legend(loc="lower right",  bbox_to_anchor = [.7,0.06], fontsize=8)
+            self.canvas.ax.legend(bbox_to_anchor=(0.02, 0.99), loc=2, borderpad=None, borderaxespad=0., fontsize=8, frameon=False)
             # mares in potential generation 
-            self.canvas.ax.plot([wfPotentials.incplTime,wfPotentials.incplTime],[(wfPotentials.maxAmp*2+10),\
-            (wfPotentials.maxAmp*(-2)-10)], 'k--', linewidth=1.5)
+            self.canvas.ax.plot([wfPotentials.incplTime,wfPotentials.incplTime],[(wfPotentials.maxAmp*2+50),-50], 'k--', linewidth=1.5)
             self.canvas.ax.plot([wfPotentials.plotTime[-1]-wfPotentials.outcplTime, wfPotentials.plotTime[-1]-wfPotentials.outcplTime], \
-            [wfPotentials.maxAmp*-2-1,wfPotentials.maxAmp*2+1], 'k--', linewidth=1.5)
+            [-1,wfPotentials.maxAmp*2+1], 'k--', linewidth=1.5)
             #self.WaveformDisplay.canvas.ax.plot([wfPotentials.incplTime+wfPotentials.decelTime,\
             #wfPotentials.incplTime+wfPotentials.decelTime],[wfPotentials.maxAmp*-2-1, wfPotentials.maxAmp*2+1], 'k--', linewidth=1)
             self.canvas.fig.patch.set_alpha(0)

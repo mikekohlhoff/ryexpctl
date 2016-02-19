@@ -32,15 +32,15 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.lr2.setMovable(False)
         
         # line for extraction pulse
-        self.line1 = pg.InfiniteLine([0,0], pen=pg.mkPen('#990000', width=2, style=QtCore.Qt.DashLine))
-        self.scopeWidget.addItem(self.line1)
-        self.line1.setMovable(False)
+        #self.line1 = pg.InfiniteLine([0,0], pen=pg.mkPen('#990000', width=2, style=QtCore.Qt.DashLine))
+        #self.scopeWidget.addItem(self.line1)
+        #self.line1.setMovable(False)
         
     def plotMon(self, dataIn1, dataIn2, timeincr1, timeincr2):
         # reset mobility of cursors after data acquisition
         self.lr1.setMovable(True)
         self.lr2.setMovable(True)
-        self.line1.setMovable(True)
+        #self.line1.setMovable(True)
         
         if np.size(self.scopeWidget.listDataItems()) > 0:
            self.scopeWidget.removeItem(self.scopeWidget.listDataItems()[0])
@@ -56,7 +56,7 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.scopeWidget.plot(plotTime1, data1, pen=pg.mkPen('#1C1C1C', width=1.2))
         self.scopeWidget.plot(plotTime2, data2, pen=pg.mkPen('k', width=1))
         
-    def plotDataAcq(self, dataIn1, dataIn2, cursorPos, timeincr1, timeincr2, linePos):
+    def plotDataAcq(self, dataIn1, dataIn2, cursorPos, timeincr1, timeincr2):
         # average traces, invert data, no integration over gate
         data1 = (sum(dataIn1)/len(dataIn1))*-1
         data2 = (sum(dataIn2)/len(dataIn2))*-1
@@ -74,19 +74,19 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.lr2 = pg.LinearRegionItem([cursorPos[2], cursorPos[3]], brush=pg.mkBrush(52,124,23,80))
         self.lr1.setMovable(False)
         self.lr2.setMovable(False)
-        self.line1.setMovable(False)
+        #self.line1.setMovable(False)
         self.scopeWidget.addItem(self.lr1)
         self.scopeWidget.addItem(self.lr2)
         
-        self.line1 = pg.InfiniteLine(linePos, pen=pg.mkPen('#990000', width=2, style=QtCore.Qt.DashLine))
-        self.scopeWidget.addItem(self.line1)
-        self.line1.setMovable(False)
+        #self.line1 = pg.InfiniteLine(linePos, pen=pg.mkPen('#990000', width=2, style=QtCore.Qt.DashLine))
+        #self.scopeWidget.addItem(self.line1)
+        #self.line1.setMovable(False)
 
     def plotMonGate(self, dataIn, timeincr1):
         # reset mobility of cursors after data acquisition
         self.lr1.setMovable(True)
         self.lr2.setMovable(True)
-        self.line1.setMovable(True)
+        #self.line1.setMovable(True)
         
         if np.size(self.scopeWidget.listDataItems()) > 0:
            self.scopeWidget.removeItem(self.scopeWidget.listDataItems()[0])

@@ -30,7 +30,7 @@ import numpy as np
 from Instruments.PCI7300ADIOCard import *
 from Instruments.LeCroyScopeController import LeCroyScopeControllerVISA
 from Instruments.LeCroyScopeController import LeCroyScopeControllerDSO
-from Instruments.WaveformPotentials import WaveformPotentials21Elec
+from Instruments.WaveformPotentials import WaveformPotentials23Elec
 from Instruments.DCONUSB87P4 import USB87P4Controller
 from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
@@ -68,8 +68,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_gate1Stop.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate2Start.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate2Stop.valueChanged.connect(self.setCursorsScopeWidget)
-        self.ScopeDisplay.line1.sigPositionChanged.connect(self.setExtractionDelay)
-        self.inp_extractDelay.editingFinished.connect(self.setExtractionDelay)
+        #self.ScopeDisplay.line1.sigPositionChanged.connect(self.setExtractionDelay)
+        self.inp_extractDelay.valueChanged.connect(self.setExtractionDelay)
+        self.inp_qswitchDelay.valueChanged.connect(self.setQSwitchDelay)
         self.btn_startMCP.clicked.connect(self.startMCPPhos)
         self.chk_connectLasers.clicked.connect(self.connectLasers)
         self.inp_voltMCP.valueChanged.connect(self.saveMCPVoltage)
@@ -97,7 +98,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_Fan.clicked.connect(lambda: self.powersupply.fancontrol(self.chk_Fan.isChecked()))
         
         # defaults
-        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2015'
+        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2016'
         self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
@@ -139,7 +140,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         '''Calculate atom beam velocity by flight time'''
         # thesis Eric 46+/-0.8cm
         dist = 0.46
-        self.out_velMon.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
+        self.out_velSurf.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
+        # lab frame velocity
+        self.out_velLab.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6)))))
+        self.velIn = dist/(self.inp_setDelayLasers.value()*1E-6)
+        self.WfWin.setVelIn(self.velIn)
         
     def startMCPPhos(self):
         '''display controls to ramp MCP/Phos voltages'''
@@ -201,9 +206,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.enableControlsScope(True)
             self.ScopeDisplay.lr1.setMovable(True)
             self.ScopeDisplay.lr2.setMovable(True)
-            self.ScopeDisplay.line1.setMovable(True)
+            #self.ScopeDisplay.line1.setMovable(True)
             self.inp_extractDelay.setValue(float(self.pulseGen.readDelay(6))*1E6)
-            self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6 + self.scopeThread.scope.trigOffsetC1)
+            #self.ScopeDisplay.line1.setValue(self.inp_extractDelay.value()*1E-6 + self.scopeThread.scope.trigOffsetC1)
             print "Scope offset to trigger: " + str(self.scopeThread.scope.trigOffsetC1)
         else:
             file = open('lastGateTimes.pckl', 'w')
@@ -216,7 +221,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.scope.setSweeps(self.inp_avgSweeps.value())
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
-            self.ScopeDisplay.line1.setMovable(False)
+            #self.ScopeDisplay.line1.setMovable(False)
             self.chk_gateInt.setChecked(False)
             self.scope.dispOn()
 
@@ -246,7 +251,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             time.sleep(0.4)
             # set scan parameters
             self.enableControlsScan(False)
-            self.line1Pos = self.ScopeDisplay.line1.value()
+            #self.line1Pos = self.ScopeDisplay.line1.value()
             self.setScanParams()
             self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
@@ -399,7 +404,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             elif self.scopeMon and self.scanMode:
                 # scan plotting
                 self.ScopeDisplay.plotDataAcq(dataIn1, dataIn2, self.cursorPos, self.scopeThread.scope.timeincrC1, \
-                                              self.scopeThread.scope.timeincrC2, self.line1Pos)
+                                              self.scopeThread.scope.timeincrC2)
                 if ('Velocity' in self.scanParam) or ('Detection' in self.scanParam):
                     # assume matrix scans in order for i in delayvals: for j in voltvals = signal[i][j]
                     # param[0]=voltage, param[1]=delay
@@ -464,8 +469,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     
     def scanSetDevice(self):        
         if 'Voltage' in self.scanParam:
-            if self.devParam == 'Extraction': pass
-                # TODO self.analogIO.writeAOExtraction(self.setParam)
+            if self.devParam == 'Extraction':
+                self.analogIO.writeAOExtraction(self.setParam)
             elif self.devParam == 'Ion1':
                 self.analogIO.writeAOIonOptic1(self.setParam)
             outVal = self.setParam
@@ -601,9 +606,14 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def setExtractionDelay(self):
         if self.inp_extractDelay.hasFocus():
             val = self.inp_extractDelay.value()*1E-6
-            self.ScopeDisplay.line1.setValue(val + self.scopeThread.scope.trigOffsetC1)
+            #self.ScopeDisplay.line1.setValue(val + self.scopeThread.scope.trigOffsetC1)
             self.pulseGen.setDelay(6, float(('{:1.11f}').format(val)))
         
+    def setQSwitchDelay(self):
+        if self.inp_qswitchDelay.hasFocus():
+            val = (self.inp_qswitchDelay.value()*1E-9)*-1
+            self.pulseGen.setDelay(5, float(('{:1.11f}').format(val)))
+
     def centerWindow(self):
         frm = self.frameGeometry()
         win = QtGui.QDesktopWidget().availableGeometry().center()
@@ -780,7 +790,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             else: pass
         # waveform generator
         self.DIOCard = DIOCardController()
-        self.DIOCard.configureCardDO()
         # scope init here for calib and WFSU,
         # conncection closed when scope read-out active
         self.scope = LeCroyScopeControllerVISA()       
@@ -807,6 +816,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if hasattr(self, 'scope'):
             self.scope.closeConnection()            
         if hasattr(self.WfWin, 'wfThread'):
+            self.WfWin.wfThread.wfOutActive = False
+            time.sleep(0.2)
             self.WfWin.wfThread.terminate()
         if hasattr(self, 'PressureThread') and self.pressThread:
             self.PressureThread.ReadActive = False
@@ -966,15 +977,15 @@ class PressureThreadData(QtCore.QThread):
         return
 
 class waveformGenThread(QtCore.QThread):
-    def __init__(self, wfOutActive, DIOCard=None):
+    def __init__(self, wfOutActive, DIOCard):
         QtCore.QThread.__init__(self)
         self.wfOutActive = wfOutActive
         self.DIOCard = DIOCard
 
     def run(self):
         while self.wfOutActive:
+            # card to wait for trigger to write output, card reconfigured before new output
             self.DIOCard.writeWaveformPotentials()
-            # reset card before next trigger at 10Hz
             self.msleep(50)
         self.quit()
         return
@@ -984,31 +995,42 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
         self.setWindowTitle('Waveform Control')
-        self.setFixedSize(196, 300)
+        self.setFixedSize(832, 326)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         
         # card configured with 20MHz (sampleRate)
         self.DIOCard = DIOCard
+        self.out_sampleRate.setText(str(self.DIOCard.SampleRate*1E-6))
+        
         # iniatilize program with guiding mode parameters
-        self.inp_initVel.setValue(700)
-        self.inp_finalVel.setValue(700)
-        self.inp_sampleRate.setValue(self.DIOCard.SampleRate*1E-6)
+        self.inp_initVel.setValue(1600)
+        self.inp_finalVel.setValue(1600)
+        
         self.inp_inTime.setValue(0)
+        self.inp_outTime.setValue(0)
+        self.out_outDist.setText('0')
+        
         # distance between first and last 'stable' minima
         self.decelDist = 19.1
-        self.outDist = 23.5 - 2.2 - self.decelDist
-        self.inp_outDist.setValue(self.outDist)
-        self.setPCBPotentials()
-        self.inp_initVel.editingFinished.connect(self.setPCBPotentials)
-        self.inp_finalVel.editingFinished.connect(self.setPCBPotentials)
-        self.inp_inTime.editingFinished.connect(self.setPCBPotentials)
-        self.inp_outDist.editingFinished.connect(self.setPCBPotentials)
-        self.inp_sampleRate.setReadOnly(True)
+        # 2.2mm from start of PCB to first 'stable' minimum
+        self.out_dIn.setText(str(2.2))
+        # whole chip until strip electrode 25mm
+        self.out_dOut.setText(str(25 - 2.2 - self.decelDist))
+       
+        self.inp_initVel.valueChanged.connect(self.setPCBPotentials)
+        self.inp_finalVel.valueChanged.connect(self.setPCBPotentials)
+        self.inp_inTime.valueChanged.connect(self.setPCBPotentials)
+        self.inp_outTime.valueChanged.connect(self.setPCBPotentials)
         self.chk_extTrig.stateChanged.connect(self.startDOOutput)
-        self.chk_plotWF.stateChanged.connect(self.resizeWfWin)
-
+        
+        self.setPCBPotentials()
+        
     winClose = QtCore.pyqtSignal()
-
+    
+    def setVelIn(self, velIn):
+        self.inp_initVel.setValue(velIn)
+        self.inp_finalVel.setValue(velIn)
+          
     def closeEvent(self, event):
         event.accept()
         self.winClose.emit()
@@ -1021,40 +1043,38 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
             self.wfThread.start(priority=QtCore.QThread.HighPriority)
 
     def setPCBPotentials(self):
+        # calculate potential waveforms and build DO buffer
+        self.wfPotentials = WaveformPotentials23Elec()
+        
         # 10bit resolution per channel
         maxAmp = 1023/2.0
-        self.wfPotentials = WaveformPotentials21Elec()
         vInit = self.inp_initVel.value()
         vFinal = self.inp_finalVel.value()
-
-        # deceleration to stop at fixed position, 19.1 for 23 electrodes
+        outTime = self.inp_outTime.value()
+        self.out_outDist.setText('{0:.2f}'.format((vFinal*outTime)*1E-3))
         inTime = self.inp_inTime.value()
-        # space beyond minima position after chirp sequence
+        
+        # build waveform potentials
+        # deceleration to stop at fixed position, 19.1 for 23 electrodes
         # inDist = 2.2mm to first minima with electrods 1&4=Umax
         # if outDist=0 end point of potential sequence 
         # at z position before potential minima diverges
-        self.outDist = self.inp_outDist.value()
-        outTime = self.outDist*1E-3/vFinal*1E6
-        self.inp_outTime.setValue(outTime)
-        
-        # build waveform potentials
-        self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
+        tof = self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
                                    maxAmp, self.decelDist)
+        self.out_tofFull.setText(tof)                     
+        self.out_tofPart.setText(str(self.wfPotentials.decelTime))
+        
+        # TODO break loop for changed buffer?!
         #if hasattr(self, 'wfThread') and self.wfThread.wfOutActive:
         #    self.wfThread.wfOutActive = False
         #    self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
         #    self.startDOOutput()
         #else:
         #    self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
+        
         self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
         if self.chk_plotWF.checkState():
             self.WaveformDisplay.plot(self.wfPotentials)
-
-    def resizeWfWin(self):
-        if self.chk_plotWF.isChecked():
-            self.setFixedSize(640, 300)
-        else:
-            self.setFixedSize(196, 300)
 
 class StartMCPThread(QtCore.QThread):
     def __init__(self, setPotBool, analogIO, stepTime, finalMCP, finalPhos, rampTime, startMCP, startPhos):

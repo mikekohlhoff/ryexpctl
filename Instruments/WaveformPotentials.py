@@ -17,7 +17,7 @@ import math
 # incoupling time
 # chirp chosen to end at fixed position before field minima diverges
 
-class WaveformPotentials21Elec:
+class WaveformPotentials23Elec:
     
     """
     Generate (chirped) waveform potentials for decelerator.
@@ -48,11 +48,7 @@ class WaveformPotentials21Elec:
         timeTotalInt = floor((decelTime + outcplTime)/timeStep)
         time = arange(0, timeTotalInt+1, 1)*timeStep
 
-        if distanceTotal > chipLength:
-            mes = """Chip length possibly insufficient for combination of in- and outcoupling \n\
-            times and/or intended deceleration path length in z-direction, required \n\
-            flightpath = {0:.2f}mm""".format(distanceTotal*1E3)
-            print textwrap.dedent(mes)
+        if distanceTotal > chipLength: pass
 
         # 1. INCOUPLING, linear increase in amplitude, constant omega
         # compare in ns to avoid rounding errors
@@ -104,31 +100,27 @@ class WaveformPotentials21Elec:
         self.plotTime = 1E6*timeStep*arange(0,max(shape(potentialsOut)),1)
         # if any entry is NaN replace with 0
         self.potentialsOut = nan_to_num(potentialsOut)
-        print 'Potential waveforms generated'
-        mes = """Time of flight for whole sequence: {0:.2f}mus""".format(self.plotTime[-1])
-        print textwrap.dedent(mes)
-        print '-----------------------------------------------------------------------------'        
+        mes = '{0:.2f}'.format(self.plotTime[-1])
+        return mes
         
     def plot(self):
         if hasattr(self, 'plotTime'):
             argX = self.plotTime
             argY = self.potentialsOut
             plt.plot(1)
-            plt.plot(argX, argY[0,:], 'b', label="1", linewidth=1.5)
-            plt.plot(argX, argY[1,:], 'r', label="2", linewidth=1.5)
-            plt.plot(argX, argY[2,:], 'g', label="3", linewidth=1.5)
-            plt.plot(argX, argY[3,:], 'b--', label="4", linewidth=1.5)
-            plt.plot(argX, argY[4,:], 'r--', label="5", linewidth=1.5)
-            plt.plot(argX, argY[5,:], 'g--', label="6", linewidth=1.5)
-            plt.axis([-2, self.plotTime[-1]+0.5, self.maxAmp*-2-10, self.maxAmp*2+10])
+            # only plot positive channels
+            plt.plot(argX, argY[1,:], 'r', label="1", linewidth=1.5)
+            plt.plot(argX, argY[3,:], 'g', label="2", linewidth=1.5)
+            plt.plot(argX, argY[5,:], 'b', label="3", linewidth=1.5)
+            plt.axis([-2, self.plotTime[-1]+0.5, -10, self.maxAmp*2+10])
             plt.grid(True)
             plt.title("Calculated potential waveforms")
             plt.xlabel("Time ($\mu$s)")
-            plt.ylabel("Electrode Potentials (max resolution of DIO card)")
-            plt.legend(loc="lower right")
+            plt.legend(bbox_to_anchor=(1.02, 1), loc=2, borderpad=none, borderaxespad=0., fontsize=8)
+            #plt.legend(loc="upper right")
             # mark different phases in potential generation 
-            plt.plot([self.incplTime,self.incplTime],[(self.maxAmp*2+10),(self.maxAmp*(-2)-10)], 'k--', linewidth=1)
-            plt.plot([self.incplTime+self.decelTime,self.incplTime+self.decelTime],[self.maxAmp*-2-1,self.maxAmp*2+1], \
+            plt.plot([self.incplTime,self.incplTime],[10,(self.maxAmp*(-2)-10)], 'k--', linewidth=1)
+            plt.plot([self.incplTime+self.decelTime,self.incplTime+self.decelTime],[-1,self.maxAmp*2+1], \
             'k--', linewidth=1)
             plt.ion()
             plt.show(block=True)
