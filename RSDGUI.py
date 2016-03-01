@@ -1021,6 +1021,10 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         self.inp_finalVel.valueChanged.connect(self.setPCBPotentials)
         self.inp_inTime.valueChanged.connect(self.setPCBPotentials)
         self.inp_outTime.valueChanged.connect(self.setPCBPotentials)
+        self.chk_trace1.stateChanged.connect(self.setPCBPotentials)
+        self.chk_trace2.stateChanged.connect(self.setPCBPotentials)
+        self.chk_trace3.stateChanged.connect(self.setPCBPotentials)
+        self.electrodeSelect.currentIndexChanged.connect(self.setPCBPotentials)
         self.chk_extTrig.stateChanged.connect(self.startDOOutput)
         
         self.setPCBPotentials()
@@ -1060,21 +1064,15 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         # if outDist=0 end point of potential sequence 
         # at z position before potential minima diverges
         tof = self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
-                                   maxAmp, self.decelDist)
+                                   maxAmp, self.decelDist, self.electrodeSelect.currentText())
         self.out_tofFull.setText(tof)                     
         self.out_tofPart.setText(str(self.wfPotentials.decelTime))
         
-        # TODO break loop for changed buffer?!
-        #if hasattr(self, 'wfThread') and self.wfThread.wfOutActive:
-        #    self.wfThread.wfOutActive = False
-        #    self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
-        #    self.startDOOutput()
-        #else:
-        #    self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
-        
+        # break loop for changed buffer?! NO, works without hick-up      
         self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
         if self.chk_plotWF.checkState():
-            self.WaveformDisplay.plot(self.wfPotentials)
+            plotitems = [self.chk_trace1.isChecked(), self.chk_trace2.isChecked(), self.chk_trace3.isChecked()]
+            self.WaveformDisplay.plot(self.wfPotentials, plotitems)
 
 class StartMCPThread(QtCore.QThread):
     def __init__(self, setPotBool, analogIO, stepTime, finalMCP, finalPhos, rampTime, startMCP, startPhos):

@@ -1,8 +1,11 @@
 from PyQt4 import QtGui
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import (
+FigureCanvasQTAgg as FigureCanvas,
+ NavigationToolbar2QT as NavigationToolbar)
 
 from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
+
 from pylab import *
 
 class MplCanvas(FigureCanvas):
@@ -16,7 +19,7 @@ class MplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
 
-class MatplotlibWidgetWFPot(QtGui.QWidget):
+class MatplotlibWidgetWFPot(QtGui.QGraphicsView):
 
     def __init__(self, parent = None):
         QtGui.QWidget.__init__(self, parent)
@@ -26,6 +29,7 @@ class MatplotlibWidgetWFPot(QtGui.QWidget):
         self.setLayout(self.vbl)
         self.canvas.ax.set_title('Calculated PCB electrode potentials', fontsize=10)
         self.canvas.fig.patch.set_alpha(0)
+        self.mpl_toolbar = NavigationToolbar(self.canvas, self)
         params = {
                   'legend.fontsize': 8,
                   'xtick.labelsize': 8,
@@ -33,17 +37,31 @@ class MatplotlibWidgetWFPot(QtGui.QWidget):
                   'legend.handletextpad': .5,
                 }
         plt.rcParams.update(params)
+        self.mpl_toolbar.pan()
 
         
-    def plot(self, wfPotentials):
+    def plot(self, wfPotentials, plotitems):
         if hasattr(wfPotentials, 'plotTime'):
             argX = wfPotentials.plotTime
             argY = wfPotentials.potentialsOut
-            self.canvas.ax.clear()           
-            self.canvas.ax.plot(argX, argY[1,:], 'r', label="2", linewidth=1.5)
-            self.canvas.ax.plot(argX, argY[3,:], 'b', label="4", linewidth=1.5)
-            self.canvas.ax.plot(argX, argY[5,:], 'g', label="6", linewidth=1.5)
-            self.canvas.ax.axis([-2, wfPotentials.plotTime[-1]+0.5, -50, wfPotentials.maxAmp*2+50])
+            # get axis limits to not reset zoom/pan
+            axlim = self.canvas.ax.axis()
+            self.canvas.ax.clear()
+            if not any(plotitems):
+                self.canvas.draw()
+                return
+            if plotitems[0]:
+                self.canvas.ax.plot(argX, argY[1,:], 'r.')
+                self.canvas.ax.plot(argX, argY[1,:], 'r', label="2", linewidth=1.2)
+            if plotitems[1]:
+                self.canvas.ax.plot(argX, argY[3,:], 'b.')
+                self.canvas.ax.plot(argX, argY[3,:], 'b', label="4", linewidth=1.2)
+            if plotitems[2]:
+                self.canvas.ax.plot(argX, argY[5,:], 'g.')
+                self.canvas.ax.plot(argX, argY[5,:], 'g', label="6", linewidth=1.2)
+            if not axlim == (0.0, 1.0, 0.0, 1.0):
+                self.canvas.ax.axis(axlim)
+            else: pass
             self.canvas.ax.grid(True)
             self.canvas.ax.set_title("Calculated PCB electrode potentials", fontsize=10)
             self.canvas.ax.set_xlabel("Time ($\mu$s)", fontsize=10)

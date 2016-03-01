@@ -126,7 +126,7 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         # output length for digital output operation
         self.__WriteCount = ctypes.c_uint32(np.size(left))
         # buffer of channels at each time step
-        mask = 2**32- 1
+        mask = 2**32- 1          
         for i in np.arange(0, np.size(left)):
             # set split channel PB/PA, rotation shift
             middleSplit = (middle[i] << 26 | middle[i] >> 6) & mask
@@ -134,8 +134,13 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
             self.DOBuffer[i] = self.DOBuffer[i] | left[i] << 16 | middleSplit | right[i] << 4
             # set clock bit alternatingly, starting high
             self.DOBuffer[i] = self.DOBuffer[i] | np.fmod(i+1,2) << self.__clockBit
-        self.__DOBuffer = np.ascontiguousarray(self.DOBuffer)
-
+        self.__DOBuffer = np.ascontiguousarray(self.DOBuffer)       
+        
+        print '---------------------------------------'
+        print np.size(left)
+        print left[:5]
+        print left[-5:]
+        
     def writeWaveformPotentials(self):
         # configure necessary before each output operation
         self.configureCardDO()
@@ -152,7 +157,7 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         while(not Stopped.value):
             self.__DIOCard.DO_AsyncCheck(self.__regID, ctypes.byref(Stopped),\
             ctypes.byref(AccessCnt))
-            time.sleep(0.001)
+            #time.sleep(0.001)
         self.__DIOCard.DO_AsyncClear(self.__regID, ctypes.byref(AccessCnt))       
       
     def DOCallBackFunc(self):

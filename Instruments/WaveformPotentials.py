@@ -24,12 +24,18 @@ class WaveformPotentials23Elec:
     Potentials need to be generated before plotted.
     """
 
-    def generate(self,timeStep,vInit,vFinal,incplTime,outcplTime,maxAmp,decelDist):
+    def generate(self,timeStep,vInit,vFinal,incplTime,outcplTime,maxAmp,decelDist,elecSelect):
         
         # Distance between field minima, 3*center-to-center spacing of electrodes
         dmin = 3E-3
-        # to be transposed
-        phaseOffset = array([[0], [2], [1], [0], [2], [1]])*(2*pi/3.0)
+        # to be transposed, chose minimum position depending on which electrode pair firt Umax
+        if '(1,4)' in elecSelect:
+            phaseOffset = array([[0], [2], [1], [0], [2], [1]])*(2*pi/3.0)
+        elif '(3,6)' in elecSelect:
+            phaseOffset = array([[2], [1], [0], [2], [1], [0]])*(2*pi/3.0)
+        elif '(2,5)' in elecSelect:
+            phaseOffset = array([[1], [0], [2], [1], [0], [2]])*(2*pi/3.0)
+        
         incplTime = incplTime*1E-6
         outcplTime = outcplTime*1E-6
         decelDist = decelDist*1E-3
@@ -96,10 +102,17 @@ class WaveformPotentials23Elec:
         self.decelTime = decelTime*1E6
         
         # concatenate intervals and round to integers
-        potentialsOut = around(hstack((newPotIn, newPotChirp, newPotPostChirp)))
+        # set first and last element to zero
+        zeroel = zeros((6,1))
+        potentialsOut = around(hstack((newPotIn, newPotChirp, newPotPostChirp, zeroel)))
+        # for clock bit in wf generator circuitry to have even number of samples
+        if max(shape(potentialsOut))%2==1:
+            potentialsOut = around(hstack((potentialsOut, zeroel)))        
+            
         self.plotTime = 1E6*timeStep*arange(0,max(shape(potentialsOut)),1)
         # if any entry is NaN replace with 0
-        self.potentialsOut = nan_to_num(potentialsOut)
+        self.potentialsOut = nan_to_num(potentialsOut)  
+        
         mes = '{0:.2f}'.format(self.plotTime[-1])
         return mes
         
