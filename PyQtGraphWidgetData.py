@@ -35,8 +35,8 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
         data1 = (sum(dataIn1)/len(dataIn1))*-1
         data2 = (sum(dataIn2)/len(dataIn2))*-1
         # substract baseline
-        data1 = data1 - np.mean(data1[-2000:-1000])
-        data2 = data2 - np.mean(data2[-2000:-1000])
+        #data1 = data1 - np.mean(data1[-2000:-1000])
+        #data2 = data2 - np.mean(data2[-2000:-1000])
         # std deviation for average
         dataerr1 = np.vstack(dataIn1)
         dataerr2 = np.vstack(dataIn2)

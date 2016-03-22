@@ -145,6 +145,7 @@ class LeCroyScopeControllerVISA:
     def invertTrace(self, boolInv):
         self.__scope.write("VBS? 'app.Acquisition.C1.Invert=" + str(boolInv) + "'")
         self.__scope.write("VBS? 'app.Acquisition.C2.Invert=" + str(boolInv) + "'")
+        time.sleep(0.5)
         if boolInv:
             print 'Invert scope trace'
         else:

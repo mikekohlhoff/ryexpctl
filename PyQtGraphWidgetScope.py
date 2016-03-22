@@ -49,8 +49,8 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         data1 = (sum(dataIn1)/len(dataIn1))*-1
         data2 = (sum(dataIn2)/len(dataIn2))*-1
         # substract baseline
-        data1 = data1 - np.mean(data1[-2000:-1000]) 
-        data2 = data2 - np.mean(data2[-2000:-1000])
+        #data1 = data1 - np.mean(data1[-2000:-1000]) 
+        #data2 = data2 - np.mean(data2[-2000:-1000])
         plotTime1 = np.arange(np.size(data1))*timeincr1
         plotTime2 = np.arange(np.size(data2))*timeincr2
         self.scopeWidget.plot(plotTime1, data1, pen=pg.mkPen('#1C1C1C', width=1.2))
@@ -62,8 +62,8 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         data2 = (sum(dataIn2)/len(dataIn2))*-1
         
         # substract baseline
-        data1 = data1 - np.mean(data1[-2000:-1000])
-        data2 = data2 - np.mean(data2[-2000:-1000])
+        #data1 = data1 - np.mean(data1[-2000:-1000])
+        #data2 = data2 - np.mean(data2[-2000:-1000])
 
         plotTime1 = np.arange(np.size(data1))*timeincr1
         plotTime2 = np.arange(np.size(data2))*timeincr2

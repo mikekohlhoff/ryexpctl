@@ -24,23 +24,30 @@ class WaveformPotentials23Elec:
     Potentials need to be generated before plotted.
     """
 
-    def generate(self,timeStep,vInit,vFinal,incplTime,outcplTime,maxAmp,decelDist,elecSelect):
+    def generate(self,timeStep,vInit,vFinal,incplTime,outcplTime,maxAmp,decelDist,elecSelect,dIn,dOut):
         
         # Distance between field minima, 3*center-to-center spacing of electrodes
         dmin = 3E-3
         # to be transposed, chose minimum position depending on which electrode pair firt Umax
+        # assume minima will stay stable for same distance decelDist=19.1mm
         if '(1,4)' in elecSelect:
             phaseOffset = array([[0], [2], [1], [0], [2], [1]])*(2*pi/3.0)
+            dIn.setText(str(2.2))
+            dOut.setText(str(25 - 2.2 - decelDist))
         elif '(3,6)' in elecSelect:
             phaseOffset = array([[2], [1], [0], [2], [1], [0]])*(2*pi/3.0)
+            dIn.setText(str(1.2))
+            dOut.setText(str(25 - 1.2 - decelDist))
         elif '(2,5)' in elecSelect:
             phaseOffset = array([[1], [0], [2], [1], [0], [2]])*(2*pi/3.0)
-        
+            dIn.setText(str(3.2))
+            dOut.setText(str(25 - 3.2 - decelDist))
+                   
         incplTime = incplTime*1E-6
         outcplTime = outcplTime*1E-6
         decelDist = decelDist*1E-3
         # 23 electrodes with 0.5mm width and 0.5mm apart w/o margins
-        chipLength = (23.5)*1E-3
+        chipLength = (25)*1E-3
 
         # Check available deceleration path length over chip
         distanceTotal = vInit*incplTime + vFinal*outcplTime + decelDist

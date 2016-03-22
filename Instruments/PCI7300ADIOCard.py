@@ -136,10 +136,10 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
             self.DOBuffer[i] = self.DOBuffer[i] | np.fmod(i+1,2) << self.__clockBit
         self.__DOBuffer = np.ascontiguousarray(self.DOBuffer)       
         
-        print '---------------------------------------'
-        print np.size(left)
-        print left[:5]
-        print left[-5:]
+        #print '---------------------------------------'
+        #print np.size(left)
+        #print left[:5]
+        #print left[-5:]
         
     def writeWaveformPotentials(self):
         # configure necessary before each output operation

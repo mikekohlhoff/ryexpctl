@@ -85,7 +85,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_Excimer.stateChanged.connect(lambda: self.pulseGen.switchChl(2, self.chk_Excimer.isChecked()))
         self.chk_LaserUV.stateChanged.connect(lambda: self.pulseGen.switchChl(5, self.chk_LaserUV.isChecked()))
         self.chk_LaserVUV.stateChanged.connect(lambda: self.pulseGen.switchChl(4, self.chk_LaserVUV.isChecked()))
-        self.chk_PulseValve.stateChanged.connect(lambda: self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked()))
+        self.chk_PulseValve.stateChanged.connect(self.pulseValveClicked)
         self.chk_ExtractionPulse.stateChanged.connect(lambda: self.pulseGen.switchChl(6, self.chk_ExtractionPulse.isChecked()))
         self.inp_setWL_UV.editingFinished.connect(lambda: self.setWavelengths('UV'))
         self.inp_setWL_VUV.editingFinished.connect(lambda: self.setWavelengths('VUV'))
@@ -123,6 +123,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.calcRydVelocity()
         self.LabJack.setDevice(0, 'A')
         self.LabJack.setDevice(0, 'B')
+        self.pulseGen.setDelay(5, float(('{:1.11f}').format(-22*1E-9)))
      
         # set size of window
         self.setWindowTitle('RSE CONTROL')
@@ -197,12 +198,13 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.inp_gate2Start.setValue(lastTimes[2])
             self.inp_gate2Stop.setValue(lastTimes[3])    
             # have scope connection within scope thread
+            self.scope.invertTrace(False)
             self.scope.closeConnection()
             self.dataBuf1 = []
             self.dataBuf2 = []
             self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
-            self.scopeThread.start(priority=QtCore.QThread.HighPriority)   
+            self.scopeThread.start(priority=QtCore.QThread.HighestPriority)   
             self.enableControlsScope(True)
             self.ScopeDisplay.lr1.setMovable(True)
             self.ScopeDisplay.lr2.setMovable(True)
@@ -224,6 +226,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             #self.ScopeDisplay.line1.setMovable(False)
             self.chk_gateInt.setChecked(False)
             self.scope.dispOn()
+            self.scope.invertTrace(True)
 
     def btn_startDataAcq_clicked(self):
         # set parameters for dataAcquisition()
@@ -258,7 +261,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             # set scan flag in thread
             if not('Wavelength' in self.scanParam):         
                 self.resetDatBuf()
-            self.scopeThread.start(priority=QtCore.QThread.HighPriority)
+            self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
         else:
             # abort scan
             if 'Wavelength' in self.scanParam:
@@ -386,8 +389,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             
     def dataAcquisition(self, data):
         # add data, substract baseline per trace
-        data1 = data[0] - np.mean(data[0][-2000:-1000])
-        data2 = data[1] - np.mean(data[1][-2000:-1000])
+        if self.chk_baselinecorrect.isChecked():
+            data1 = data[0] - np.mean(data[0][-2000:-1000])
+            data2 = data[1] - np.mean(data[1][-2000:-1000])
+        else:
+            data1 = data[0] - np.mean(data[0][0:500])
+            data2 = data[1] - np.mean(data[1][0:500])
         self.dataBuf1.append(data1)
         self.dataBuf2.append(data2)
         self.cursorPos = self.ScopeDisplay.getCursors()         
@@ -692,6 +699,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             self.setLaser = LaserThread(self.VUVLaser, self.inp_setWL_VUV.value(), self.inp_setWL_VUV)
             self.setLaser.start()
     
+    def pulseValveClicked(self):
+        self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked())
+        #if not self.chk_PulseValve.isChecked(): self.chk_sourceControl.setCheckState(QtCore.Qt.Unchecked)
+
+    
     def startPressThread(self):
         '''create maxi gauge thread and _run() without feedback loop'''
         self.PressureThread = PressureThread(True, 'OFF', self.chk_readMainGauge, self.MaxiGauge)
@@ -847,7 +859,6 @@ class scopeThread(QtCore.QThread):
         # averages for data eval with single traces from scope
         self.avgSweeps = avgSweeps
         self.scope.setSweeps(1)
-        self.scope.invertTrace(False)
         self.scope.setScales()
         if dispOff:
             self.scope.dispOff()
@@ -864,7 +875,6 @@ class scopeThread(QtCore.QThread):
             self.dataReady.emit(data)
         # return control to scope
         self.scope.dispOn()
-        self.scope.invertTrace(True)
         self.scope.trigModeNormal()
         self.scope.closeConnection()
         self.quit()
@@ -951,7 +961,7 @@ class PressureThreadData(QtCore.QThread):
         self.mg.gaugeSwitch(4, 'OFF')
         # __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0, 
         # Integrator_max=500, Integrator_min=-500):
-        self.pid = PIDControl(0.01, 0.02, 0.01, 0, 0, 500, -500)
+        self.pid = PIDControl(0.02, 0.02, 0.008, 0, 0, 500, -500)
         self.setpoint = refval
         # input field in E-6
         self.pid.setPoint(self.setpoint.value())
@@ -1012,7 +1022,7 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         
         # distance between first and last 'stable' minima
         self.decelDist = 19.1
-        # 2.2mm from start of PCB to first 'stable' minimum
+        # 2.2mm from start of PCB to first 'stable' minimum, 2.2 for (1,4)
         self.out_dIn.setText(str(2.2))
         # whole chip until strip electrode 25mm
         self.out_dOut.setText(str(25 - 2.2 - self.decelDist))
@@ -1064,7 +1074,8 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         # if outDist=0 end point of potential sequence 
         # at z position before potential minima diverges
         tof = self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
-                                   maxAmp, self.decelDist, self.electrodeSelect.currentText())
+                                   maxAmp, self.decelDist, self.electrodeSelect.currentText(), \
+                                   self.out_dIn, self.out_dOut)
         self.out_tofFull.setText(tof)                     
         self.out_tofPart.setText(str(self.wfPotentials.decelTime))
         
@@ -1129,7 +1140,7 @@ class StartMCPThread(QtCore.QThread):
                     i -= 1
                     j -= ratio
                 self.valueSet.emit([i,int(j),self.startMCP])
-                time.sleep(0.05)
+                time.sleep(0.06)
             self.quit()
             return
         else:
@@ -1191,7 +1202,7 @@ class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
                                              int(self.out_setMCP.toPlainText()), int(self.out_setPhos.toPlainText()))
             self.StartMCPThread.valueSet.connect(self.setTextOut)
             self.StartMCPThread.settingComplete.connect(self.settingComplete)
-            self.StartMCPThread.start()      
+            self.StartMCPThread.start(priority=QtCore.QThread.HighPriority)      
         else:
             self.btn_startMCPRamp.setText('Start Ramping')
             self.setPotBool = False
