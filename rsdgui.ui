@@ -1795,7 +1795,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>5</number>
+    <number>2</number>
    </property>
    <property name="elideMode">
     <enum>Qt::ElideNone</enum>
@@ -2818,6 +2818,11 @@ p, li { white-space: pre-wrap; }
      <item>
       <property name="text">
        <string>WF Start</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>PE Pulse Down</string>
       </property>
      </item>
     </widget>

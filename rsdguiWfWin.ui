@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>832</width>
-    <height>329</height>
+    <height>375</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -66,7 +66,7 @@
      <x>10</x>
      <y>5</y>
      <width>166</width>
-     <height>51</height>
+     <height>41</height>
     </rect>
    </property>
    <property name="font">
@@ -87,8 +87,8 @@
     </property>
     <property name="geometry">
      <rect>
-      <x>15</x>
-      <y>20</y>
+      <x>13</x>
+      <y>15</y>
       <width>106</width>
       <height>20</height>
      </rect>
@@ -111,9 +111,9 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>65</y>
+     <y>55</y>
      <width>166</width>
-     <height>256</height>
+     <height>311</height>
     </rect>
    </property>
    <property name="font">
@@ -131,7 +131,7 @@
     <property name="geometry">
      <rect>
       <x>15</x>
-      <y>225</y>
+      <y>285</y>
       <width>80</width>
       <height>18</height>
      </rect>
@@ -191,7 +191,7 @@
     <property name="geometry">
      <rect>
       <x>56</x>
-      <y>25</y>
+      <y>28</y>
       <width>74</width>
       <height>16</height>
      </rect>
@@ -393,7 +393,7 @@
    <widget class="QTextBrowser" name="out_outDist">
     <property name="geometry">
      <rect>
-      <x>15</x>
+      <x>13</x>
       <y>150</y>
       <width>40</width>
       <height>22</height>
@@ -710,8 +710,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QComboBox" name="electrodeSelect">
     <property name="geometry">
      <rect>
-      <x>15</x>
-      <y>190</y>
+      <x>13</x>
+      <y>250</y>
       <width>106</width>
       <height>26</height>
      </rect>
@@ -748,13 +748,119 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>122</x>
-      <y>195</y>
+      <y>255</y>
       <width>41</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
      <string>Umax(t)</string>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="inp_wfdelay">
+    <property name="geometry">
+     <rect>
+      <x>13</x>
+      <y>185</y>
+      <width>40</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>40</width>
+      <height>16777215</height>
+     </size>
+    </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
+    <property name="wrapping">
+     <bool>false</bool>
+    </property>
+    <property name="frame">
+     <bool>true</bool>
+    </property>
+    <property name="buttonSymbols">
+     <enum>QAbstractSpinBox::NoButtons</enum>
+    </property>
+    <property name="keyboardTracking">
+     <bool>true</bool>
+    </property>
+    <property name="decimals">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <double>500.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.100000000000000</double>
+    </property>
+   </widget>
+   <widget class="QDoubleSpinBox" name="inp_peedelay">
+    <property name="geometry">
+     <rect>
+      <x>13</x>
+      <y>215</y>
+      <width>40</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>40</width>
+      <height>16777215</height>
+     </size>
+    </property>
+    <property name="mouseTracking">
+     <bool>true</bool>
+    </property>
+    <property name="wrapping">
+     <bool>false</bool>
+    </property>
+    <property name="frame">
+     <bool>true</bool>
+    </property>
+    <property name="buttonSymbols">
+     <enum>QAbstractSpinBox::NoButtons</enum>
+    </property>
+    <property name="keyboardTracking">
+     <bool>true</bool>
+    </property>
+    <property name="decimals">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <double>500.000000000000000</double>
+    </property>
+    <property name="singleStep">
+     <double>0.100000000000000</double>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_12">
+    <property name="geometry">
+     <rect>
+      <x>55</x>
+      <y>220</y>
+      <width>101</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>PEE pulse down  (μs)</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_11">
+    <property name="geometry">
+     <rect>
+      <x>55</x>
+      <y>190</y>
+      <width>101</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>WF start delay (μs)</string>
     </property>
    </widget>
   </widget>

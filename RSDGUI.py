@@ -133,6 +133,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.pulseGen.setDelay(2, float(('{:1.11f}').format(600*1E-6)))
         # plate pulser delay
         self.pulseGen.setDelay(7, float(('{:1.11f}').format(2*1E-6)))
+        self.WfWin.inp_peedelay.setValue(2)
         # map strip electrode values
         self.stripcompval = np.loadtxt('dataoutstripcomp1Vstep.txt')[:,1]
 
@@ -362,7 +363,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 self.devParam = 2
             elif 'WF' in self.scanParam:
                 # Fire channel
-                self.devParam = 8    
+                self.devParam = 8
+            elif 'PE Pulse Down' in self.scanParam:
+                # Fire channel
+                self.devParam = 7                 
             self.beforescanParam = float(self.pulseGen.readDelay(self.devParam))
             if self.stopParam > self.startParam:
                 self.scanDirection = 1
@@ -1042,7 +1046,7 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
         self.setWindowTitle('Waveform Control')
-        self.setFixedSize(832, 326)
+        self.setFixedSize(832, 376)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         
         # card configured with 20MHz (sampleRate)
@@ -1074,6 +1078,9 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         self.chk_trace3.stateChanged.connect(self.setPCBPotentials)
         self.electrodeSelect.currentIndexChanged.connect(self.setPCBPotentials)
         self.chk_extTrig.stateChanged.connect(self.startDOOutput)
+        
+        self.inp_wfdelay.valueChanged.connect(lambda: self.pulseGen.setDelay(8, self.inp_wfdelay.value()*1E-6))
+        self.inp_peedelay.valueChanged.connect(lambda: self.pulseGen.setDelay(7, self.inp_peedelay.value()*1E-6))
         
         self.setPCBPotentials()
         
