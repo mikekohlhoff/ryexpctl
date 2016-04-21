@@ -106,6 +106,7 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
         self.__SampleRateIn = ctypes.c_double(1)
         
         configReturn = self.configureCardDO()
+        self.setOutputZero()
         print 'Configured PCI7300A card, return value: ' + str(configReturn)
 
     def configureCardDO(self): 
@@ -136,11 +137,6 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
             self.DOBuffer[i] = self.DOBuffer[i] | np.fmod(i+1,2) << self.__clockBit
         self.__DOBuffer = np.ascontiguousarray(self.DOBuffer)       
         
-        #print '---------------------------------------'
-        #print np.size(left)
-        #print left[:5]
-        #print left[-5:]
-        
     def writeWaveformPotentials(self):
         # configure necessary before each output operation
         self.configureCardDO()
@@ -158,8 +154,18 @@ _DO_CLK_TIMER_ACK, _DO_CLK_10M_ACK, _DO_CLK_20M_ACK
             self.__DIOCard.DO_AsyncCheck(self.__regID, ctypes.byref(Stopped),\
             ctypes.byref(AccessCnt))
             #time.sleep(0.001)
-        self.__DIOCard.DO_AsyncClear(self.__regID, ctypes.byref(AccessCnt))       
-      
+        self.__DIOCard.DO_AsyncClear(self.__regID, ctypes.byref(AccessCnt))
+
+    def setOutputZero(self):
+        # possible non-zero output at card when not desired (after initialisation)
+        val = np.zeros(1, dtype=np.uint32)
+        val = ctypes.c_void_p(val.ctypes.data)
+               
+        ret = self.__DIOCard.DO_ContWritePort(self.__regID, self.__Port, val, \
+        ctypes.c_uint32(1), self.__Iterations, self.__SampleRateIn, self.__SyncMode)
+        time.sleep(0.05)
+        self.__DIOCard.DO_AsyncClear(self.__regID, ctypes.byref(ctypes.c_uint32(0)))
+        
     def DOCallBackFunc(self):
         # event callback to clear async register
         # didn't get to work in extTrig mode

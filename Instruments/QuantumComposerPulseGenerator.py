@@ -88,6 +88,7 @@ class PulseGeneratorController:
         self.__delayGen.query(":PULS{:d}:WIDTH {:1.11f}".format(channel, widthVal))
         
     def closeConnection(self):
+        print 'Delay generator released'
         self.__delayGen.close()
 
 if __name__ == '__main__':

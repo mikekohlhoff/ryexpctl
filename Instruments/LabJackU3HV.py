@@ -96,17 +96,21 @@ class LabJackU3LJTick(object):
         # Determine pin numbers
         sclPin = self.dacPin + LabJackU3LJTick.U3_DAC_PIN_OFFSET
         sdaPin = sclPin + 1
-        if val > 10: val = 10
-        if val < 0: val = 0
+
         # Make requests
         if chl == 'A':
+            # PID output range
+            if val > 10: val = 10
+            if val < 0: val = 0
             voltageA = float(val)
             try:
                 self.device.i2c(LabJackU3LJTick.DAC_ADDRESS, [48, int(((voltageA*self.aSlope)+self.aOffset)/256), int(((voltageA*self.aSlope)+self.aOffset)%256)], SDAPinNum = sdaPin, SCLPinNum = sclPin)
             except:
                 print  "Error setting the LabJackU3LJTick. Is the device detached?\n\nPython error:" + str(sys.exc_info()[1])
         elif chl == 'B':
-            voltageB = float(val)
+            # front panel set voltages
+            voltageB = (float(val)-2)/500
+            if voltageB < 0: voltageB = 0
             try:
                 self.device.i2c(LabJackU3LJTick.DAC_ADDRESS, [49, int(((voltageB*self.bSlope)+self.bOffset)/256), int(((voltageB*self.bSlope)+self.bOffset)%256)], SDAPinNum = sdaPin, SCLPinNum = sclPin)
             except:

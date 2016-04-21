@@ -54,7 +54,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # if program crashes, reset MCP/Phos analog output
         self.shutdownStatus = [False, 0, 0]
         # waveform generation window
-        self.WfWin = waveformWindow(self.DIOCard)
+        self.WfWin = waveformWindow(self.DIOCard, self.pulseGen)
         self.initUI()
 
     def initUI(self):
@@ -76,7 +76,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.inp_voltMCP.valueChanged.connect(self.saveMCPVoltage)
         self.inp_voltPhos.valueChanged.connect(self.saveMCPVoltage)
         self.chk_openCamera.clicked.connect(self.openCamera)
-        self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
+        self.inp_voltExtract.valueChanged.connect(self.setExtractionVoltage)
+        self.inp_voltStrip.valueChanged.connect(lambda: self.LabJack.setDevice(self.inp_voltStrip.value(), 'B'))
+        self.chk_stripcompensation.clicked.connect(self.setFieldCompensation)
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.valueChanged.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
@@ -119,28 +121,43 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.chk_Excimer.setChecked(True)
         self.pulseGen.switchChl(1, False)
         self.pulseGen.switchChl(6, False)
+        self.pulseGen.switchChl(7, False)
+        self.pulseGen.switchChl(8, False)
         self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
         self.calcRydVelocity()
         self.LabJack.setDevice(0, 'A')
         self.LabJack.setDevice(0, 'B')
+        # Q switch delay
         self.pulseGen.setDelay(5, float(('{:1.11f}').format(-22*1E-9)))
-     
+        # excimer delay
+        self.pulseGen.setDelay(2, float(('{:1.11f}').format(600*1E-6)))
+        # plate pulser delay
+        self.pulseGen.setDelay(7, float(('{:1.11f}').format(2*1E-6)))
+        # map strip electrode values
+        self.stripcompval = np.loadtxt('dataoutstripcomp1Vstep.txt')[:,1]
+
         # set size of window
         self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
-        self.setFixedSize(1054, 688)
+        self.setFixedSize(1062, 688)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
     def showWfWin(self):
         '''display control window for decelerator waveform generation'''
         self.chk_editWF.setEnabled(False)
+        # activate trigger output
+        self.pulseGen.switchChl(7, True)
+        self.pulseGen.switchChl(8, True)
+        time.sleep(0.1)
         self.WfWin.show()
         
     def calcRydVelocity(self):
         '''Calculate atom beam velocity by flight time'''
         # thesis Eric 46+/-0.8cm
-        dist = 0.46
+        if self.inp_qswitchDelay.value() == 22: dist = 0.46
+        elif self.inp_qswitchDelay.value() == 23: dist = 0.42
+        else: dist = 0.46 
         self.out_velSurf.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
         # lab frame velocity
         self.out_velLab.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6)))))
@@ -343,6 +360,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             elif 'Photo' in self.scanParam:
                 # Fire channel
                 self.devParam = 2
+            elif 'WF' in self.scanParam:
+                # Fire channel
+                self.devParam = 8    
             self.beforescanParam = float(self.pulseGen.readDelay(self.devParam))
             if self.stopParam > self.startParam:
                 self.scanDirection = 1
@@ -478,6 +498,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if 'Voltage' in self.scanParam:
             if self.devParam == 'Extraction':
                 self.analogIO.writeAOExtraction(self.setParam)
+                if self.chk_stripcompensation.isChecked():
+                # values in list negative
+                    valcomp = -int(round(self.stripcompval[self.setParam]))
+                    self.inp_voltStrip.setValue(valcomp)
             elif self.devParam == 'Ion1':
                 self.analogIO.writeAOIonOptic1(self.setParam)
             outVal = self.setParam
@@ -576,7 +600,18 @@ class RSDControl(QtGui.QMainWindow, ui_form):
             np.savetxt(str(savePath), saveData, fmt=fmtIn, delimiter='\t', newline='\n', header=self.scanParam+(u'\tDat1\tErr1\tDat2\tErr2'),
                       footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n'))
         self.saveFilePath = os.path.dirname(str(savePath))
-        
+      
+    def setExtractionVoltage(self):
+        self.analogIO.writeAOExtraction(self.inp_voltExtract.value())
+        if self.chk_stripcompensation.isChecked():
+            # values in list negative
+            valcomp = -int(round(self.stripcompval[self.inp_voltExtract.value()]))
+            self.inp_voltStrip.setValue(valcomp)
+   
+    def setFieldCompensation(self):
+        self.inp_voltStrip.setEnabled(not(self.chk_stripcompensation.isChecked()))
+        self.setExtractionVoltage()
+      
     def chk_gateInt_stateChanged(self):
         '''integrate 1 gate to append to data acq file'''
         # set parameters for dataAcquisition()
@@ -620,6 +655,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if self.inp_qswitchDelay.hasFocus():
             val = (self.inp_qswitchDelay.value()*1E-9)*-1
             self.pulseGen.setDelay(5, float(('{:1.11f}').format(val)))
+            self.calcRydVelocity()
 
     def centerWindow(self):
         frm = self.frameGeometry()
@@ -702,7 +738,6 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def pulseValveClicked(self):
         self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked())
         #if not self.chk_PulseValve.isChecked(): self.chk_sourceControl.setCheckState(QtCore.Qt.Unchecked)
-
     
     def startPressThread(self):
         '''create maxi gauge thread and _run() without feedback loop'''
@@ -808,6 +843,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scope.initialize()
         self.scope.invertTrace(True)
         self.MaxiGauge = MaxiGauge('COM1')
+        # Chl A: PID controller, Chl B: power supply strip electrode
         self.LabJack = LabJackU3LJTick()
         self.startPressThread()
         self.powersupply = TenmaPowerSupplyController()
@@ -838,17 +874,18 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         if hasattr(self, 'PressureThreadData') and not(self.pressThread):
             self.PressureThreadData.ReadActive = False
             time.sleep(0.1)
-            self.MaxiGauge.disconnect()
-        if hasattr(self, 'pulseGen'):
-            self.pulseGen.closeConnection()
+            self.MaxiGauge.disconnect()          
         if self.chk_connectLasers.isChecked():
             self.UVLaser.CloseLaser()
             self.VUVLaser.CloseLaser()
         print 'Releasing controllers:'
         self.analogIO.closeDevice()
         self.LabJack.closeDevice()
-        self.DIOCard.releaseCard()
         self.WfWin.close()
+        # these devices trigger access when wf window is closed
+        self.DIOCard.releaseCard()
+        self.pulseGen.closeConnection()
+
         
 # subclass qthread (not recommended officially, old style)
 class scopeThread(QtCore.QThread):
@@ -1001,7 +1038,7 @@ class waveformGenThread(QtCore.QThread):
         return
             
 class waveformWindow(QtGui.QWidget, ui_form_waveform):
-    def __init__(self, DIOCard):
+    def __init__(self, DIOCard, pulseGen):
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
         self.setWindowTitle('Waveform Control')
@@ -1011,6 +1048,7 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         # card configured with 20MHz (sampleRate)
         self.DIOCard = DIOCard
         self.out_sampleRate.setText(str(self.DIOCard.SampleRate*1E-6))
+        self.pulseGen = pulseGen
         
         # iniatilize program with guiding mode parameters
         self.inp_initVel.setValue(1600)
@@ -1046,12 +1084,22 @@ class waveformWindow(QtGui.QWidget, ui_form_waveform):
         self.inp_finalVel.setValue(velIn)
           
     def closeEvent(self, event):
-        event.accept()
-        self.winClose.emit()
+        if self.chk_extTrig.isChecked():
+            event.ignore()
+            QtGui.QMessageBox.critical(self, 'PCI7300 Warning', "Deactivate external trigger for waveform generation", QtGui.QMessageBox.Ok)
+        else:
+            # deactivate trigger pulses
+            self.DIOCard.setOutputZero()
+            self.pulseGen.switchChl(7, False)
+            self.pulseGen.switchChl(8, False)
+            time.sleep(0.1)
+            event.accept()
+            self.winClose.emit()
 
     def startDOOutput(self):
         if hasattr(self, 'wfThread') and self.wfThread.wfOutActive:
             self.wfThread.wfOutActive = False
+            self.DIOCard.setOutputZero()
         else:
             self.wfThread = waveformGenThread(True, self.DIOCard)
             self.wfThread.start(priority=QtCore.QThread.HighPriority)
