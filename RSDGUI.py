@@ -94,10 +94,12 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.scanModeSelect.currentIndexChanged.connect(lambda: self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex()))
         self.tabWidget_ScanParam.currentChanged.connect(lambda: self.scanModeSelect.setCurrentIndex(self.tabWidget_ScanParam.currentIndex()))
         self.inp_setDelayLasers.valueChanged.connect(lambda: self.pulseGen.setDelay(4, self.inp_setDelayLasers.value()*1E-6))
+        self.inp_excimerdelay.valueChanged.connect(lambda: self.pulseGen.setDelay(2, self.inp_excimerdelay.value()*1E-6))
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         self.chk_sourceControl.clicked.connect(self.switchPressThread)
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
         self.chk_Fan.clicked.connect(lambda: self.powersupply.fancontrol(self.chk_Fan.isChecked()))
+        self.chk_tenmaactive.clicked.connect(lambda: self.setTenmaOutSettings())
         
         # defaults
         self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2016'
@@ -122,15 +124,19 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.pulseGen.switchChl(1, False)
         self.pulseGen.switchChl(6, False)
         self.pulseGen.switchChl(7, False)
-        self.pulseGen.switchChl(8, False)
+        self.pulseGen.switchChl(8, True)
         self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
         self.calcRydVelocity()
         self.LabJack.setDevice(0, 'A')
         self.LabJack.setDevice(0, 'B')
+        #extraction delay
+        self.pulseGen.setDelay(6, float(('{:1.11f}').format(4*1E-6)))
+        self.inp_extractDelay.setValue(4)
         # Q switch delay
-        self.pulseGen.setDelay(5, float(('{:1.11f}').format(-22*1E-9)))
+        self.pulseGen.setDelay(5, float(('{:1.11f}').format(-18*1E-9)))
         # excimer delay
-        self.pulseGen.setDelay(2, float(('{:1.11f}').format(600*1E-6)))
+        self.pulseGen.setDelay(2, float(('{:1.11f}').format(620*1E-6)))
+        self.inp_excimerdelay.setValue(620)
         # plate pulser delay
         self.pulseGen.setDelay(7, float(('{:1.11f}').format(2*1E-6)))
         self.WfWin.inp_peedelay.setValue(2)
@@ -157,9 +163,9 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         '''Calculate atom beam velocity by flight time'''
         # thesis Eric 46+/-0.8cm
         if self.inp_qswitchDelay.value() == 22: dist = 0.46
-        elif self.inp_qswitchDelay.value() == 23: dist = 0.42
+        elif self.inp_qswitchDelay.value() == 18.5: dist = 0.42
         else: dist = 0.46 
-        self.out_velSurf.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
+        self.out_velSurf.setText('{:d}'.format(int((0.46/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
         # lab frame velocity
         self.out_velLab.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6)))))
         self.velIn = dist/(self.inp_setDelayLasers.value()*1E-6)
@@ -366,7 +372,10 @@ class RSDControl(QtGui.QMainWindow, ui_form):
                 self.devParam = 8
             elif 'PE Pulse Down' in self.scanParam:
                 # Fire channel
-                self.devParam = 7                 
+                self.devParam = 7
+            elif 'Q Switch' in self.scanParam:
+                # Fire channel
+                self.devParam = 5                      
             self.beforescanParam = float(self.pulseGen.readDelay(self.devParam))
             if self.stopParam > self.startParam:
                 self.scanDirection = 1
@@ -414,11 +423,11 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def dataAcquisition(self, data):
         # add data, substract baseline per trace
         if self.chk_baselinecorrect.isChecked():
-            data1 = data[0] - np.mean(data[0][-2000:-1000])
-            data2 = data[1] - np.mean(data[1][-2000:-1000])
+            data1 = data[0] - np.mean(data[0][-3000:-1000])
+            data2 = data[1] - np.mean(data[1][-3000:-1000])
         else:
-            data1 = data[0] - np.mean(data[0][0:500])
-            data2 = data[1] - np.mean(data[1][0:500])
+            data1 = data[0] - np.mean(data[0][0:100])
+            data2 = data[1] - np.mean(data[1][0:100])
         self.dataBuf1.append(data1)
         self.dataBuf2.append(data2)
         self.cursorPos = self.ScopeDisplay.getCursors()         
@@ -501,7 +510,8 @@ class RSDControl(QtGui.QMainWindow, ui_form):
     def scanSetDevice(self):        
         if 'Voltage' in self.scanParam:
             if self.devParam == 'Extraction':
-                self.analogIO.writeAOExtraction(self.setParam)
+                if self.chk_tenmaactive.isChecked(): self.powersupply.setVoltOut(self.setParam)
+                else: self.analogIO.writeAOExtraction(self.setParam)
                 if self.chk_stripcompensation.isChecked():
                 # values in list negative
                     valcomp = -int(round(self.stripcompval[self.setParam]))
@@ -606,11 +616,27 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         self.saveFilePath = os.path.dirname(str(savePath))
       
     def setExtractionVoltage(self):
-        self.analogIO.writeAOExtraction(self.inp_voltExtract.value())
+        if self.chk_tenmaactive.isChecked(): self.powersupply.setVoltOut(self.inp_voltExtract.value())
+        else: self.analogIO.writeAOExtraction(self.inp_voltExtract.value())
         if self.chk_stripcompensation.isChecked():
             # values in list negative
             valcomp = -int(round(self.stripcompval[self.inp_voltExtract.value()]))
             self.inp_voltStrip.setValue(valcomp)
+       
+    def setTenmaOutSettings(self):
+        if self.chk_tenmaactive.isChecked():
+            self.inp_voltExtract.setValue(0)
+            self.inp_startField.setValue(30)
+            self.powersupply.setVoltOut(0)    
+            self.powersupply.setCurrOut(0.1)
+            self.powersupply.enableOutput()
+        else:
+            # settings for fan motor
+            self.powersupply.disableOutput()
+            time.sleep(1)
+            self.powersupply.setVoltOut(24)    
+            self.powersupply.setCurrOut(2.21)
+  
    
     def setFieldCompensation(self):
         self.inp_voltStrip.setEnabled(not(self.chk_stripcompensation.isChecked()))
@@ -889,6 +915,7 @@ class RSDControl(QtGui.QMainWindow, ui_form):
         # these devices trigger access when wf window is closed
         self.DIOCard.releaseCard()
         self.pulseGen.closeConnection()
+        self.powersupply.closeDevice()
 
         
 # subclass qthread (not recommended officially, old style)
