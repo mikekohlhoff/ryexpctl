@@ -2040,9 +2040,9 @@ p, li { white-space: pre-wrap; }
     <widget class="QTextBrowser" name="out_voltMon">
      <property name="geometry">
       <rect>
-       <x>265</x>
+       <x>249</x>
        <y>85</y>
-       <width>40</width>
+       <width>56</width>
        <height>22</height>
       </rect>
      </property>
