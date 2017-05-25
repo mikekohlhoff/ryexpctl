@@ -1818,7 +1818,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>3</number>
    </property>
    <property name="elideMode">
     <enum>Qt::ElideNone</enum>

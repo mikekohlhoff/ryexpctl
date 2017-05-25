@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 '''
-Control RSE experiment, GUI in RSDControl class, scope read-out in separate thread that emits data to widget
+Control RSE experiment, scope read-out in separate thread that emits data to widget
 that handles data evaluation, display and saving
-RSDControl was intended to run the surface experiment in combination with a PCB decelerator, the UCL branch removes these capibilities
+RSDControl was intended to run the surface experiment in combination with a PCB decelerator, 
+the UCL branch removes these capibilities
 ''' 
 
 import time
@@ -15,10 +16,8 @@ import collections
 
 # UI related
 from PyQt4 import QtCore, QtGui, uic
-ui_form = uic.loadUiType("rsdgui.ui")[0]
-ui_form_waveform = uic.loadUiType("rsdguiWfWin.ui")[0]
-ui_form_startmcp = uic.loadUiType("rsdguiStartMCP.ui")[0]
-ui_form_camwin = uic.loadUiType("rsdguiCameraWin.ui")[0]
+ui_form = uic.loadUiType("rsegui.ui")[0]
+ui_form_startmcp = uic.loadUiType("rseguiStartMCP.ui")[0]
 
 # integrating matplotlib figures
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -30,8 +29,6 @@ import numpy as np
 # hardware controller modules
 from Instruments.PCI7300ADIOCard import *
 from Instruments.LeCroyScopeController import LeCroyScopeControllerVISA
-from Instruments.LeCroyScopeController import LeCroyScopeControllerDSO
-from Instruments.WaveformPotentials import WaveformPotentials23Elec
 from Instruments.DCONUSB87P4 import USB87P4Controller
 from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
@@ -42,7 +39,7 @@ from Instruments.LabJackU3HV import LabJackU3LJTick
 from Instruments.PIDController import PIDControl
 from Instruments.TenmaPowerSupply import TenmaPowerSupplyController
 
-class RSDControl(QtGui.QMainWindow, ui_form):
+class RSEControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.setupUi(self)
@@ -1439,5 +1436,5 @@ class CamWin(QtGui.QWidget, ui_form_camwin):
 if __name__ == "__main__":
 
     app = QtGui.QApplication(sys.argv)
-    myapp = RSDControl()
+    myapp = RSEControl()
     app.exec_()
