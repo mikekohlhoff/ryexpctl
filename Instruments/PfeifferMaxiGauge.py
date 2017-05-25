@@ -28,7 +28,7 @@
 import serial
 
 class MaxiGauge (object):
-    def __init__(self, serialPort, baud=19200, debug=False):
+    def __init__(self, serialPort, baud=9600, debug=False):
         self.debug=debug
         try:
             self.connection = serial.Serial(serialPort, baudrate=baud, timeout=0.2)
@@ -152,8 +152,8 @@ class MaxiGauge (object):
         if hasattr(self, 'connection') and self.connection: 
             self.connection.close()
 
-    def __del__(self):
-        self.disconnect()
+    def __del__(self): pass
+        #self.disconnect()
 
 class PressureReading(object):
     def __init__(self, id, status, pressure):
@@ -278,16 +278,15 @@ PRESSURE_READING_STATUS = {
 
 
 if __name__ == '__main__':
-    mg = MaxiGauge('COM1')
+    mg = MaxiGauge('COM3')
     print(mg.checkDevice())
     print(mg.pressures())
     #for i in range(6):
     #    ps = mg.pressures()
     #    print "Sensor {:d} {:4e} mbar".format(i+1, ps[i].pressure)
     import time
-    start = time.clock()
-    #mg.gaugeSwitch(4, 'ON')
-    #time.sleep(1)
-    #mg.gaugeSwitch(4, 'OFF')
+    mg.gaugeSwitch(4, 'ON')
+    time.sleep(3)
+    mg.gaugeSwitch(4, 'ON')
     mg.disconnect()
     

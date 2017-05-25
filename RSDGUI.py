@@ -2,6 +2,7 @@
 '''
 Control RSE experiment, GUI in RSDControl class, scope read-out in separate thread that emits data to widget
 that handles data evaluation, display and saving
+RSDControl was intended to run the surface experiment in combination with a PCB decelerator, the UCL branch removes these capibilities
 ''' 
 
 import time
