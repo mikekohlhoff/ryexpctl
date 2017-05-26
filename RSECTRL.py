@@ -28,7 +28,6 @@ from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
 from Instruments.LabJackU3HV import LabJackU3LJTick
 from Instruments.PIDController import PIDControl
-from Instruments.TenmaPowerSupply import TenmaPowerSupplyController
 
 class RSEControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -64,8 +63,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_voltPhos.valueChanged.connect(self.saveMCPVoltage)
         self.chk_openCamera.clicked.connect(self.openCamera)
         self.inp_voltExtract.valueChanged.connect(self.setExtractionVoltage)
-        self.inp_voltStrip.valueChanged.connect(lambda: self.LabJack.setDevice(self.inp_voltStrip.value(), 'B'))
-        self.chk_stripcompensation.clicked.connect(self.setFieldCompensation)
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.valueChanged.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
@@ -83,7 +80,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         self.chk_sourceControl.clicked.connect(self.switchPressThread)
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
-        self.chk_tenmaactive.clicked.connect(lambda: self.setTenmaOutSettings())
         
         # defaults
         self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data UCL\\raw data\\2016'
@@ -108,24 +104,15 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.pulseGen.switchChl(1, False)
         self.pulseGen.switchChl(6, False)
         self.pulseGen.switchChl(7, False)
-        self.pulseGen.switchChl(8, True)
         self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
         self.calcRydVelocity()
         self.LabJack.setDevice(0, 'A')
-        self.LabJack.setDevice(0, 'B')
         #extraction delay
         self.pulseGen.setDelay(6, float(('{:1.11f}').format(4*1E-6)))
         self.inp_extractDelay.setValue(4)
         # Q switch delay
         self.pulseGen.setDelay(5, float(('{:1.11f}').format(-18*1E-9)))
-        # excimer delay
-        self.pulseGen.setDelay(2, float(('{:1.11f}').format(620*1E-6)))
-        self.inp_excimerdelay.setValue(620)
-        # plate pulser delay
-        self.pulseGen.setDelay(7, float(('{:1.11f}').format(2*1E-6)))
-        # map strip electrode values
-        self.stripcompval = np.loadtxt('dataoutstripcomp1Vstep.txt')[:,1]
-
+   
         # set size of window
         self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
@@ -483,12 +470,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
     def scanSetDevice(self):        
         if 'Voltage' in self.scanParam:
             if self.devParam == 'Extraction':
-                if self.chk_tenmaactive.isChecked(): self.powersupply.setVoltOut(self.setParam)
-                else: self.analogIO.writeAOExtraction(self.setParam)
-                if self.chk_stripcompensation.isChecked():
-                # values in list negative
-                    valcomp = -int(round(self.stripcompval[self.setParam]))
-                    self.inp_voltStrip.setValue(valcomp)
+                self.analogIO.writeAOExtraction(self.setParam)
             elif self.devParam == 'Ion1':
                 self.analogIO.writeAOIonOptic1(self.setParam)
             outVal = self.setParam
@@ -589,28 +571,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.saveFilePath = os.path.dirname(str(savePath))
       
     def setExtractionVoltage(self):
-        if self.chk_tenmaactive.isChecked(): self.powersupply.setVoltOut(self.inp_voltExtract.value())
-        else: self.analogIO.writeAOExtraction(self.inp_voltExtract.value())
-        if self.chk_stripcompensation.isChecked():
-            # values in list negative
-            valcomp = -int(round(self.stripcompval[self.inp_voltExtract.value()]))
-            self.inp_voltStrip.setValue(valcomp)
-       
-    def setTenmaOutSettings(self):
-        if self.chk_tenmaactive.isChecked():
-            self.inp_voltExtract.setValue(0)
-            self.inp_startField.setValue(30)
-            self.powersupply.setVoltOut(0)    
-            self.powersupply.setCurrOut(0.1)
-            self.powersupply.enableOutput()
-        else:
-            # settings for fan motor
-            self.powersupply.disableOutput()
-            time.sleep(1)
-            self.powersupply.setVoltOut(24)    
-            self.powersupply.setCurrOut(2.21)
-  
-   
+        self.analogIO.writeAOExtraction(self.inp_voltExtract.value())       
+ 
     def setFieldCompensation(self):
         self.inp_voltStrip.setEnabled(not(self.chk_stripcompensation.isChecked()))
         self.setExtractionVoltage()
@@ -845,11 +807,10 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.scope = LeCroyScopeControllerVISA()       
         self.scope.initialize()
         self.scope.invertTrace(True)
-        self.MaxiGauge = MaxiGauge('COM1')
-        # Chl A: PID controller, Chl B: power supply strip electrode
+        self.MaxiGauge = MaxiGauge('COM4')
+        # Chl A: PID controller
         self.LabJack = LabJackU3LJTick()
         self.startPressThread()
-        self.powersupply = TenmaPowerSupplyController()
         print '-----------------------------------------------------------------------------'
 
     def shutDownExperiment(self):
@@ -1036,105 +997,6 @@ class waveformGenThread(QtCore.QThread):
         self.quit()
         return
             
-class waveformWindow(QtGui.QWidget, ui_form_waveform):
-    def __init__(self, DIOCard, pulseGen):
-        QtGui.QWidget.__init__(self)
-        self.setupUi(self)
-        self.setWindowTitle('Waveform Control')
-        self.setFixedSize(832, 376)
-        self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
-        
-        # card configured with 20MHz (sampleRate)
-        self.DIOCard = DIOCard
-        self.out_sampleRate.setText(str(self.DIOCard.SampleRate*1E-6))
-        self.pulseGen = pulseGen
-        
-        # iniatilize program with guiding mode parameters
-        self.inp_initVel.setValue(1600)
-        self.inp_finalVel.setValue(1600)
-        
-        self.inp_inTime.setValue(0)
-        self.inp_outTime.setValue(0)
-        self.out_outDist.setText('0')
-        
-        # distance between first and last 'stable' minima
-        self.decelDist = 19.1
-        # 2.2mm from start of PCB to first 'stable' minimum, 2.2 for (1,4)
-        self.out_dIn.setText(str(2.2))
-        # whole chip until strip electrode 25mm
-        self.out_dOut.setText(str(25 - 2.2 - self.decelDist))
-       
-        self.inp_initVel.valueChanged.connect(self.setPCBPotentials)
-        self.inp_finalVel.valueChanged.connect(self.setPCBPotentials)
-        self.inp_inTime.valueChanged.connect(self.setPCBPotentials)
-        self.inp_outTime.valueChanged.connect(self.setPCBPotentials)
-        self.chk_trace1.stateChanged.connect(self.setPCBPotentials)
-        self.chk_trace2.stateChanged.connect(self.setPCBPotentials)
-        self.chk_trace3.stateChanged.connect(self.setPCBPotentials)
-        self.electrodeSelect.currentIndexChanged.connect(self.setPCBPotentials)
-        self.chk_extTrig.stateChanged.connect(self.startDOOutput)
-        
-        self.inp_wfdelay.valueChanged.connect(lambda: self.pulseGen.setDelay(8, self.inp_wfdelay.value()*1E-6))
-        self.inp_peedelay.valueChanged.connect(lambda: self.pulseGen.setDelay(7, self.inp_peedelay.value()*1E-6))
-        
-        self.setPCBPotentials()
-        
-    winClose = QtCore.pyqtSignal()
-    
-    def setVelIn(self, velIn):
-        self.inp_initVel.setValue(velIn)
-        self.inp_finalVel.setValue(velIn)
-          
-    def closeEvent(self, event):
-        if self.chk_extTrig.isChecked():
-            event.ignore()
-            QtGui.QMessageBox.critical(self, 'PCI7300 Warning', "Deactivate external trigger for waveform generation", QtGui.QMessageBox.Ok)
-        else:
-            # deactivate trigger pulses
-            self.DIOCard.setOutputZero()
-            self.pulseGen.switchChl(7, False)
-            self.pulseGen.switchChl(8, False)
-            time.sleep(0.1)
-            event.accept()
-            self.winClose.emit()
-
-    def startDOOutput(self):
-        if hasattr(self, 'wfThread') and self.wfThread.wfOutActive:
-            self.wfThread.wfOutActive = False
-            self.DIOCard.setOutputZero()
-        else:
-            self.wfThread = waveformGenThread(True, self.DIOCard)
-            self.wfThread.start(priority=QtCore.QThread.HighPriority)
-
-    def setPCBPotentials(self):
-        # calculate potential waveforms and build DO buffer
-        self.wfPotentials = WaveformPotentials23Elec()
-        
-        # 10bit resolution per channel
-        maxAmp = 1023/2.0
-        vInit = self.inp_initVel.value()
-        vFinal = self.inp_finalVel.value()
-        outTime = self.inp_outTime.value()
-        self.out_outDist.setText('{0:.2f}'.format((vFinal*outTime)*1E-3))
-        inTime = self.inp_inTime.value()
-        
-        # build waveform potentials
-        # deceleration to stop at fixed position, 19.1 for 23 electrodes
-        # inDist = 2.2mm to first minima with electrods 1&4=Umax
-        # if outDist=0 end point of potential sequence 
-        # at z position before potential minima diverges
-        tof = self.wfPotentials.generate(self.DIOCard.timeStep, vInit, vFinal, inTime, outTime, \
-                                   maxAmp, self.decelDist, self.electrodeSelect.currentText(), \
-                                   self.out_dIn, self.out_dOut)
-        self.out_tofFull.setText(tof)                     
-        self.out_tofPart.setText(str(self.wfPotentials.decelTime))
-        
-        # break loop for changed buffer?! NO, works without hick-up      
-        self.DIOCard.buildDOBuffer(self.wfPotentials.potentialsOut)
-        if self.chk_plotWF.checkState():
-            plotitems = [self.chk_trace1.isChecked(), self.chk_trace2.isChecked(), self.chk_trace3.isChecked()]
-            self.WaveformDisplay.plot(self.wfPotentials, plotitems)
-
 class StartMCPThread(QtCore.QThread):
     def __init__(self, setPotBool, analogIO, stepTime, finalMCP, finalPhos, rampTime, startMCP, startPhos):
         QtCore.QThread.__init__(self)

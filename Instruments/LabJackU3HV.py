@@ -121,7 +121,7 @@ class LabJackU3LJTick(object):
      
 if __name__ == '__main__':
     lj = LabJackU3LJTick()
-    valA = 6
+    valA = 0
     valB = 0
     lj.setDevice(valA, 'A')
     lj.setDevice(valB, 'B')
