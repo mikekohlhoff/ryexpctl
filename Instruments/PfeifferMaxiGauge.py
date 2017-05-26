@@ -278,15 +278,13 @@ PRESSURE_READING_STATUS = {
 
 
 if __name__ == '__main__':
-    mg = MaxiGauge('COM3')
+    mg = MaxiGauge('COM4')
     print(mg.checkDevice())
-    print(mg.pressures())
-    #for i in range(6):
-    #    ps = mg.pressures()
-    #    print "Sensor {:d} {:4e} mbar".format(i+1, ps[i].pressure)
+    #print(mg.pressures())
     import time
-    mg.gaugeSwitch(4, 'ON')
     time.sleep(3)
     mg.gaugeSwitch(4, 'ON')
+    time.sleep(3)
+    mg.gaugeSwitch(5, 'ON')
     mg.disconnect()
     

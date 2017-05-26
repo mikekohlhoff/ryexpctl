@@ -13,28 +13,19 @@ import sys
 import pickle
 import math
 import collections
+import random
+import numpy as np
 
 # UI related
 from PyQt4 import QtCore, QtGui, uic
 ui_form = uic.loadUiType("rsegui.ui")[0]
 ui_form_startmcp = uic.loadUiType("rseguiStartMCP.ui")[0]
 
-# integrating matplotlib figures
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
-import matplotlib.pyplot as plt
-from matplotlib.figure import Figure
-import random
-import numpy as np
-
 # hardware controller modules
-from Instruments.PCI7300ADIOCard import *
 from Instruments.LeCroyScopeController import LeCroyScopeControllerVISA
 from Instruments.DCONUSB87P4 import USB87P4Controller
 from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
-from Instruments.SirahLaserControl import SirahLaserController
-from Instruments.AndorCamera import AndorController
-from Instruments.AndorCamera import AndorControllerAT
 from Instruments.LabJackU3HV import LabJackU3LJTick
 from Instruments.PIDController import PIDControl
 from Instruments.TenmaPowerSupply import TenmaPowerSupplyController
@@ -52,7 +43,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         # if program crashes, reset MCP/Phos analog output
         self.shutdownStatus = [False, 0, 0]
         # waveform generation window
-        self.WfWin = waveformWindow(self.DIOCard, self.pulseGen)
         self.initUI()
 
     def initUI(self):
@@ -60,7 +50,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_avgSweeps.editingFinished.connect(self.inp_avgSweeps_changed)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
-        self.chk_editWF.clicked.connect(self.showWfWin)
         self.chk_gateInt.stateChanged.connect(self.chk_gateInt_stateChanged)
         self.inp_gate1Start.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate1Stop.valueChanged.connect(self.setCursorsScopeWidget)
@@ -80,8 +69,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.valueChanged.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
-        self.WfWin.winClose.connect(lambda: self.chk_editWF.setEnabled(True))
-        self.WfWin.winClose.connect(lambda: self.chk_editWF.setChecked(False))
         self.chk_Excimer.stateChanged.connect(lambda: self.pulseGen.switchChl(2, self.chk_Excimer.isChecked()))
         self.chk_LaserUV.stateChanged.connect(lambda: self.pulseGen.switchChl(5, self.chk_LaserUV.isChecked()))
         self.chk_LaserVUV.stateChanged.connect(lambda: self.pulseGen.switchChl(4, self.chk_LaserVUV.isChecked()))
@@ -96,11 +83,10 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         self.chk_sourceControl.clicked.connect(self.switchPressThread)
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
-        self.chk_Fan.clicked.connect(lambda: self.powersupply.fancontrol(self.chk_Fan.isChecked()))
         self.chk_tenmaactive.clicked.connect(lambda: self.setTenmaOutSettings())
         
         # defaults
-        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data Mike\\Raw Data\\2016'
+        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data UCL\\raw data\\2016'
         self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
@@ -137,7 +123,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_excimerdelay.setValue(620)
         # plate pulser delay
         self.pulseGen.setDelay(7, float(('{:1.11f}').format(2*1E-6)))
-        self.WfWin.inp_peedelay.setValue(2)
         # map strip electrode values
         self.stripcompval = np.loadtxt('dataoutstripcomp1Vstep.txt')[:,1]
 
@@ -147,16 +132,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.setFixedSize(1062, 688)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
-
-    def showWfWin(self):
-        '''display control window for decelerator waveform generation'''
-        self.chk_editWF.setEnabled(False)
-        # activate trigger output
-        self.pulseGen.switchChl(7, True)
-        self.pulseGen.switchChl(8, True)
-        time.sleep(0.1)
-        self.WfWin.show()
-        
+    
     def calcRydVelocity(self):
         '''Calculate atom beam velocity by flight time'''
         # thesis Eric 46+/-0.8cm
@@ -167,7 +143,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         # lab frame velocity
         self.out_velLab.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6)))))
         self.velIn = dist/(self.inp_setDelayLasers.value()*1E-6)
-        self.WfWin.setVelIn(self.velIn)
         
     def startMCPPhos(self):
         '''display controls to ramp MCP/Phos voltages'''
@@ -891,10 +866,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.terminate()
         if hasattr(self, 'scope'):
             self.scope.closeConnection()            
-        if hasattr(self.WfWin, 'wfThread'):
-            self.WfWin.wfThread.wfOutActive = False
-            time.sleep(0.2)
-            self.WfWin.wfThread.terminate()
         if hasattr(self, 'PressureThread') and self.pressThread:
             self.PressureThread.ReadActive = False
             time.sleep(0.8)
@@ -909,7 +880,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         print 'Releasing controllers:'
         self.analogIO.closeDevice()
         self.LabJack.closeDevice()
-        self.WfWin.close()
         # these devices trigger access when wf window is closed
         self.DIOCard.releaseCard()
         self.pulseGen.closeConnection()
