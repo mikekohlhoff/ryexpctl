@@ -22,6 +22,7 @@ def toDouble(buffer):
         bufferStr = ''.join(chr(x) for x in buffer[:8])
     dec, wh = struct.unpack('<Ii', bufferStr)
     return float(wh) + float(dec)/2**32
+
     
 class LabJackU3LJTick(object):
     """
@@ -51,7 +52,8 @@ class LabJackU3LJTick(object):
         try:
             self.searchForDevices()
             # Determine which device to use
-            if self.u3Available: self.deviceType = LabJackU3LJTick.U3
+            if self.u3Available: 
+                self.deviceType = LabJackU3LJTick.U3
             else:
                 print "Fatal Error: No LabJacks were found to be connected to your computer"
                 sys.exit()
@@ -89,7 +91,7 @@ class LabJackU3LJTick(object):
 
         if 255 in response: print "Make sure the LabJackU3LJTick is properly attached"
     
-    def setDevice(self, val, chl):
+    def setLJTick(self, val, chl):
         """
         Changes DACA and DACB to the amounts specified by the user
         """
@@ -109,7 +111,7 @@ class LabJackU3LJTick(object):
                 print  "Error setting the LabJackU3LJTick. Is the device detached?\n\nPython error:" + str(sys.exc_info()[1])
         elif chl == 'B':
             # front panel set voltages
-            voltageB = (float(val)-2)/500
+            voltageB = (float(val)*1.0)/200
             if voltageB < 0: voltageB = 0
             try:
                 self.device.i2c(LabJackU3LJTick.DAC_ADDRESS, [49, int(((voltageB*self.bSlope)+self.bOffset)/256), int(((voltageB*self.bSlope)+self.bOffset)%256)], SDAPinNum = sdaPin, SCLPinNum = sclPin)
@@ -121,8 +123,13 @@ class LabJackU3LJTick(object):
      
 if __name__ == '__main__':
     lj = LabJackU3LJTick()
-    valA = 0
-    valB = 0
-    lj.setDevice(valA, 'A')
-    lj.setDevice(valB, 'B')
+    import time
+    lj.setLJTick(0, 'A')
+    lj.setLJTick(0, 'B')
+    for j in range(0,150, 10):
+        time.sleep(5)
+        print j 
+        lj.setLJTick(j, 'B')
+        
+    lj.setLJTick(0, 'B')
     lj.closeDevice()

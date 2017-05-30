@@ -78,6 +78,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         self.chk_sourceControl.clicked.connect(self.switchPressThread)
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
+        self.ino_voltSurf.valueChanged.connect(lambda: self.labjack.setLJTick(self.inp_voltSurf.value(), 'B'))
         
         # defaults
         self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data UCL\\raw data\\2017'
@@ -102,7 +103,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.pulseGen.switchChl(6, False)
         self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
         self.calcRydVelocity()
-        self.LabJack.setDevice(0, 'A')
+        self.LabJack.setLJTick(0, 'A')
         #extraction delay
         self.pulseGen.setDelay(6, float(('{:1.11f}').format(4*1E-6)))
         self.inp_extractDelay.setValue(4)
@@ -718,7 +719,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             time.sleep(0.2)
             # reset to pressure before PID activated
             val = float(self.sliderSource.value())/100
-            self.LabJack.setDevice(val, 'A')
+            self.LabJack.setLJTick(val, 'A')
             self.startPressThread()
     
     def setPressRead(self, pressRead):
@@ -735,7 +736,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
     def setSliderVoltOut(self):
         sender = self.sender()
         val = float(sender.value())/100
-        self.LabJack.setDevice(val, 'A')
+        self.LabJack.setLJTick(val, 'A')
             
     def closeEvent(self, event):
         if hasattr(self, 'scopeThread'):
@@ -785,7 +786,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.scope.invertTrace(True)
         self.MaxiGauge = MaxiGauge('COM4')
         # Chl A: PID controller
-        self.LabJack = LabJackU3LJTick()
+        self.LabJack = LabJackU3()
         self.startPressThread()
         print '-----------------------------------------------------------------------------'
 
@@ -795,8 +796,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.analogIO.writeAOIonOptic1(0)
         self.shutdownStatus[0] = True
         self.saveMCPVoltage()  
-        self.LabJack.setDevice(0, 'A')
-        self.LabJack.setDevice(0, 'B')
+        self.LabJack.setLJTick(0, 'A')
+        self.LabJack.setLJTick(0, 'B')
         if hasattr(self, 'scopeThread'):
             self.scopeThread.scopeRead = False
             time.sleep(.2)
@@ -952,7 +953,7 @@ class PressureThreadData(QtCore.QThread):
             SourcePress = "{:2.2e} mbar".format(ps.pressure)
             self.pressReadReady.emit([SourcePress, 'Gauge turned off', ps.pressure, self.pid.getError()])
             mv = self.pid.update(ps.pressure*1E6)
-            self.labjack.setDevice(mv, 'A')
+            self.labjack.setLJTick(mv, 'A')
             self.dispincr += 1
         self.quit()
         return
