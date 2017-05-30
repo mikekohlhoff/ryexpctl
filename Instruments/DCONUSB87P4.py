@@ -90,15 +90,14 @@ if __name__ == '__main__':
     analogOut.openDevice()
     import time
     for i in range(5):
-        j = (i+1)*2
-        analogOut.writeAOMCP(j*100)
-        analogOut.writeAOExtraction(j*100)
-        analogOut.writeAOPhos(j*100)
-        analogOut.writeAOIonOptic1(j*100)
-        time.sleep(2)
-    j = 0    
-    analogOut.writeAOMCP(j*100)
-    analogOut.writeAOExtraction(j*100)
-    analogOut.writeAOPhos(j*100)
+        j = i+1
+        analogOut.writeAOExtraction(j*10)
+        analogOut.writeAOIonOptic1(j*20)
+        analogOut.writeAOMCP(j*30)
+        analogOut.writeAOPhos(j*40)
+        time.sleep(8) 
+    analogOut.writeAOMCP(0)
+    analogOut.writeAOExtraction(0)
+    analogOut.writeAOPhos(0)
     analogOut.writeAOIonOptic1(0)
     analogOut.closeDevice()

@@ -41,7 +41,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.setPotBool = False
         # if program crashes, reset MCP/Phos analog output
         self.shutdownStatus = [False, 0, 0]
-        # waveform generation window
         self.initUI()
 
     def initUI(self):
@@ -61,8 +60,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.chk_connectLasers.clicked.connect(self.connectLasers)
         self.inp_voltMCP.valueChanged.connect(self.saveMCPVoltage)
         self.inp_voltPhos.valueChanged.connect(self.saveMCPVoltage)
-        self.chk_openCamera.clicked.connect(self.openCamera)
-        self.inp_voltExtract.valueChanged.connect(self.setExtractionVoltage)
+        self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.valueChanged.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
@@ -82,7 +80,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
         
         # defaults
-        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data UCL\\raw data\\2016'
+        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data UCL\\raw data\\2017'
         self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
@@ -100,10 +98,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex())
         self.chk_LaserUV.setChecked(True)
         self.chk_LaserVUV.setChecked(True)
-        self.chk_Excimer.setChecked(True)
         self.pulseGen.switchChl(1, False)
         self.pulseGen.switchChl(6, False)
-        self.pulseGen.switchChl(7, False)
         self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
         self.calcRydVelocity()
         self.LabJack.setDevice(0, 'A')
@@ -123,9 +119,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
     def calcRydVelocity(self):
         '''Calculate atom beam velocity by flight time'''
         # thesis Eric 46+/-0.8cm
-        if self.inp_qswitchDelay.value() == 22: dist = 0.46
-        elif self.inp_qswitchDelay.value() == 18.5: dist = 0.42
-        else: dist = 0.46 
+        dist = 0.46 
         self.out_velSurf.setText('{:d}'.format(int((0.46/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
         # lab frame velocity
         self.out_velLab.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6)))))
@@ -158,18 +152,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         file = open('storeMCPPhos.pckl', 'w')
         pickle.dump(self.shutdownStatus, file)
         file.close()
-        
-    def openCamera(self):
-        '''display controls for Andor camera'''
-        self.CamWin = CamWin()
-        self.CamWin.winClose.connect(self.closeCamera)
-        self.CamWin.show()
-        self.chk_openCamera.setEnabled(False)
-        
-    def closeCamera(self): 
-        self.chk_openCamera.setEnabled(True)
-        self.chk_openCamera.setChecked(False)
-        
+                
     def chk_readScope_clicked(self):
         '''create scope thread and _run()'''
         self.scopeMon = self.chk_readScope.isChecked()
@@ -570,13 +553,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                       footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n'))
         self.saveFilePath = os.path.dirname(str(savePath))
       
-    def setExtractionVoltage(self):
-        self.analogIO.writeAOExtraction(self.inp_voltExtract.value())       
- 
-    def setFieldCompensation(self):
-        self.inp_voltStrip.setEnabled(not(self.chk_stripcompensation.isChecked()))
-        self.setExtractionVoltage()
-      
     def chk_gateInt_stateChanged(self):
         '''integrate 1 gate to append to data acq file'''
         # set parameters for dataAcquisition()
@@ -844,8 +820,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         # these devices trigger access when wf window is closed
         self.DIOCard.releaseCard()
         self.pulseGen.closeConnection()
-        self.powersupply.closeDevice()
-
         
 # subclass qthread (not recommended officially, old style)
 class scopeThread(QtCore.QThread):
@@ -983,20 +957,7 @@ class PressureThreadData(QtCore.QThread):
         self.quit()
         return
 
-class waveformGenThread(QtCore.QThread):
-    def __init__(self, wfOutActive, DIOCard):
-        QtCore.QThread.__init__(self)
-        self.wfOutActive = wfOutActive
-        self.DIOCard = DIOCard
-
-    def run(self):
-        while self.wfOutActive:
-            # card to wait for trigger to write output, card reconfigured before new output
-            self.DIOCard.writeWaveformPotentials()
-            self.msleep(50)
-        self.quit()
-        return
-            
+        
 class StartMCPThread(QtCore.QThread):
     def __init__(self, setPotBool, analogIO, stepTime, finalMCP, finalPhos, rampTime, startMCP, startPhos):
         QtCore.QThread.__init__(self)
@@ -1152,118 +1113,7 @@ class StartMCPWin(QtGui.QWidget, ui_form_startmcp):
         else:
             event.accept()
             self.winClose.emit()
-            self.setTextFinal.emit([self.out_setMCP.toPlainText(), self.out_setPhos.toPlainText()])
-                  
-class CamThread(QtCore.QThread):
-    def __init__(self, camRead, trigmode, exp, accums, gain):
-        QtCore.QThread.__init__(self)    
-        self.cam = AndorController()
-        print 'Initialising camera'
-        self.cam.initialize(trigmode, exp)
-        self.camRead = camRead
-        self.exposure = exp
-        self.accums = accums
-        self.gain = gain
-        
-    dataReady = QtCore.pyqtSignal(object)
-    setReady = QtCore.pyqtSignal(object)
-    
-    def run(self):
-        while self.camRead:
-            self.cam.setExposure(self.exposure)
-            self.cam.setAccumulations(self.accums)
-            self.cam.setGain(self.gain)
-            set = self.cam.startAcquisition()
-            self.setReady.emit(set)
-            self.cam.waitForImage()
-            img = self.cam.getImage()
-            self.dataReady.emit(img) 
-        self.quit()
-        return  
-                                 
-class CamWin(QtGui.QWidget, ui_form_camwin):
-    def __init__(self):
-        QtGui.QWidget.__init__(self)
-        self.setupUi(self)
-        self.setWindowTitle('Camera Control Andor')
-        self.setFixedSize(862, 514)
-       
-        self.btn_startAcq.clicked.connect(self.startAcq)
-        self.btn_saveFig.clicked.connect(self.saveImg)
-        self.inp_exposure.editingFinished.connect(self.setDevCtl)
-        self.inp_accums.editingFinished.connect(self.setDevCtl)
-        self.inp_gain.editingFinished.connect(self.setDevCtl)
-        self.inp_vmin.editingFinished.connect(self.setImgCtl)
-        self.inp_vmax.editingFinished.connect(self.setImgCtl)
-        
-        self.acqMode = False
-        self.vmin = self.inp_vmin.value()
-        self.vmax = self.inp_vmax.value()  
-        self.boxImg.setEnabled(False)
-        
-    winClose = QtCore.pyqtSignal()            
-    def startAcq(self):
-        self.acqMode = self.btn_startAcq.isChecked()
-        self.enableCtrls(self.acqMode)
-        if self.acqMode:
-            if self.trigModeSelect.currentText() == 'External':
-                trigmode = 1
-            elif self.trigModeSelect.currentText() == 'Internal':
-                trigmode = 0
-            if trigmode == 0:
-                exp = self.inp_exposure.value()*1E-3
-            else: 
-                exp = 10E-6
-                self.inp_exposure.setValue(10E-3)
-            self.enableCtrls(False)
-            accums = self.inp_accums.value()
-            gain = self.inp_gain.value()
-            self.camThread = CamThread(True, trigmode, exp, accums, gain)
-            self.camThread.dataReady.connect(self.imgDisplay)
-            self.camThread.setReady.connect(self.setTxtOut)
-            self.camThread.start()    
-        else:
-            self.camThread.camRead = False
-            self.enableCtrls(True)
-            
-    def imgDisplay(self, img):
-        v = [self.vmin, self.vmax]
-        auto = self.autoScaling.isChecked()
-        vauto = self.CamDisplay.plot(img, auto, v)
-        self.inp_vmin.setEnabled(not(auto))
-        self.inp_vmax.setEnabled(not(auto))
-        self.out_vmin.setText(str(vauto[0]))
-        self.out_vmax.setText(str(vauto[1]))
-        
-    def setDevCtl(self):
-        if not(hasattr(self, 'camThread')): return
-        if not(self.camThread.camRead): return
-        self.camThread.exposure = self.inp_exposure.value()*1E-3
-        self.camThread.accums = self.inp_accums.value()
-        self.camThread.gain = self.inp_gain.value()
-    
-    def setImgCtl(self):
-        self.vmin = self.inp_vmin.value()
-        self.vmax = self.inp_vmax.value()
-    
-    def setTxtOut(self, read):
-        self.out_temp.setText(str(read[0]))
-        self.out_gain.setText(str(read[1]))
-        
-    def enableCtrls(self, bool):
-        self.trigModeSelect.setEnabled(bool)
-        self.boxImg.setEnabled(not(bool))
-        
-    def saveImg(self):
-        self.CamDisplay.saveImg()
-       
-    def closeEvent(self, event):
-        if self.acqMode and hasattr(self, 'camThread'):
-            self.camThread.camRead = False
-            self.camThread.cam.shutdown()
-        event.accept()
-        self.winClose.emit()
-    
+            self.setTextFinal.emit([self.out_setMCP.toPlainText(), self.out_setPhos.toPlainText()])    
              
 if __name__ == "__main__":
 

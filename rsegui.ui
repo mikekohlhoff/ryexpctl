@@ -1516,26 +1516,6 @@ p, li { white-space: pre-wrap; }
    <property name="title">
     <string>Device Control</string>
    </property>
-   <widget class="QCheckBox" name="chk_Excimer">
-    <property name="geometry">
-     <rect>
-      <x>15</x>
-      <y>45</y>
-      <width>116</width>
-      <height>18</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>8</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Excimer</string>
-    </property>
-   </widget>
    <widget class="QCheckBox" name="chk_PulseValve">
     <property name="geometry">
      <rect>
@@ -1660,7 +1640,6 @@ p, li { white-space: pre-wrap; }
 &lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;br /&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
    </widget>
-   <zorder>chk_Excimer</zorder>
    <zorder>chk_LaserUV</zorder>
    <zorder>chk_PulseValve</zorder>
    <zorder>chk_readMainGauge</zorder>
@@ -1683,7 +1662,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>4</number>
+    <number>2</number>
    </property>
    <property name="elideMode">
     <enum>Qt::ElideNone</enum>
@@ -4374,86 +4353,6 @@ p, li { white-space: pre-wrap; }
      <string>Err%</string>
     </property>
    </widget>
-   <widget class="QSpinBox" name="inp_excimerdelay">
-    <property name="enabled">
-     <bool>true</bool>
-    </property>
-    <property name="geometry">
-     <rect>
-      <x>15</x>
-      <y>120</y>
-      <width>40</width>
-      <height>22</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>40</width>
-      <height>22</height>
-     </size>
-    </property>
-    <property name="maximumSize">
-     <size>
-      <width>40</width>
-      <height>16777215</height>
-     </size>
-    </property>
-    <property name="font">
-     <font>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="mouseTracking">
-     <bool>true</bool>
-    </property>
-    <property name="wrapping">
-     <bool>false</bool>
-    </property>
-    <property name="frame">
-     <bool>true</bool>
-    </property>
-    <property name="buttonSymbols">
-     <enum>QAbstractSpinBox::NoButtons</enum>
-    </property>
-    <property name="keyboardTracking">
-     <bool>true</bool>
-    </property>
-    <property name="maximum">
-     <number>2000</number>
-    </property>
-    <property name="singleStep">
-     <number>10</number>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_48">
-    <property name="geometry">
-     <rect>
-      <x>60</x>
-      <y>115</y>
-      <width>96</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Delay Excimer (μs)</string>
-    </property>
-    <property name="wordWrap">
-     <bool>true</bool>
-    </property>
-   </widget>
   </widget>
   <widget class="QGroupBox" name="groupBox_MCP">
    <property name="geometry">
@@ -4675,36 +4574,11 @@ p, li { white-space: pre-wrap; }
      <string>Phos</string>
     </property>
    </widget>
-   <widget class="QCheckBox" name="chk_openCamera">
-    <property name="geometry">
-     <rect>
-      <x>15</x>
-      <y>120</y>
-      <width>131</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Tahoma</family>
-      <pointsize>8</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="text">
-     <string>Open Camera Control</string>
-    </property>
-    <property name="checked">
-     <bool>false</bool>
-    </property>
-   </widget>
    <zorder>label_26</zorder>
    <zorder>label_27</zorder>
    <zorder>inp_voltPhos</zorder>
    <zorder>inp_voltMCP</zorder>
    <zorder>btn_startMCP</zorder>
-   <zorder>chk_openCamera</zorder>
   </widget>
   <zorder>groupBox_Extraction</zorder>
   <zorder>groupBox_Decelerator</zorder>
