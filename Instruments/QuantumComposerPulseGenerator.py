@@ -94,13 +94,17 @@ class PulseGeneratorController:
 if __name__ == '__main__':
     delGen = PulseGeneratorController()
     #delGen.screenUpdate('ON')
+    import time
     chl = 6
     delGen.switchChl(chl, False) 
     print delGen.readDelay(chl)
+    time.sleep(4)
     delGen.switchChl(chl, True)
+    time.sleep(4)
     dl = float(delGen.readDelay(chl))
     delGen.setDelay(chl, 0.0069)
     print delGen.readDelay(chl)
+    time.sleep(4)
     delGen.setDelay(chl, dl)
     print delGen.readDelay(chl)
     delGen.closeConnection()
