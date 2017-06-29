@@ -65,7 +65,7 @@ class MaxiGauge (object):
         from 230ms to 40ms
         '''
         return self.pressure(i)
-        
+
     def pressure(self, sensor):
         if sensor < 1 or sensor >6: raise MaxiGaugeError('Sensor can only be between 1 and 6. You choose ' + str(sensor))
         reading = self.send('PR%d' % sensor, 1)  ## reading will have the form x,x.xxxEsx <CR><LF> (see p.88)
@@ -79,24 +79,29 @@ class MaxiGauge (object):
 
     def gaugeSwitch(self, sensor, state):
         '''
+        switch single sensor
         not in original github code
         '''
         #SEN [,x,x,x,x,x,x] <CR>[<LF>]
         #Sensors 1 ... 6
         #x = 0 -> No change, 1 -> Off, 2 -> On
         statusAll = list(',0,0,0,0,0,0')
-        ps = self.pressure(4)
+        ps = self.pressure(sensor)
         # 0 - sensor on, 4 - sensor off
         stat = ps.status
+        print stat
+        print state
         if stat != 4 and state == 'OFF':
+            print stat
+            print state
             statusAll[2*sensor - 1] = '1'
             self.send('SEN' + "".join(statusAll))
             print 'Turn gauge #{:d} off'.format(sensor)
         elif stat != 0 and state == 'ON':
             statusAll[2*sensor - 1] = '2'
             self.send('SEN' + "".join(statusAll))
-            print 'Turn gauge #{:d} on'.format(sensor)                   
-              
+            print 'Turn gauge #{:d} on'.format(sensor)
+
     def debugMessage(self, message):
         if self.debug: print(repr(message))
 
@@ -146,10 +151,10 @@ class MaxiGauge (object):
         if len(returncode)>2 and returncode[-3] != C['ACQ']: self.debugMessage('Expecting ACQ or NAK from MaxiGauge but neither were sent.')
         # if no exception raised so far, the interface is just fine:
         return returncode[:-(len(LINE_TERMINATION)+1)]
-        
+
     def disconnect(self):
         self.send(C['ETX'])
-        if hasattr(self, 'connection') and self.connection: 
+        if hasattr(self, 'connection') and self.connection:
             self.connection.close()
 
     def __del__(self): pass
@@ -180,7 +185,7 @@ class MaxiGaugeNAK(MaxiGaugeError):
 
 ### ------- Control Symbols as defined on p. 81 of the english
 ###        manual for the Pfeiffer Vacuum TPG256A  -----------
-C = { 
+C = {
   'ETX': "\x03", # End of Text (Ctrl-C)   Reset the interface
   'CR':  "\x0D", # Carriage Return        Go to the beginning of line
   'LF':  "\x0A", # Line Feed              Advance by one line
@@ -278,13 +283,12 @@ PRESSURE_READING_STATUS = {
 
 
 if __name__ == '__main__':
-    mg = MaxiGauge('COM4')
-    print(mg.checkDevice())
+    mg = MaxiGauge('COM8')
+    #print(mg.checkDevice())
     #print(mg.pressures())
     import time
+    time.sleep(1)
+    mg.gaugeSwitch(3, 'OFF')
     time.sleep(3)
-    mg.gaugeSwitch(4, 'ON')
-    time.sleep(3)
-    mg.gaugeSwitch(5, 'ON')
+    mg.gaugeSwitch(3, 'ON')
     mg.disconnect()
-    
