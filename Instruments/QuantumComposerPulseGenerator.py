@@ -1,4 +1,4 @@
-''' 
+'''
 Controller for Quantum Composer delay generator
 Channels and reference channels are marked on the unit
 mapped COM port to be extracted from device manager
@@ -20,13 +20,13 @@ class PulseGeneratorSimulator:
         '''visa command write function'''
         self.lastCommand = string
 
-    def read(self): 
+    def read(self):
         '''visa command read function'''
         return self.lastCommand
 
     def close(self): pass
 
-   
+
 class PulseGeneratorController:
     '''interface to delay generator'''
     def __init__(self):
@@ -36,7 +36,7 @@ class PulseGeneratorController:
             if sys.platform == 'darwin':
                 raise OSError
             rm = visa.ResourceManager()
-            self.__delayGen = rm.open_resource('ASRL13::INSTR')
+            self.__delayGen = rm.open_resource('ASRL4::INSTR')
             # set termination character (<carriage return><line feed>, <cr><lf>) for QC delay generator
             self.__delayGen.write_termination=u'\r\n'
             self.__delayGen.read_termination=u'\r\n'
@@ -64,16 +64,16 @@ class PulseGeneratorController:
         while 'ok' not in ret:
             try:
                 ret = self.__delayGen.query(':DISPLAY:MODE ' + state)
-            except VisaIOError: pass            
+            except VisaIOError: pass
 
     def switchChl(self, channel, state):
         self.__delayGen.query(':PULS{:d}:STAT {:d}'.format(channel, state))
 
     def setDelay(self, channel, delayVal):
         '''set delay of respective channel'''
-        # delay set in s 
+        # delay set in s
         self.__delayGen.query(":PULS{:d}:DELAY {:1.11f}".format(channel, delayVal))
-     
+
     def readDelay(self, channel):
         '''read delay of respective channel'''
         try:
@@ -84,9 +84,9 @@ class PulseGeneratorController:
 
     def setWidth(self, channel, widthVal):
         '''set delay of respective channel'''
-        # pulse width set in s 
+        # pulse width set in s
         self.__delayGen.query(":PULS{:d}:WIDTH {:1.11f}".format(channel, widthVal))
-        
+
     def closeConnection(self):
         print 'Delay generator released'
         self.__delayGen.close()
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     #delGen.screenUpdate('ON')
     import time
     chl = 6
-    delGen.switchChl(chl, False) 
+    delGen.switchChl(chl, False)
     print delGen.readDelay(chl)
     time.sleep(4)
     delGen.switchChl(chl, True)
