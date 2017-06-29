@@ -11,7 +11,7 @@ class USB87P4Simulator:
     def Open_Com(self, cComPort, dwBaudRate, cData, cParity, cStop): pass
     def Close_Com(self, cPort): pass
     def DCON_Write_AO(self, cComPort, iAddress, iSlot, iChannel, iAOTotalCh, fValue, iCheckSum, iTimeOut): pass
-        
+
 class USB87P4Controller:
     '''interface to USB87P4'''
     def __init__(self):
@@ -36,7 +36,7 @@ class USB87P4Controller:
         self.__cData = ctypes.c_uint8(8)
         self.__iAOTotalCh = ctypes.c_int16(4)
         # com port 7 as in TPS41 layout
-        self.__cComPort = ctypes.c_uint8(7)
+        self.__cComPort = ctypes.c_uint8(3)
 
     def openDevice(self):
         '''hardware initialization'''
@@ -56,35 +56,35 @@ class USB87P4Controller:
         '''close device session'''
         self.__UARTDLL.Close_Com(self.__cComPort)
         print "Connection to analog output device USB-84P4 closed"
-    
+
     def writeAOExtraction(self, outputVoltage):
         '''write scaled analog output to channel 0'''
         iChannel = ctypes.c_int16(0)
         fValue = ctypes.c_float((float(outputVoltage)+3)/500)
         self.__DCONDLL.DCON_Write_AO(self.__cComPort,self.__iAddress, self.__iSlot, iChannel,
         self.__iAOTotalCh, fValue, self.__iCheckSum, self.__iTimeOut)
-    
+
     def writeAOIonOptic1(self, outputVoltage):
         '''write scaled analog output to channel 1'''
         iChannel = ctypes.c_int16(1)
         fValue = ctypes.c_float((float(outputVoltage)+2)/500)
         self.__DCONDLL.DCON_Write_AO(self.__cComPort, self.__iAddress, self.__iSlot, iChannel,
         self.__iAOTotalCh, fValue, self.__iCheckSum, self.__iTimeOut)
-        
+
     def writeAOMCP(self, outputVoltage):
         '''write scaled analog output to channel 2'''
         iChannel = ctypes.c_int16(2)
         fValue = ctypes.c_float((float(outputVoltage)+2)/500)
         self.__DCONDLL.DCON_Write_AO(self.__cComPort,self.__iAddress, self.__iSlot, iChannel,
         self.__iAOTotalCh, fValue, self.__iCheckSum, self.__iTimeOut)
-    
+
     def writeAOPhos(self, outputVoltage):
         '''write scaled analog output to channel 3'''
         iChannel = ctypes.c_int16(3)
         fValue = ctypes.c_float((float(outputVoltage)+4)/500)
         self.__DCONDLL.DCON_Write_AO(self.__cComPort,self.__iAddress, self.__iSlot, iChannel,
         self.__iAOTotalCh, fValue, self.__iCheckSum, self.__iTimeOut)
-         
+
 if __name__ == '__main__':
     analogOut = USB87P4Controller()
     analogOut.openDevice()
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         analogOut.writeAOIonOptic1(j*20)
         analogOut.writeAOMCP(j*30)
         analogOut.writeAOPhos(j*40)
-        time.sleep(8) 
+        time.sleep(8)
     analogOut.writeAOMCP(0)
     analogOut.writeAOExtraction(0)
     analogOut.writeAOPhos(0)
