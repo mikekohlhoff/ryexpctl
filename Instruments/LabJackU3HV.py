@@ -23,12 +23,12 @@ def toDouble(buffer):
     dec, wh = struct.unpack('<Ii', bufferStr)
     return float(wh) + float(dec)/2**32
 
-    
+
 class LabJackU3LJTick(object):
     """
     LabJack Python modules to set the value of DACA and DACB in a LJ-TickDAC
     """
-    
+
     U3 = 3
     U6 = 6
     UE9 = 9
@@ -38,45 +38,45 @@ class LabJackU3LJTick(object):
     U3_DAC_PIN_OFFSET = 4
     EEPROM_ADDRESS = 0x50
     DAC_ADDRESS = 0x12
-    
+
     def __init__(self):
-        print '-----------------------------------------------------------------------------'    
+        print '-----------------------------------------------------------------------------'
         # Set defaults
         self.ainPin = LabJackU3LJTick.AIN_PIN_DEFAULT
         self.dacPin = LabJackU3LJTick.DAC_PIN_DEFAULT
-        
+
         self.loadDevice()
         print 'LabJackTick found, Serial Number: ' + str(self.device.serialNumber)
-     
+
     def loadDevice(self):
         try:
             self.searchForDevices()
             # Determine which device to use
-            if self.u3Available: 
+            if self.u3Available:
                 self.deviceType = LabJackU3LJTick.U3
             else:
                 print "Fatal Error: No LabJacks were found to be connected to your computer"
                 sys.exit()
             self.loadU3(self.deviceType)
-            
+
         except:
             print "Fatal Python error:" + str(sys.exc_info()[1])
             sys.exit()
-    
+
     def searchForDevices(self):
         self.u3Available = len(LabJackPython.listAll(LabJackU3LJTick.U3)) > 0
-        
-    def loadU3(self, deviceType):    
+
+    def loadU3(self, deviceType):
         self.deviceType = deviceType
         self.device = u3.U3()
-            
+
         # Configure pins if U3
         if self.deviceType == LabJackU3LJTick.U3:
             self.device.configIO(FIOAnalog=15, TimerCounterPinOffset=8) # Configures FIO0-2 as analog
-        
+
         # Get the calibration constants
         self.getCalConstants()
-    
+
     def getCalConstants(self):
         sclPin = self.dacPin + LabJackU3LJTick.U3_DAC_PIN_OFFSET
         sdaPin = sclPin + 1
@@ -90,7 +90,7 @@ class LabJackU3LJTick(object):
         self.bOffset = toDouble(response[24:32])
 
         if 255 in response: print "Make sure the LabJackU3LJTick is properly attached"
-    
+
     def setLJTick(self, val, chl):
         """
         Changes DACA and DACB to the amounts specified by the user
@@ -120,16 +120,17 @@ class LabJackU3LJTick(object):
 
     def closeDevice(self):
         if self.device is not None: self.device.close()
-     
+
 if __name__ == '__main__':
     lj = LabJackU3LJTick()
     import time
     lj.setLJTick(0, 'A')
     lj.setLJTick(0, 'B')
-    for j in range(0,150, 10):
+    for j in range(0,1000, 100):
         time.sleep(5)
-        print j 
-        lj.setLJTick(j, 'B')
-        
-    lj.setLJTick(0, 'B')
+        j = float(j)
+        print j/1000
+        lj.setLJTick(j/1000, 'A')
+
+    lj.setLJTick(0, 'A')
     lj.closeDevice()
