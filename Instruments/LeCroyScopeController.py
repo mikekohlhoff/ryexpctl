@@ -9,7 +9,7 @@ import time
 wdf = '!16x 16x H H 1L 4x 4x 4x 4x 4x L 4x 4x 4x 16x 4x 16x 4x L 12x L 16x 4x 2f 8x H 2x f d 8x 48x 48x f 16x 4x 4x 4x H H f H H f f H'
 # COMM_TYPE, COMM_ORDER, WAVE_DESCRIPTOR, WAVE_ARRAY, WAVE_ARRAY_COUNT, FIRST_POINT, VERTICAL_GAIN, VERTICAL_OFFSET, NOMINAL_BITS,
 # HORIZ_INTERVAL, HORIZ_OFFSET, HORIZ_UNCERTAINTY, TIMEBASE, VERT_COUPLING, PROBE_ATT, FIXED_VERT_GAIN, BW_LIMIT, VERTICAL_VERNIER,
-# ACQ_VERT+PFFSET, WAVE_SOURCE 
+# ACQ_VERT+PFFSET, WAVE_SOURCE
 wft = namedtuple('waveformDesc', 'COMM_TYPE, COMM_ORDER, WAVE_DESCRIPTOR, WAVE_ARRAY,\
                   WAVE_ARRAY_COUNT, FIRST_POINT, VERTICAL_GAIN, VERTICAL_OFFSET, NOMINAL_BITS,\
                   HORIZ_INTERVAL, HORIZ_OFFSET, HORIZ_UNCERTAINTY, TIMEBASE, VERT_COUPLING,\
@@ -20,7 +20,7 @@ class LeCroyScopeSimulatorVISA:
     def __init__(self):
         self.lastCommand = None
 
-    def read(self): 
+    def read(self):
         '''visa command read function'''
         return self.lastCommand
 
@@ -28,7 +28,7 @@ class LeCroyScopeSimulatorVISA:
         if self.lastCommand == 'C1:WF? DESC;':
             data = 16*'.' + struct.pack(wdf, 0, 0, 346, 8000, 1000, 0, 1, 0, 11, 1, 0, 0, 1, 1, 1, 1,1,1, 1, 1)
             return data
-            
+
         elif self.lastCommand == 'C2:WF? DESC;':
             data = 16*'.' + struct.pack(wdf, 0, 0, 346, 8000, 1000, 0, 1, 0, 11, 1, 0, 0, 1, 1, 1, 1,1,1, 1, 1)
             return data
@@ -79,19 +79,19 @@ class LeCroyScopeControllerVISA:
 
     def trigModeNormal(self):
         self.__scope.write('TRMD NORMAL')
-        
+
     def setTrigOffset(self, offset):
-        '''Time on scope display between trigger and left edge''' 
+        '''Time on scope display between trigger and left edge'''
         self.__scope.write("VBS 'app.acquisition.Horizontal.HorOffset=" + str(offset) + "'")
-       
+
     def dispOff(self):
         self.__scope.write('DISP OFF')
         print 'Scope display off'
-        
+
     def dispOn(self):
         self.__scope.write('DISP ON')
         print 'Scope display on'
-                
+
     def setSweeps(self, numberSweeps):
         '''set number of sweeps for averaging'''
         self.__scope.write("VBS 'app.acquisition.C1.AverageSweeps=" + str(numberSweeps) + "'")
@@ -117,9 +117,9 @@ class LeCroyScopeControllerVISA:
         self.yscaleC2 = wfd.VERTICAL_GAIN
         self.yoffC2 = wfd.VERTICAL_OFFSET
         numpointsC2 = wfd.WAVE_ARRAY_COUNT
-        self.timeincrC2 = wfd.HORIZ_INTERVAL 
+        self.timeincrC2 = wfd.HORIZ_INTERVAL
         self.trigOffsetC2 =  wfd.HORIZ_OFFSET
-        
+
     def armwaitread(self):
         '''main function for readout in GUI'''
         self.__scope.write('ARM;WAIT;C1:WF? DAT1')
@@ -157,14 +157,14 @@ class LeCroyScopeControllerVISA:
     def buzzBeep(self):
         self.__scope.write("BUZZ BEEP")
         print 'Measurement finished'
-    
+
 
 class LeCroyScopeSimulatorDSO:
     '''simulator for DSO controller, if win32com is not present'''
     def __init__(self):
         self.lastCommand = None
 
-    def ReadString(self, readLen): 
+    def ReadString(self, readLen):
         '''visa command read function'''
         return self.lastCommand
 
@@ -207,18 +207,18 @@ class LeCroyScopeControllerDSO:
         self.__scope.WriteString('*CAL?', 1)
         print 'Calibrating scope ...'
         time.sleep(8)
-        
+
     def trigModeNormal(self):
         self.__scope.WriteString('TRMD NORMAL', 1)
 
     def dispOff(self):
         self.__scope.WriteString('DISP OFF', 1)
         print 'Turn scope display off'
-        
+
     def dispOn(self):
         self.__scope.WriteString('DISP ON', 1)
         print 'Turn scope display on'
-                
+
     def setSweeps(self, numberSweeps):
         '''set number of sweeps for averaging'''
         self.__scope.WriteString("VBS 'app.acquisition.C1.AverageSweeps=" + str(numberSweeps) + "'", 1)
@@ -247,14 +247,14 @@ class LeCroyScopeControllerDSO:
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C2.Out.Result.HorizontalPerStep", 1)
         self.timeincrC2 = float(self.__scope.ReadString(256))
         self.__scope.WriteString("VBS? 'return = app.Acquisition.C2.Out.Result.HorizontalOffset", 1)
-        self.trigOffsestC2 = float(self.__scope.ReadString(256))       
-       
+        self.trigOffsestC2 = float(self.__scope.ReadString(256))
+
     def armwaitread(self):
         self.__scope.WriteString("ARM;WAIT;C1:WF? DAT1", True)
         data = self.__scope.ReadBinary(self.numpointsC1)
         waveform = 1.*(np.fromstring(data, dtype=np.dtype('int8')).astype('float'))*self.yscaleC1-self.yoffC1
         return waveform
-               
+
     def getTimeTrace(self):
         waveform =  self.__scope.GetScaledWaveform("C1", self.numpointsC1, 0)
         plotTime = 1.*np.arange(np.size(waveform))*self.timeincrC1
@@ -262,7 +262,7 @@ class LeCroyScopeControllerDSO:
 
     def invertTrace(self, chl, boolInv):
         self.__scope.WriteString("VBS? 'app.Acquisition." + chl + ".Invert=" + str(boolInv) + "'", 1)
-        
+
     def closeConnection(self):
         self.__scope.Disconnect()
 
@@ -270,31 +270,31 @@ class LeCroyScopeControllerDSO:
         self.__scope.WriteString("BUZZ BEEP", 1)
         print 'Measurement finished'
 
-		
-if __name__ == '__main__':	
+
+if __name__ == '__main__':
     scope = LeCroyScopeControllerVISA()
-    #scope.initialize()
-    scope.setSweeps(1)
+    scope.initialize()
+    scope.setSweeps(10)
     scope.setScales()
     scope.invertTrace(True)
     time.sleep(2)
     scope.invertTrace(False)
     time.sleep(1)
     scope.dispOff()
-    accumT = 0
-    for i in xrange(1,20):
-        start = time.clock()
-        data = scope.armwaitread()
-        accumT = accumT + (time.clock() - start)*1000
-        print (accumT/i)
-    from matplotlib import pyplot as plt
-    plt.figure(1)
-    plt.plot(data)
-    scope.trigModeNormal()
-    plt.figure(2)
-    t, data = scope.getTimeTrace()
-    plt.plot(t, data)
-    plt.show()
+    # accumT = 0
+    # for i in xrange(1,20):
+    #     start = time.clock()
+    #     data = scope.armwaitread()
+    #     accumT = accumT + (time.clock() - start)*1000
+    #     print (accumT/i)
+    # from matplotlib import pyplot as plt
+    # plt.figure(1)
+    # plt.plot(data)
+    # scope.trigModeNormal()
+    # plt.figure(2)
+    # t, data = scope.getTimeTrace()
+    # plt.plot(t, data)
+    # plt.show()
     scope.buzzBeep()
     scope.dispOn()
     scope.closeConnection()
