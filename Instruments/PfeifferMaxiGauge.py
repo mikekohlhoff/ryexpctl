@@ -89,11 +89,7 @@ class MaxiGauge (object):
         ps = self.pressure(sensor)
         # 0 - sensor on, 4 - sensor off
         stat = ps.status
-        print stat
-        print state
         if stat != 4 and state == 'OFF':
-            print stat
-            print state
             statusAll[2*sensor - 1] = '1'
             self.send('SEN' + "".join(statusAll))
             print 'Turn gauge #{:d} off'.format(sensor)
@@ -285,10 +281,10 @@ PRESSURE_READING_STATUS = {
 if __name__ == '__main__':
     mg = MaxiGauge('COM8')
     #print(mg.checkDevice())
-    #print(mg.pressures())
-    import time
-    time.sleep(1)
-    mg.gaugeSwitch(3, 'OFF')
-    time.sleep(3)
-    mg.gaugeSwitch(3, 'ON')
+    print(mg.pressures())
+    #import time
+    #time.sleep(1)
+    #mg.gaugeSwitch(3, 'OFF')
+    #time.sleep(3)
+    #mg.gaugeSwitch(3, 'ON')
     mg.disconnect()
