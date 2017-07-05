@@ -7,3 +7,4 @@ Instruments/*.pyc
 storeMCPPhos.pckl
 lastGateTimes.pckl
 *.pckl
+*.ui.autosave
