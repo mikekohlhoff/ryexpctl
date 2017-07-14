@@ -8,8 +8,11 @@ import time
 from pyvisa.errors import VisaIOError
 from pyvisa.resources import MessageBasedResource
 import argparse
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(description = "Move translation stage in the x-direction (sideways) by arg_in(mm)")
 parser.add_argument('--distance', '-d', required=True, type=int)
+if len(sys.argv) == 1:
+    parser.print_help()
+    sys.exit(1)
 args = parser.parse_args()
 
 class MotorControllerXAxis:

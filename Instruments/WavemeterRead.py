@@ -5,14 +5,14 @@ linked serial port
 
 import sys
 import os
-import ctypes
 import time
 from pyvisa.errors import VisaIOError
+import serial
 
 class WavemeterReadSimulator:
     '''simulator, if device, visa not present or OS not Windows'''
     def __init__(self):
-        self.lastCommand = None
+        self.lastCommand = "1_xxx.xxxxxx2_xxx.xxxxxx"
 
     def write(self, string):
         '''visa command write function'''
@@ -30,31 +30,68 @@ class WavemeterReadController:
         print '-----------------------------------------------------------------------------'
         try:
             import visa
+            from pyvisa.resources import MessageBasedResource
             if sys.platform == 'darwin':
                 raise OSError
             rm = visa.ResourceManager()
-            self.__fnGen = rm.open_resource('ASRL6::INSTR')
-            print 'Wavemeter ouput accessed, connection established with:'
-            print self.__fnGen.query('*IDN?')
+            self.__connection = rm.open_resource('ASRL6::INSTR')
+            self.__connection.read_termination='\r'
+            self.__connection.baud_rate = 9600
+            # ascii encoding throws error
+            self.__connection.encoding = "latin-1"
+            self.__connection.read()
+            print 'Wavemeter ouput accessed'
 
         except OSError:
-            self.__fnGen = WavemeterReadSimulator()
+            self.__connection = WavemeterReadSimulator()
             print 'OSError, enter simulation mode for wavemeter'
-        except ImportError:
-            self.__fnGen = WavemeterReadSimulator()
+        except (ImportError, VisaIOError) as err:
+            self.__connection = WavemeterReadSimulator()
             print 'Hardware not present, enter simulation mode for wavemeter'
 
-    def getWavelength(self, chl):
-        """Enable function output"""
-        self.__fnGen.write("OUTP{:d} ON".format(chl))
+    def getWavelength(self):
+        """Return readings from wavemeter
+           When the same wavelength is returned, repeat reading
+        """
+        # if readout delay is high, overrun error can occur
+        asrl_read = False
+        while not asrl_read:
+            try:
+                wl1 = self.__connection.read()
+                wl2 = self.__connection.read()
+                asrl_read = True
+            except VisaIOError:
+                pass
 
+        # treat case when both readings are the same wavelength
+        if "1_" in wl1 and "2_" in wl2:
+            UV = wl1
+            IR = wl2
+        elif "1_" in wl2 and "2_" in wl1:
+            UV = wl2
+            IR = wl1
+        else: pass
+            #UV, IR = self.getWavelength()
+
+        # truncate wavelength from prefix on, assume 6 decimals
+        if "1_" in UV:
+            UV = UV.split("1_")[1][:10]
+            IR = IR.split("2_")[1][:10]
+
+        return [UV, IR]
 
     def closeConnection(self):
-        print 'Wavemeter readout closed'
-        self.__fnGen.close()
+        print 'Wavemeter readout connection closed'
+        self.__connection.close()
 
 if __name__ == '__main__':
     import time
+    import random
     wvm = WavemeterReadController()
-    time.sleep(2)
+    for i in range(50):
+        UV, IR = wvm.getWavelength()
+        print "UV wavlength: {:s}nm".format(UV)
+        print "IR wavlength: {:s}nm".format(IR)
+        print "---------------------------"
+        time.sleep(random.uniform(0.1,3))
     wvm.closeConnection()

@@ -44,13 +44,12 @@ class WaveformGeneratorController:
             self.__fnGen = WaveformGeneratorSimulator()
             print 'Hardware not present, enter simulation mode for delay generator'
 
-    def outputOn(self, chl):
-        """Enable function output"""
-        self.__fnGen.write("OUTP{:d} ON".format(chl))
-
-    def outputOff(self, chl):
-        """Disable function output"""
-        self.__fnGen.write("OUTP{:d} OFF".format(chl))
+    def switchOutput(self, chl, state):
+        """Enable/diable function output"""
+        if state:
+            self.__fnGen.write("OUTP{:d} ON".format(chl))
+        else:
+            self.__fnGen.write("OUTP{:d} OFF".format(chl))
 
     def setPulse(self, channel, width, amplitude):
         """Set pulse shape of respective channel"""
@@ -89,7 +88,7 @@ if __name__ == '__main__':
     time.sleep(2)
     fnGen.setPulse(1, 5E-6, 10E-3)
     time.sleep(2)
-    fnGen.outputOff(1)
+    fnGen.switchOutput(1, False)
     time.sleep(2)
-    fnGen.outputOn(1)
+    fnGen.switchOutput(1, True)
     fnGen.closeConnection()

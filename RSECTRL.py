@@ -28,6 +28,8 @@ from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
 from Instruments.LabJackU3HV import LabJackU3LJTick
 from Instruments.PIDController import PIDControl
+from Instruments.Agilent33510B import WaveformGeneratorController
+from Instruments.WavemeterRead import WavemeterReadController
 
 class RSEControl(QtGui.QMainWindow, ui_form):
     def __init__(self, parent=None):
@@ -37,7 +39,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         # monitor constants, hasattr(thread) only works before first creation
         self.scopeMon = False
         self.scanMode = False
-        self.gateInt = False
         self.setPotBool = False
         # if program crashes, reset MCP/Phos analog output
         self.shutdownStatus = [False, 0, 0]
@@ -48,16 +49,12 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_avgSweeps.editingFinished.connect(self.inp_avgSweeps_changed)
         self.btn_startDataAcq.clicked.connect(self.btn_startDataAcq_clicked)
         self.chk_readScope.clicked.connect(self.chk_readScope_clicked)
-        self.chk_gateInt.stateChanged.connect(self.chk_gateInt_stateChanged)
         self.inp_gate1Start.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate1Stop.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate2Start.valueChanged.connect(self.setCursorsScopeWidget)
         self.inp_gate2Stop.valueChanged.connect(self.setCursorsScopeWidget)
-        #self.ScopeDisplay.line1.sigPositionChanged.connect(self.setExtractionDelay)
         self.inp_extractDelay.valueChanged.connect(self.setExtractionDelay)
-        self.inp_qswitchDelay.valueChanged.connect(self.setQSwitchDelay)
         self.btn_startMCP.clicked.connect(self.startMCPPhos)
-        self.chk_connectLasers.clicked.connect(self.connectLasers)
         self.inp_voltMCP.valueChanged.connect(self.saveMCPVoltage)
         self.inp_voltPhos.valueChanged.connect(self.saveMCPVoltage)
         self.inp_voltExtract.valueChanged.connect(lambda: self.analogIO.writeAOExtraction(self.inp_voltExtract.value()))
@@ -65,12 +62,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.valueChanged.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
         self.chk_Excimer.stateChanged.connect(lambda: self.pulseGen.switchChl(2, self.chk_Excimer.isChecked()))
-        self.chk_LaserUV.stateChanged.connect(lambda: self.pulseGen.switchChl(5, self.chk_LaserUV.isChecked()))
-        self.chk_LaserVUV.stateChanged.connect(lambda: self.pulseGen.switchChl(4, self.chk_LaserVUV.isChecked()))
         self.chk_PulseValve.stateChanged.connect(self.pulseValveClicked)
         self.chk_ExtractionPulse.stateChanged.connect(lambda: self.pulseGen.switchChl(6, self.chk_ExtractionPulse.isChecked()))
-        self.inp_setWL_UV.editingFinished.connect(lambda: self.setWavelengths('UV'))
-        self.inp_setWL_VUV.editingFinished.connect(lambda: self.setWavelengths('VUV'))
         self.scanModeSelect.currentIndexChanged.connect(lambda: self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex()))
         self.tabWidget_ScanParam.currentChanged.connect(lambda: self.scanModeSelect.setCurrentIndex(self.tabWidget_ScanParam.currentIndex()))
         self.inp_setDelayLasers.valueChanged.connect(lambda: self.pulseGen.setDelay(4, self.inp_setDelayLasers.value()*1E-6))
@@ -78,10 +71,11 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_setDelayLasers.valueChanged.connect(self.calcRydVelocity)
         self.chk_sourceControl.clicked.connect(self.switchPressThread)
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
-        self.ino_voltSurf.valueChanged.connect(lambda: self.labjack.setLJTick(self.inp_voltSurf.value(), 'B'))
+        self.inp_voltSurf.valueChanged.connect(self.setSurfaceBias)
+        self.chk_SurfaceBias.clicked.connect(lambda: self.wfGen.switchOutput(1, self.chk_SurfaceBias.isChecked()))
 
         # defaults
-        self.saveFilePath = 'C:\\Users\\tpsgroup\\Desktop\\Documents\\Data UCL\\raw data\\2017'
+        self.saveFilePath = 'C:\\Users\\rse\\Documents\\Documents\\Data UCL\\raw data\\2017'
         self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
@@ -91,16 +85,9 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.groupBox_TOF.setEnabled(False)
         self.out_readMainGauge.setText('Gauge turned off')
         self.out_readSourceGauge.setText('Read out not active')
-        self.out_gateInt.setText('Inactive')
-        self.inp_setWL_UV.setEnabled(False)
-        self.inp_setWL_VUV.setEnabled(False)
         currentIndex=self.tabWidget_ScanParam.currentIndex()
         currentWidget=self.tabWidget_ScanParam.currentWidget()
         self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex())
-        self.chk_LaserUV.setChecked(True)
-        self.chk_LaserVUV.setChecked(True)
-        self.pulseGen.switchChl(1, False)
-        self.pulseGen.switchChl(6, False)
         self.inp_setDelayLasers.setValue(float(self.pulseGen.readDelay(4))*1E6)
         self.calcRydVelocity()
         self.LabJack.setLJTick(0, 'A')
@@ -117,11 +104,22 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
+    def setExtractionDelay(self):
+        if self.inp_extractDelay.hasFocus():
+            val = self.inp_extractDelay.value()*1E-6
+            #self.ScopeDisplay.line1.setValue(val + self.scopeThread.scope.trigOffsetC1)
+            self.pulseGen.setDelay(6, float(('{:1.11f}').format(val)))
+
+    def pulseValveClicked(self):
+        self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked())
+
+    def setSurfaceBias(self):
+        print "TODO"
+
     def calcRydVelocity(self):
         '''Calculate atom beam velocity by flight time'''
         # thesis Eric 46+/-0.8cm
         dist = 0.46
-        self.out_velSurf.setText('{:d}'.format(int((0.46/(self.inp_setDelayLasers.value()*1E-6))*math.sin(math.radians(20)))))
         # lab frame velocity
         self.out_velLab.setText('{:d}'.format(int((dist/(self.inp_setDelayLasers.value()*1E-6)))))
         self.velIn = dist/(self.inp_setDelayLasers.value()*1E-6)
@@ -191,8 +189,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.scope.setSweeps(self.inp_avgSweeps.value())
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
-            #self.ScopeDisplay.line1.setMovable(False)
-            self.chk_gateInt.setChecked(False)
             self.scope.dispOn()
             self.scope.invertTrace(True)
 
@@ -206,9 +202,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         file.close()
         if self.scanMode:
             self.scanMode = False
-            if str(self.scanModeSelect.currentText()) == 'Wavelength' and not(self.chk_connectLasers.isChecked()):
-                QtGui.QMessageBox.critical(self, 'Sirah Laser Error', "Lasers not connected.", QtGui.QMessageBox.Ok)
-                return
             if self.inp_avgSweeps.value() < 2:
                 QtGui.QMessageBox.critical(self, 'Data Acquistion Warning', "Average needs to be at least 2.", QtGui.QMessageBox.Ok)
                 return
@@ -275,13 +268,14 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.deviceRelax(0.8)
         elif self.scanParam == 'Wavelength':
             self.scanParam = self.scanParam + ' ' + str(self.laserSelectScan.currentText())
-            self.startParam = self.inp_startWL.value()
-            self.stopParam = self.inp_stopWL.value()
-            self.stepParam = self.inp_incrWL.value()
+            self.startParam = self.inp_startWLVolt.value()
+            self.stopParam = self.inp_stopWLVolt.value()
+            self.stepParam = self.inp_incrWLVolt.value()
             self.setParam = self.startParam
             self.setOutParam = self.out_WLMon
-            if 'VUV' in self.scanParam:
+            if 'IR' in self.scanParam:
                 self.beforescanParam = self.inp_setWL_VUV.value()
+                # TODO
                 self.devParam = self.VUVLaser
             else:
                 self.beforescanParam = self.inp_setWL_UV.value()
@@ -376,7 +370,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.dataBuf2.append(data2)
         self.cursorPos = self.ScopeDisplay.getCursors()
         self.setGateField(self.cursorPos)
-        if len(self.dataBuf1) >= self.scopeThread.avgSweeps and not(self.gateInt):
+        if len(self.dataBuf1) >= self.scopeThread.avgSweeps:
             # deque trace buffer when average shots is reached
             dataIn1 = self.dataBuf1[0:self.scopeThread.avgSweeps]
             dataIn2 = self.dataBuf2[0:self.scopeThread.avgSweeps]
@@ -426,22 +420,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                             self.setParam += self.scanDirection*self.stepParam
                         self.scanSetDevice()
                         self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
-        elif self.scopeMon and self.gateInt:
-             # gate 1 integration
-             # don't deque for < avgSweeps, calculate average and error from whole buffer
-            if len(self.dataBuf1) > self.scopeThread.avgSweeps:
-                del self.dataBuf1[0]
-            dataIn = self.dataBuf1[:]
-            data = self.ScopeDisplay.plotMonGate(dataIn, self.scopeThread.scope.timeincrC1)
-            cPos = [round(self.cursorPos[0]/self.scopeThread.scope.timeincrC1),
-                   round(self.cursorPos[1]/self.scopeThread.scope.timeincrC1)]
-            self.gateIntVal = sum(data[cPos[0]:cPos[1]])
-            # std deviation for average
-            dataErr = np.vstack(dataIn)
-            err = np.std(dataIn, axis=0)
-            # error propagation
-            self.gateIntErr = np.sqrt(sum(np.square(err[cPos[0]:cPos[1]])))
-            self.out_gateInt.setText('{:.2f} '.format(self.gateIntVal) + QtCore.QString(u'±') + ' {:.2f}'.format(self.gateIntErr))
 
     def deviceRelax(self, sleeptime):
         # allow for e.g. power supplies to settle potentials
@@ -466,7 +444,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                 self.setLaser.start()
                 self.out_WLMon.setText('{:3.4f}'.format(self.setParam))
                 return
-            elif not self.scanMode and 'VUV' in self.scanParam:
+            elif not self.scanMode and 'IR' in self.scanParam:
                 self.setLaser = LaserThread(self.devParam, self.setParam, self.inp_setWL_VUV)
                 self.setLaser.start()
                 self.out_WLMon.setText('{:3.4f}'.format(self.setParam))
@@ -554,20 +532,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                       footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n'))
         self.saveFilePath = os.path.dirname(str(savePath))
 
-    def chk_gateInt_stateChanged(self):
-        '''integrate 1 gate to append to data acq file'''
-        # set parameters for dataAcquisition()
-        self.gateInt = self.chk_gateInt.isChecked()
-        if self.gateInt:
-            # get average from scope, not data eval
-            self.btn_startDataAcq.setEnabled(False)
-            self.out_gateInt.setText('0')
-            print 'Integrate TOF gate 1'
-        else:
-            self.scopeThread.avgSweeps = 1
-            self.inp_avgSweeps.setValue(1)
-            self.out_gateInt.setText('Inactive')
-            self.btn_startDataAcq.setEnabled(True)
+
 
     def setGateField(self, cursorPos):
         # convert to mus
@@ -587,18 +552,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                                 self.inp_gate2Start.value(), self.inp_gate2Stop.value()])
         self.ScopeDisplay.setCursors(1E-6*cursorPos)
 
-    def setExtractionDelay(self):
-        if self.inp_extractDelay.hasFocus():
-            val = self.inp_extractDelay.value()*1E-6
-            #self.ScopeDisplay.line1.setValue(val + self.scopeThread.scope.trigOffsetC1)
-            self.pulseGen.setDelay(6, float(('{:1.11f}').format(val)))
-
-    def setQSwitchDelay(self):
-        if self.inp_qswitchDelay.hasFocus():
-            val = (self.inp_qswitchDelay.value()*1E-9)*-1
-            self.pulseGen.setDelay(5, float(('{:1.11f}').format(val)))
-            self.calcRydVelocity()
-
     def centerWindow(self):
         frm = self.frameGeometry()
         win = QtGui.QDesktopWidget().availableGeometry().center()
@@ -616,8 +569,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.groupBox_Decelerator.setEnabled(boolEnbl)
         self.scanModeSelect.setEnabled(boolEnbl)
         self.inp_fileName.setEnabled(boolEnbl)
-        self.chk_gateInt.setEnabled(boolEnbl)
-        self.out_gateInt.setEnabled(boolEnbl)
 
     def enableControlsScope(self, boolEnbl):
         # when starting up scan controls locked, only when scope read out activated
@@ -637,49 +588,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                 self.dataBuf1 = []
                 self.dataBuf2 = []
 
-    def connectLasers(self):
-        if self.chk_connectLasers.isChecked():
-            self.UVLaser = SirahLaserController('UV')
-            if self.UVLaser.OpenLaser():
-                QtGui.QMessageBox.warning(self, 'Sirah Laser Error',
-                "Close Sirah Control interface for UV laser.", QtGui.QMessageBox.Ok)
-                self.laserErr = True
-                self.chk_connectLasers.setChecked(False)
-                return
-            self.VUVLaser = SirahLaserController('VUV')
-            if self.VUVLaser.OpenLaser():
-                QtGui.QMessageBox.warning(self, 'Sirah Laser Error',
-                "Close Sirah Control interface for VUV laser.", QtGui.QMessageBox.Ok)
-                self.laserErr = True
-                self.chk_connectLasers.setChecked(False)
-                self.UVLaser.CloseLaser()
-                return
-            else:
-                self.inp_setWL_UV.setEnabled(True)
-                self.inp_setWL_VUV.setEnabled(True)
-                self.inp_setWL_UV.setValue(self.UVLaser.GetWavelength())
-                self.inp_setWL_VUV.setValue(self.VUVLaser.GetWavelength())
-                self.laserErr = False
 
-        elif not(self.chk_connectLasers.isChecked()) and not(self.laserErr):
-            self.UVLaser.CloseLaser()
-            self.VUVLaser.CloseLaser()
-            self.inp_setWL_UV.setEnabled(False)
-            self.inp_setWL_VUV.setEnabled(False)
-        else: pass
-
-    def setWavelengths(self, laser):
-        if laser == 'UV' and self.inp_setWL_UV.hasFocus():
-            self.setLaser = LaserThread(self.UVLaser, self.inp_setWL_UV.value(), self.inp_setWL_UV)
-            self.setLaser.start()
-
-        elif laser == 'VUV' and self.inp_setWL_VUV.hasFocus():
-            self.setLaser = LaserThread(self.VUVLaser, self.inp_setWL_VUV.value(), self.inp_setWL_VUV)
-            self.setLaser.start()
-
-    def pulseValveClicked(self):
-        self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked())
-        #if not self.chk_PulseValve.isChecked(): self.chk_sourceControl.setCheckState(QtCore.Qt.Unchecked)
 
     def startPressThread(self):
         '''create maxi gauge thread and _run() without feedback loop'''
@@ -787,6 +696,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.MaxiGauge = MaxiGauge('COM4')
         # Chl A: PID controller
         self.LabJack = LabJackU3()
+        self.wfGen = WaveformGeneratorController()
         self.startPressThread()
         print '-----------------------------------------------------------------------------'
 
@@ -812,9 +722,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.PressureThreadData.ReadActive = False
             time.sleep(0.1)
             self.MaxiGauge.disconnect()
-        if self.chk_connectLasers.isChecked():
-            self.UVLaser.CloseLaser()
-            self.VUVLaser.CloseLaser()
         print 'Releasing controllers:'
         self.analogIO.closeDevice()
         self.LabJack.closeDevice()
