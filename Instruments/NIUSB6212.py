@@ -1,60 +1,46 @@
 '''
-Interface to read out wavemeter accessed via
-linked serial port
+Interface to NI USB-6212 analog I/O conroller
 '''
-
 import sys
-import os
-import ctypes
 import time
-from pyvisa.errors import VisaIOError
-
-class AnalogOutSimulator:
-    '''simulator, if device, visa not present or OS not Windows'''
-    def __init__(self):
-        self.lastCommand = None
-
-    def write(self, string):
-        '''visa command write function'''
-        self.lastCommand = string
-
-    def read(self):
-        '''visa command read function'''
-        return self.lastCommand
-
-    def close(self): pass
+import ctypes
 
 class AnalogOutController:
     '''interface to serial port wavemeter output'''
     def __init__(self):
         print '-----------------------------------------------------------------------------'
         try:
-            import visa
             if sys.platform == 'darwin':
                 raise OSError
-            rm = visa.ResourceManager()
-            self.__fnGen = rm.open_resource('ASRL9::INSTR')
-            print 'Analog output device found, connection established with:'
-            print self.__fnGen.query('*IDN?')
-
-        except OSError:
-            self.__fnGen = WavemeterReadSimulator()
-            print 'OSError, enter simulation mode for wavemeter'
+            import PyDAQmx
+            self.task = PyDAQmx.Task()
+            minVal = -5.0
+            maxVal = 5.0
+            self.task.CreateAOVoltageChan("/Dev1/ao0", "", minVal, maxVal, PyDAQmx.DAQmx_Val_Volts, None)
+            print 'Analog output NIDAQmx device driver found'
         except ImportError:
-            self.__fnGen = WavemeterReadSimulator()
-            print 'Hardware not present, enter simulation mode for wavemeter'
+            print 'Device driver for NIDAQmx not present'
 
-    def getWavelength(self, chl):
-        """Enable function output"""
-        self.__fnGen.write("OUTP{:d} ON".format(chl))
+    def setVoltageOut(self, val):
+        """Enable analog output to channel AO0"""
+        self.task.StartTask()
+        # int32 DAQmxWriteAnalogScalarF64 (TaskHandle taskHandle, bool32 autoStart, \\
+        # float64 timeout, float64 value, bool32 *reserved);
+        # timeout = 0 attempt once
+        err = self.task.WriteAnalogScalarF64(1, 0.0, val, None)
+        if err != None:
+            print "Error in analog writing operation occurred with code: {:s}".format(err)
+        self.task.StopTask()
 
-
-    def closeConnection(self):
-        print 'Wavemeter readout closed'
-        self.__fnGen.close()
+    def closeDevice(self):
+        self.task.ClearTask()
 
 if __name__ == '__main__':
     import time
-    wvm = WavemeterReadController()
+    NIAO = AnalogOutController()
+    NIAO.setVoltageOut(1.0)
     time.sleep(2)
-    wvm.closeConnection()
+    NIAO.setVoltageOut(2.0)
+    time.sleep(2)
+    NIAO.setVoltageOut(0.0)
+    NIAO.closeDevice()
