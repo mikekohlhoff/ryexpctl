@@ -107,4 +107,5 @@ if __name__ == '__main__':
     time.sleep(2)
     delGen.setDelay(chl, dl)
     print delGen.readDelay(chl)
+    delGen.switchChl(chl, False)
     delGen.closeConnection()

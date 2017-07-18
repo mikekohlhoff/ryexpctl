@@ -281,7 +281,12 @@ PRESSURE_READING_STATUS = {
 if __name__ == '__main__':
     mg = MaxiGauge('COM8')
     #print(mg.checkDevice())
-    print(mg.pressures())
+    print(mg.pressures()[2])
+    print(mg.pressures()[3])
+    print(mg.pressures()[4])
+    print(mg.pressures()[5])
+    ps = mg.pressureSensor(3)
+    print ps[0], ps[1], ps[3]
     #import time
     #time.sleep(1)
     #mg.gaugeSwitch(3, 'OFF')

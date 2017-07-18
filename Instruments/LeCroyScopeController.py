@@ -73,9 +73,9 @@ class LeCroyScopeControllerVISA:
         print "Scope connection established with device ID:"
         print(self.__scope.query("*IDN?"))
         # do a calibration
-        self.__scope.write('*CAL?')
-        print 'Calibrating scope ...'
-        time.sleep(8)
+        #self.__scope.write('*CAL?')
+        #print 'Calibrating scope ...'
+        #time.sleep(8)
 
     def trigModeNormal(self):
         self.__scope.write('TRMD NORMAL')
