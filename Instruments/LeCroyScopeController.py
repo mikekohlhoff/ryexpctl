@@ -56,7 +56,8 @@ class LeCroyScopeControllerVISA:
             self.__scope = rm.open_resource("VICP::169.254.201.2::INSTR", resource_pyclass=MessageBasedResource)
             # CORD LO for intel based computers, CORD HI default
             # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
-            self.__scope.write('WFSU SP,1,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CHDR OFF;CORD HI')
+            # SP = sparsing
+            self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CHDR OFF;CORD HI')
             # clear registers, sweepes and turn of auto cal and leave scope in normal trigger mode
             self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
 
@@ -121,11 +122,15 @@ class LeCroyScopeControllerVISA:
         self.trigOffsetC2 =  wfd.HORIZ_OFFSET
 
     def armwaitread(self):
-        '''main function for readout in GUI'''
+        '''main function for readout in GUI
+           read_raw() doesn't appear to add overhead
+           repition rate limitations on scope side
+        '''
         self.__scope.write('ARM;WAIT;C1:WF? DAT1')
         data1 = self.__scope.read_raw()
         self.__scope.write('C2:WF? DAT1')
         data2 = self.__scope.read_raw()
+        # numpy computation doesn't decrease reading rate
         datC1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
         datC2 = 1.*(np.fromstring(data2[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
         return [datC1, datC2]
@@ -147,7 +152,7 @@ class LeCroyScopeControllerVISA:
         self.__scope.write("VBS? 'app.Acquisition.C2.Invert=" + str(boolInv) + "'")
         time.sleep(0.5)
         if boolInv:
-            print 'Invert scope trace'
+            print 'Scope trace inverted'
         else:
             print 'Scope trace non-inverted'
 
@@ -204,9 +209,9 @@ class LeCroyScopeControllerDSO:
         print "Scope connection established with device ID:"
         print(self.__scope.ReadString(256))
         # do a calibration
-        self.__scope.WriteString('*CAL?', 1)
-        print 'Calibrating scope ...'
-        time.sleep(8)
+        #self.__scope.WriteString('*CAL?', 1)
+        #print 'Calibrating scope ...'
+        #time.sleep(8)
 
     def trigModeNormal(self):
         self.__scope.WriteString('TRMD NORMAL', 1)

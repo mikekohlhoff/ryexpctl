@@ -62,22 +62,21 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.inp_voltOptic1.valueChanged.connect(lambda: self.analogIO.writeAOIonOptic1(self.inp_voltOptic1.value()))
         self.inp_voltMCP.valueChanged.connect(lambda: self.analogIO.writeAOMCP(self.inp_voltMCP.value()))
         self.inp_voltPhos.valueChanged.connect(lambda: self.analogIO.writeAOPhos(self.inp_voltPhos.value()))
-
         self.chk_PulseValve.stateChanged.connect(self.pulseValveClicked)
         self.chk_ExtractionPulse.stateChanged.connect(lambda: self.pulseGen.switchChl(2, self.chk_ExtractionPulse.isChecked()))
         self.scanModeSelect.currentIndexChanged.connect(lambda: self.tabWidget_ScanParam.setCurrentIndex(self.scanModeSelect.currentIndex()))
         self.tabWidget_ScanParam.currentChanged.connect(lambda: self.scanModeSelect.setCurrentIndex(self.tabWidget_ScanParam.currentIndex()))
-
-
         self.chk_sourceControl.clicked.connect(self.switchPressThread)
         self.sliderSource.sliderMoved.connect(self.setSliderVoltOut)
         self.inp_voltSurf.valueChanged.connect(self.setSurfaceBias)
+        self.inp_widthSurf.valueChanged.connect(self.setSurfaceBias)
+        self.inp_delaySurf.valueChanged.connect(self.setSurfaceBias)
         self.chk_SurfaceBias.clicked.connect(lambda: self.wfGen.switchOutput(1, self.chk_SurfaceBias.isChecked()))
         self.chk_connectWavemeter.clicked.connect(self.switchWavemeterThread)
 
         # defaults
         self.saveFilePath = 'C:\\Users\\rse\\Documents\\Documents\\Data UCL\\raw data\\2017'
-        self.inp_avgSweeps.setValue(10)
+        self.inp_avgSweeps.setValue(1)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
         self.enableControlsScan(True)
@@ -93,11 +92,18 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         #extraction delay
         self.pulseGen.setDelay(2, float(('{:1.11f}').format(300*1E-6)))
         self.inp_extractDelay.setValue(300)
+        # switch on pulse for surface potential
+        self.pulseGen.switchChl(3, True)
+        self.pulseGen.setDelay(3, float(('{:1.11f}').format(300*1E-6)))
+        self.inp_delaySurf.setValue(300)
+        self.wfGen.setPulse(1, 1E-5, 2)
+        self.inp_voltSurf.setValue(2)
+        self.inp_widthSurf.setValue(10)
 
         # set size of window
         self.setWindowTitle('RSE CONTROL')
         self.centerWindow()
-        self.setFixedSize(1062, 688)
+        self.setFixedSize(988, 602)
         self.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         self.show()
 
@@ -110,7 +116,12 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.pulseGen.switchChl(1, self.chk_PulseValve.isChecked())
 
     def setSurfaceBias(self):
-        print "TODO"
+        delay = self.inp_delaySurf.value()*1E-6
+        self.pulseGen.setDelay(3, float(('{:1.11f}').format(delay)))
+        channel = 1
+        volt = self.inp_voltSurf.value()*1E-3
+        width = self.inp_widthSurf.value()*1E-6
+        self.wfGen.setPulse(channel, width, volt)
 
     def startMCPPhos(self):
         '''display controls to ramp MCP/Phos voltages'''
@@ -156,7 +167,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.scope.closeConnection()
             self.dataBuf1 = []
             self.dataBuf2 = []
-            self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
+            self.scopeThread = scopeThread(True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
             self.enableControlsScope(True)
@@ -203,7 +214,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.enableControlsScan(False)
             #self.line1Pos = self.ScopeDisplay.line1.value()
             self.setScanParams()
-            self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
+            self.scopeThread = scopeThread(True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             # set scan flag in thread
             if not('Wavelength' in self.scanParam):
@@ -222,7 +233,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                 self.openSaveFile()
             else:
                 time.sleep(.4)
-            self.scopeThread = scopeThread(True, True, self.inp_avgSweeps.value())
+            self.scopeThread = scopeThread(True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
             self.btn_startDataAcq.setText('Start Data Acq')
@@ -517,7 +528,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.groupBox_Scope.setEnabled(boolEnbl)
         self.groupBox_DevControl.setEnabled(boolEnbl)
         self.groupBox_TOF.setEnabled(boolEnbl)
-        self.groupBox_Decelerator.setEnabled(boolEnbl)
+        self.groupBox_Surfbias.setEnabled(boolEnbl)
         self.scanModeSelect.setEnabled(boolEnbl)
         self.inp_fileName.setEnabled(boolEnbl)
 
@@ -534,7 +545,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
                 self.scope.setSweeps(self.inp_avgSweeps.value())
             else:
                 self.scopeThread.avgSweeps = self.inp_avgSweeps.value()
-                print 'Avg sweeps for data eval changed to ' + str(self.scopeThread.avgSweeps)
+                print 'Avg sweeps set to ' + str(self.scopeThread.avgSweeps)
                 # reset data buffer
                 self.dataBuf1 = []
                 self.dataBuf2 = []
@@ -551,8 +562,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
     def setWavemeterRead(self, wlRead):
         '''Update front panel'''
-        self.out_wlUV.setText(wlRead[0])
-        self.out_wlIR.setText(wlRead[1])
+        self.out_wlUV.setText(wlRead[0] + " nm")
+        self.out_wlIR.setText(wlRead[1] + " nm")
 
     def startPressThread(self):
         '''create maxi gauge thread and _run() without pid feedback loop'''
@@ -702,7 +713,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
 # subclass qthread (not recommended officially, old style)
 class scopeThread(QtCore.QThread):
-    def __init__(self, scopeRead=True, dispOff=False, avgSweeps=1):
+    def __init__(self, scopeRead, avgSweeps):
         QtCore.QThread.__init__(self)
         self.scopeRead = scopeRead
         self.scope = LeCroyScopeControllerVISA()
@@ -710,8 +721,7 @@ class scopeThread(QtCore.QThread):
         self.avgSweeps = avgSweeps
         self.scope.setSweeps(1)
         self.scope.setScales()
-        if dispOff:
-            self.scope.dispOff()
+        self.scope.dispOff()
 
     dataReady = QtCore.pyqtSignal(object)
     # override
@@ -719,10 +729,15 @@ class scopeThread(QtCore.QThread):
         self.wait()
 
     def run(self):
+        i = 0
         self.scope.clearSweeps()
         while self.scopeRead:
             data = self.scope.armwaitread()
+            i += 1
+            if i%10 == 0:
+                print str(i)
             self.dataReady.emit(data)
+
         # return control to scope
         self.scope.dispOn()
         self.scope.trigModeNormal()
