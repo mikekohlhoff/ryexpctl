@@ -12,7 +12,7 @@ import serial
 class WavemeterReadSimulator:
     '''simulator, if device, visa not present or OS not Windows'''
     def __init__(self):
-        self.lastCommand = "1_xxx.xxxxxx2_xxx.xxxxxx"
+        self.lastCommand = "1_999.9999992_666.666666"
 
     def write(self, string):
         '''visa command write function'''

@@ -22,7 +22,7 @@ class AnalogOutController:
             print 'Device driver for NIDAQmx not present'
 
     def setVoltageOut(self, val):
-        """Enable analog output to channel AO0"""
+        """Enable analog output of val(V) to channel AO0"""
         self.task.StartTask()
         # int32 DAQmxWriteAnalogScalarF64 (TaskHandle taskHandle, bool32 autoStart, \\
         # float64 timeout, float64 value, bool32 *reserved);
