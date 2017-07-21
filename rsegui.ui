@@ -792,7 +792,7 @@
     <property name="geometry">
      <rect>
       <x>70</x>
-      <y>20</y>
+      <y>21</y>
       <width>29</width>
       <height>16</height>
      </rect>
@@ -826,7 +826,7 @@
     <property name="geometry">
      <rect>
       <x>125</x>
-      <y>20</y>
+      <y>21</y>
       <width>29</width>
       <height>16</height>
      </rect>
@@ -1168,7 +1168,7 @@
    <widget class="QLabel" name="label_14">
     <property name="geometry">
      <rect>
-      <x>95</x>
+      <x>90</x>
       <y>54</y>
       <width>61</width>
       <height>16</height>
@@ -1208,7 +1208,7 @@
    <widget class="QLabel" name="label_45">
     <property name="geometry">
      <rect>
-      <x>95</x>
+      <x>90</x>
       <y>89</y>
       <width>61</width>
       <height>16</height>
@@ -1480,7 +1480,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>1</number>
+    <number>3</number>
    </property>
    <property name="elideMode">
     <enum>Qt::ElideNone</enum>
@@ -1898,7 +1898,7 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_22">
      <property name="geometry">
       <rect>
-       <x>80</x>
+       <x>81</x>
        <y>90</y>
        <width>37</width>
        <height>16</height>
@@ -1917,7 +1917,7 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_19">
      <property name="geometry">
       <rect>
-       <x>80</x>
+       <x>81</x>
        <y>20</y>
        <width>66</width>
        <height>16</height>
@@ -1936,7 +1936,7 @@ p, li { white-space: pre-wrap; }
     <widget class="QLabel" name="label_20">
      <property name="geometry">
       <rect>
-       <x>80</x>
+       <x>81</x>
        <y>55</y>
        <width>71</width>
        <height>16</height>
@@ -3204,7 +3204,7 @@ p, li { white-space: pre-wrap; }
      </font>
     </property>
     <property name="text">
-     <string>Pulse Width  (μs)</string>
+     <string>Pulse Width (μs)</string>
     </property>
    </widget>
    <widget class="QDoubleSpinBox" name="inp_delaySurf">
@@ -3453,8 +3453,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QLabel" name="label_44">
     <property name="geometry">
      <rect>
-      <x>55</x>
-      <y>120</y>
+      <x>56</x>
+      <y>118</y>
       <width>23</width>
       <height>16</height>
      </rect>
@@ -3516,8 +3516,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QLabel" name="label_49">
     <property name="geometry">
      <rect>
-      <x>125</x>
-      <y>120</y>
+      <x>123</x>
+      <y>118</y>
       <width>31</width>
       <height>16</height>
      </rect>

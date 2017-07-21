@@ -198,6 +198,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         pickle.dump([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
                   self.inp_gate2Start.value(), self.inp_gate2Stop.value()], file)
         file.close()
+
         if self.scanMode:
             self.scanMode = False
             if self.inp_avgSweeps.value() < 2:
@@ -222,6 +223,9 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         else:
             # abort scan
             self.scopeThread.scopeRead = False
+            # close data buffer file
+            if "Detection" in self.scanParam:
+                self.DataDisplay.f_buffer.close()
             print 'DATA ACQ OFF'
             # reset devices to value before scan
             self.setParam = self.beforescanParam
@@ -460,11 +464,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         savePath = QtGui.QFileDialog.getSaveFileName(self, 'Save Traces', filePath, '(*.txt)')
         if not(str(savePath)): return
         if 'Detection' in self.scanParam:
-            #volt1 = np.asarray(self.DataDisplay.paramTrace)[:,0]
-            #volt2 = np.asarray(self.DataDisplay.paramTrace)[:,1]
-            #saveData = np.hstack((np.vstack(voltage), np.vstack(delay), np.vstack(np.asarray(self.DataDisplay.dataTrace1)),
-            #                    np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)),
-            #                    np.vstack(np.asarray(self.DataDisplay.errTrace2))))
+            # read data from buffer file, in case program crashed during extended data acquisition
             f = open('tempdata.txt', 'r')
             saveData = f.read()
             f.close()
