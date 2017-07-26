@@ -22,7 +22,7 @@ ui_form = uic.loadUiType("rsegui.ui")[0]
 ui_form_startmcp = uic.loadUiType("rseguiStartMCP.ui")[0]
 
 # hardware controller modules
-from Instruments.LeCroyScopeController import LeCroyScopeControllerVISA
+from Instruments.LeCroyScopeControllerHDO import LeCroyScopeControllerVISA
 from Instruments.DCONUSB87P4 import USB87P4Controller
 from Instruments.PfeifferMaxiGauge import MaxiGauge
 from Instruments.QuantumComposerPulseGenerator import PulseGeneratorController
@@ -77,6 +77,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         # defaults
         self.saveFilePath = 'C:\\Users\\rse\\Documents\\Data UCL\\raw data\\2017'
         self.inp_avgSweeps.setValue(10)
+        self.scope.setSweeps(10, False)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
         self.enableControlsScan(True)
@@ -166,8 +167,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             # have scope connection within scope thread
             self.scope.invertTrace(False)
             self.scope.closeConnection()
-            self.dataBuf1 = []
-            self.dataBuf2 = []
             self.scopeThread = scopeThread(True, self.inp_avgSweeps.value())
             self.scopeThread.dataReady.connect(self.dataAcquisition)
             self.scopeThread.start(priority=QtCore.QThread.HighestPriority)
@@ -175,7 +174,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.ScopeDisplay.lr1.setMovable(True)
             self.ScopeDisplay.lr2.setMovable(True)
             self.inp_extractDelay.setValue(float(self.pulseGen.readDelay(2))*1E6)
-            print "Scope offset to trigger: " + str(self.scopeThread.scope.trigOffsetC1)
+            self.inp_avgSweeps.setEnabled(False)
         else:
             file = open('lastGateTimes.pckl', 'w')
             pickle.dump([self.inp_gate1Start.value(), self.inp_gate1Stop.value(), \
@@ -184,11 +183,12 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.scopeRead = False
             self.enableControlsScope(False)
             self.scope = LeCroyScopeControllerVISA()
-            self.scope.setSweeps(self.inp_avgSweeps.value())
+            self.scope.setSweeps(self.inp_avgSweeps.value(), self.scopeMon)
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
             self.scope.dispOn()
             self.scope.invertTrace(True)
+            self.inp_avgSweeps.setEnabled(True)
 
     def btn_startDataAcq_clicked(self):
         # set parameters for dataAcquisition()
@@ -344,80 +344,80 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         else:
             data1 = data[0] - np.mean(data[0][0:100])
             data2 = data[1] - np.mean(data[1][0:100])
-        self.dataBuf1.append(data1)
-        self.dataBuf2.append(data2)
+
+        # invert data
+        data1 = data1*-1
+        data2 = data2*-1
+
+        # plot widget settings
         self.cursorPos = self.ScopeDisplay.getCursors()
         self.setGateField(self.cursorPos)
+        # if small speed-up required, uncommment the following
+        #self.ScopeDisplay.scopeWidget.disableAutoRange()
 
-        # deque trace buffer when average shots is reached
-        if len(self.dataBuf1) >= self.scopeThread.avgSweeps:
-            dataIn1 = self.dataBuf1[0:self.scopeThread.avgSweeps]
-            dataIn2 = self.dataBuf2[0:self.scopeThread.avgSweeps]
-            del self.dataBuf1[0:self.scopeThread.avgSweeps]
-            del self.dataBuf2[0:self.scopeThread.avgSweeps]
+        # scope monitor plotting
+        if self.scopeMon and not(self.scanMode):
+            print 'foomon'
+            self.ScopeDisplay.plotMon(data1, data2, self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
+            print 'barmon'
 
-            # scope monitor plotting
-            if self.scopeMon and not(self.scanMode):
-                self.ScopeDisplay.plotMon(dataIn1, dataIn2, self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
+        # scan plotting, average monitor and integrated data display
+        elif self.scopeMon and self.scanMode:
 
-            # scan plotting
-            elif self.scopeMon and self.scanMode:
-                self.ScopeDisplay.plotDataAcq(dataIn1, dataIn2, self.cursorPos, self.scopeThread.scope.timeincrC1, \
-                                              self.scopeThread.scope.timeincrC2)
+            self.ScopeDisplay.plotDataAcq(data1, data2, self.cursorPos, self.scopeThread.scope.timeincrC1, \
+                                          self.scopeThread.scope.timeincrC2)
 
-                # assume matrix scans in order for i in param[0]: for j in param[1]
-                if 'Detection' in self.scanParam:
-                    self.countpoints += 1
-                    self.DataDisplay.plotMatrix(dataIn1, dataIn2, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1, \
-                                                self.scopeThread.scope.timeincrC2, self.datalen, self.countpoints, self.numpoints, self.scanParam)
+            # assume matrix scans in order for i in param[0]: for j in param[1]
+            if 'Detection' in self.scanParam:
+                self.countpoints += 1
+                self.DataDisplay.plotMatrix(data1, data2, self.setParam, self.cursorPos, self.scanParam, self.scopeThread.scope.timeincrC1, \
+                                            self.scopeThread.scope.timeincrC2, self.datalen, self.countpoints, self.numpoints, self.scanParam)
 
-                    # send signal to abort measurement
-                    if (abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
-                        self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
-                        self.btn_startDataAcq_clicked()
+                # send signal to abort measurement
+                if (abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
+                    self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
+                    self.btn_startDataAcq_clicked()
 
-                    # step delay/optic when voltage trace finished
-                    elif (abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
-                        self.setParam[0] = self.startParam[0]
-                        self.setParam[1] += self.scanDirection[1]*self.stepParam[1]
-                        self.scanSetDevice()
-                        self.deviceRelax(0.8)
-                        self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
+                # step delay/optic when voltage trace finished
+                elif (abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11):
+                    self.setParam[0] = self.startParam[0]
+                    self.setParam[1] += self.scanDirection[1]*self.stepParam[1]
+                    self.scanSetDevice()
+                    self.deviceRelax(0.8)
+                    self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
 
-                    # step voltage, second or case account for last iteration of delay
-                    elif (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11)) or \
-                         (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11)):
-                        self.setParam[0] += self.scanDirection[0]*self.stepParam[0]
-                        self.scanSetDevice()
-                        self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
+                # step voltage, second or case account for last iteration of delay
+                elif (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and not(abs(self.setParam[1] - self.stopParam[1]) < 25E-11)) or \
+                     (not(abs(self.setParam[0] - self.stopParam[0]) == 0) and (abs(self.setParam[1] - self.stopParam[1]) < 25E-11)):
+                    self.setParam[0] += self.scanDirection[0]*self.stepParam[0]
+                    self.scanSetDevice()
+                    self.progressBarScan.setValue((float(self.countpoints)/self.numpoints)*1E2)
+            else:
+                # distinguish for wavelength mode, setParam != display parameter
+                if 'Wavelength' in self.scanParam:
+                    dispParam = self.dispParam_wl
                 else:
-                    # distinguish for wavelength mode, setParam != display parameter
-                    if 'Wavelength' in self.scanParam:
-                        dispParam = self.dispParam_wl
-                    else:
-                        dispParam = self.setParam
+                    dispParam = self.setParam
 
-                    # append trace lists through data widget
-                    self.DataDisplay.plot(dataIn1, dataIn2, dispParam, self.cursorPos, self.scanParam, \
-                                          self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
+                # append trace lists through data widget
+                self.DataDisplay.plot(data1, data2, dispParam, self.cursorPos, self.scanParam, \
+                                      self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
 
-                    # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
-                    if abs(self.setParam - self.stopParam) < 25E-11:
-                        # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
-                        self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
-                        self.btn_startDataAcq_clicked()
-                    else:
-                        # step scan parameter
-                        self.setParam += self.scanDirection*self.stepParam
-                        self.scanSetDevice()
-                        self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
+                # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
+                if abs(self.setParam - self.stopParam) < 25E-11:
+                    # last data point recorded, save data, reset to value before scan in btn_acq_clicked()
+                    self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
+                    self.btn_startDataAcq_clicked()
+                else:
+                    # step scan parameter
+                    self.setParam += self.scanDirection*self.stepParam
+                    self.scanSetDevice()
+                    self.progressBarScan.setValue((float(abs(self.setParam - self.startParam))/abs(self.stopParam - self.startParam))*1E2)
 
     def deviceRelax(self, sleeptime):
         # allow for e.g. power supplies to settle potentials
         self.scopeThread.blockSignals(True)
         time.sleep(sleeptime)
-        self.dataBuf1 = []
-        self.dataBuf2 = []
         self.scopeThread.blockSignals(False)
 
     def scanSetDevice(self):
@@ -448,12 +448,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         #reset recorded data
         self.scanMode = True
         print 'DATA ACQ ON'
-        self.dataBuf1 = []
-        self.dataBuf2 = []
         self.DataDisplay.dataTrace1 = []
         self.DataDisplay.dataTrace2 = []
-        self.DataDisplay.errTrace1 = []
-        self.DataDisplay.errTrace2 = []
         self.DataDisplay.paramTrace = []
         self.dataTracePrev1 = []
         self.dataTracePrev2 = []
@@ -471,7 +467,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             os.remove('tempdata.txt')
             dataStructure = 'Data structure: Voltage Extraction x Voltage Ion Optic 1, ' + '{:.0f}'.format(1+(abs(float(self.stopParam[0]-self.startParam[0]))/self.stepParam[0])) + \
                             'x' + '{:.0f}'.format(1+(abs(self.stopParam[1]-self.startParam[1])/self.stepParam[1]))
-            header= u'VoltageExtraction\tVoltageIonO1\tDat1\tErr1\tDat2\tErr2'
+            header= u'VoltageExtraction\tVoltageIonO1\tDat1\tDat2'
             f = open(str(savePath), 'w')
             f.write('# Comment: ' + str(self.inp_fileComment.text()) + '\n')
             f.write(dataStructure + '\n')
@@ -480,17 +476,16 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             f.close()
         else:
             saveData = np.hstack((np.vstack(np.asarray(self.DataDisplay.paramTrace)), np.vstack(np.asarray(self.DataDisplay.dataTrace1)),
-                                np.vstack(np.asarray(self.DataDisplay.errTrace1)), np.vstack(np.asarray(self.DataDisplay.dataTrace2)),
-                                np.vstack(np.asarray(self.DataDisplay.errTrace2))))
+                                  np.vstack(np.asarray(self.DataDisplay.dataTrace2))))
             print 'Save data file'
             if 'Voltage' in self.scanParam:
-                fmtIn = ['%i' , '%.3f', '%.3f', '%.3f', '%.3f']
+                fmtIn = ['%i' , '%.3f', '%.3f']
             elif 'Wavelength' in self.scanParam:
                 # smallest step .000001nm
-                fmtIn = ['%.6f' , '%.3f', '%.3f', '%.3f', '%.3f']
+                fmtIn = ['%.6f' , '%.3f', '%.3f']
             elif 'Delay' in self.scanParam:
-                fmtIn = ['%.11f' , '%.3f', '%.3f', '%.3f', '%.3f']
-            np.savetxt(str(savePath), saveData, fmt=fmtIn, delimiter='\t', newline='\n', header=self.scanParam+(u'\tDat1\tErr1\tDat2\tErr2'),
+                fmtIn = ['%.11f' , '%.3f', '%.3f']
+            np.savetxt(str(savePath), saveData, fmt=fmtIn, delimiter='\t', newline='\n', header=self.scanParam+(u'\tDat1\tDat2'),
                       footer='', comments=('# Comment: ' + str(self.inp_fileComment.text()) + '\n'))
         self.saveFilePath = os.path.dirname(str(savePath))
 
@@ -537,16 +532,9 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.groupBox_TOF.setEnabled(boolEnbl)
 
     def inp_avgSweeps_changed(self):
-        # sets avg on scope or avg in data eval after readout
-        if self.inp_avgSweeps.hasFocus():
-            if not(self.scopeMon):
-                self.scope.setSweeps(self.inp_avgSweeps.value())
-            else:
-                self.scopeThread.avgSweeps = self.inp_avgSweeps.value()
-                print 'Avg sweeps set to ' + str(self.scopeThread.avgSweeps)
-                # reset data buffer
-                self.dataBuf1 = []
-                self.dataBuf2 = []
+        # sets avg on scope or avg in math channels
+        if self.inp_avgSweeps.hasFocus() and not(self.scopeMon):
+            self.scope.setSweeps(self.inp_avgSweeps.value(), False)
 
     def switchWavemeterThread(self):
         """Enable/disable wavemeter readout"""
@@ -715,9 +703,9 @@ class scopeThread(QtCore.QThread):
         QtCore.QThread.__init__(self)
         self.scopeRead = scopeRead
         self.scope = LeCroyScopeControllerVISA()
-        # averages for data eval with single traces from scope
-        self.avgSweeps = avgSweeps
-        self.scope.setSweeps(1)
+        # averages for data eval with single traces data
+        # acquisition on scope and averaging on math channels
+        self.scope.setSweeps(avgSweeps, True)
         self.scope.setScales()
         self.scope.dispOff()
 
@@ -728,9 +716,12 @@ class scopeThread(QtCore.QThread):
 
     def run(self):
         self.scope.clearSweeps()
+        i = 0
         while self.scopeRead:
             data = self.scope.armwaitread()
             self.dataReady.emit(data)
+            i += 1
+            print i
 
         # return control to scope
         self.scope.dispOn()

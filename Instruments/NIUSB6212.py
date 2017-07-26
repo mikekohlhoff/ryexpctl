@@ -5,6 +5,13 @@ import sys
 import time
 import ctypes
 
+class DAQmxSimulator:
+    def __init__(self): pass
+    def StartTask(self): pass
+    def WriteAnalogScalarF64(self, in1, in2, val, bool1): pass
+    def StopTask(self): pass
+    def ClearTask(self): pass
+
 class AnalogOutController:
     '''interface to serial port wavemeter output'''
     def __init__(self):
@@ -20,6 +27,9 @@ class AnalogOutController:
             print 'Analog output NIDAQmx device driver found'
         except ImportError:
             print 'Device driver for NIDAQmx not present'
+        except PyDAQmx.DAQmxFunctions.DAQError:
+            print "NI USB AO device disconnected, use simulator"
+            self.task = DAQmxSimulator()
 
     def setVoltageOut(self, val):
         """Enable analog output of val(V) to channel AO0"""

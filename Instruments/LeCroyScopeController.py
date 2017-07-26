@@ -53,7 +53,8 @@ class LeCroyScopeControllerVISA:
             from pyvisa.resources import MessageBasedResource
             from pyvisa.errors import VisaIOError
             rm = visa.ResourceManager()
-            self.__scope = rm.open_resource("VICP::169.254.201.2::INSTR", resource_pyclass=MessageBasedResource)
+            ip_addr = "VICP::169.254.201.2::INSTR"
+            self.__scope = rm.open_resource(ip_addr, resource_pyclass=MessageBasedResource)
             # CORD LO for intel based computers, CORD HI default
             # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
             # SP = sparsing
@@ -279,12 +280,12 @@ class LeCroyScopeControllerDSO:
 if __name__ == '__main__':
     scope = LeCroyScopeControllerVISA()
     scope.initialize()
-    scope.setSweeps(10)
-    scope.setScales()
-    scope.invertTrace(True)
-    time.sleep(2)
-    scope.invertTrace(False)
-    time.sleep(1)
+    #scope.setSweeps(10)
+    #scope.setScales()
+    #scope.invertTrace(True)
+    time.sleep(4)
+    #scope.invertTrace(False)
+    #time.sleep(1)
     scope.dispOff()
     # accumT = 0
     # for i in xrange(1,20):

@@ -41,7 +41,7 @@ class PulseGeneratorController:
             self.__delayGen.write_termination=u'\r\n'
             self.__delayGen.read_termination=u'\r\n'
             # time for receiving, processing, responding at 115200 ~10ms, 30ms timeouts sometimes
-            self.__delayGen.query_delay = 0.05
+            self.__delayGen.query_delay = 0.06
             # default baud rate for usb is 38400
             self.__delayGen.baud_rate = 38400
             print 'Visa driver for 9520 delay generator found, connection established with:'
