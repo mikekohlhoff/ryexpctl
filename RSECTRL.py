@@ -357,9 +357,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
         # scope monitor plotting
         if self.scopeMon and not(self.scanMode):
-            print 'foomon'
             self.ScopeDisplay.plotMon(data1, data2, self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
-            print 'barmon'
 
         # scan plotting, average monitor and integrated data display
         elif self.scopeMon and self.scanMode:
@@ -706,6 +704,7 @@ class scopeThread(QtCore.QThread):
         # averages for data eval with single traces data
         # acquisition on scope and averaging on math channels
         self.scope.setSweeps(avgSweeps, True)
+        self.avgSweeps = avgSweeps
         self.scope.setScales()
         self.scope.dispOff()
 
@@ -716,12 +715,13 @@ class scopeThread(QtCore.QThread):
 
     def run(self):
         self.scope.clearSweeps()
-        i = 0
+        acqcnt = 0
+        datcnt = 0
         while self.scopeRead:
-            data = self.scope.armwaitread()
-            self.dataReady.emit(data)
-            i += 1
-            print i
+            acqcnt += 1
+            data = self.scope.armwaitread(acqcnt, self.avgSweeps)
+            if len(data[0]) > 0:
+                self.dataReady.emit(data)
 
         # return control to scope
         self.scope.dispOn()

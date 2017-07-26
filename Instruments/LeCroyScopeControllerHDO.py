@@ -53,7 +53,7 @@ class LeCroyScopeControllerVISA:
         self.__scope.write("VBS 'app.acquisition.Horizontal.HorOffset=" + str(offset) + "'")
 
     def dispOff(self):
-        #self.__scope.write('DISP OFF')
+        self.__scope.write('DISP OFF')
         print 'Scope display off'
 
     def dispOn(self):
@@ -100,27 +100,51 @@ class LeCroyScopeControllerVISA:
         self.timeincrC2 = wfd.HORIZ_INTERVAL
         self.trigOffsetC2 =  wfd.HORIZ_OFFSET
 
-    def armwaitread(self):
-        '''main function for readout in GUI
-           read_raw() doesn't appear to add overhead
-           repition rate limitations on scope side
+    def armwaitread(self, acqcnt, avgsweeps):
+        '''Readout math channels and clear sweeps to restart
         '''
-        self.__scope.write('ARM;WAIT;C1:WF? DAT1')
-        data1 = self.__scope.read_raw()
-        self.__scope.write('C2:WF? DAT1')
-        data2 = self.__scope.read_raw()
-        #data2 = data1
+        # register acquisitions
+        self.__scope.write('ARM;WAIT;')
 
-        # numpy computation doesn't decrease reading rate
-        datC1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
-        datC2 = 1.*(np.fromstring(data2[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
+        if acqcnt % avgsweeps == 0:
+            self.__scope.write('F1:WF? DAT1')
+            data1 = self.__scope.read_raw()
+            self.__scope.write('F2:WF? DAT1')
+            data2 = self.__scope.read_raw()
+            self.__scope.write('F1:FRST;F2:FRST')
+
+            datC1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
+            datC2 = 1.*(np.fromstring(data2[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
+        else:
+            datC1 = []
+            datC2 = []
+
+        return [datC1, datC2]
+
+    def readmathchl(self):
+        # read internal state change register
+        inr = self.__scope.write("INR?")
+        print str(inr)
+        # processing on F1 has finished
+        if inr == 256:
+            self.__scope.write('F1:WF? DAT1')
+            data1 = self.__scope.read_raw()
+            self.__scope.write('F2:WF? DAT1')
+            data2 = self.__scope.read_raw()
+            self.__scope.write('F1:FRST;F2:FRST')
+
+            datC1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
+            datC2 = 1.*(np.fromstring(data2[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
+        else:
+            datC1 = []
+            datC2 = []
 
         return [datC1, datC2]
 
     def invertTrace(self, boolInv):
         self.__scope.write("VBS? 'app.Acquisition.C1.Invert=" + str(boolInv) + "'")
         self.__scope.write("VBS? 'app.Acquisition.C2.Invert=" + str(boolInv) + "'")
-        time.sleep(0.5)
+        time.sleep(0.2)
         if boolInv:
             print 'Scope trace inverted'
         else:
