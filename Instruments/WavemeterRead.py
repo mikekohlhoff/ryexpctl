@@ -39,6 +39,7 @@ class WavemeterReadController:
             self.__connection.baud_rate = 9600
             # ascii encoding throws error
             self.__connection.encoding = "latin-1"
+            # tests if port active
             self.__connection.read()
             print 'Wavemeter ouput accessed'
 
@@ -77,6 +78,10 @@ class WavemeterReadController:
         if "1_" in UV:
             UV = UV.split("1_")[1][:10]
             IR = IR.split("2_")[1][:10]
+
+        # replace separator
+        UV.replace(",", ".")
+        IR.replace(",", ".")
 
         return [UV, IR]
 

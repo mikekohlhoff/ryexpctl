@@ -184,7 +184,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.scopeThread.scopeRead = False
             self.enableControlsScope(False)
             self.scope = LeCroyScopeControllerVISA()
-            self.scope.setSweeps(self.inp_avgSweeps.value(), self.scopeMon)
             self.ScopeDisplay.lr1.setMovable(False)
             self.ScopeDisplay.lr2.setMovable(False)
             self.scope.dispOn()
@@ -285,8 +284,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             time.sleep(0.8)
             wl = self.out_wlIR.value()
             self.dispParam_wl = wl
-            print wl
-
             self.beforescanParam = self.startParam
             if self.stopParam > self.startParam:
                 self.scanDirection = 1
@@ -674,7 +671,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.LabJack.setLJTick(0, 'B')
         if hasattr(self, 'scopeThread'):
             self.scopeThread.scopeRead = False
-            time.sleep(.2)
+            # at 50Hz to ensure that acq has finished
+            time.sleep(self.inp_avgSweeps.value()/40.)
             self.scopeThread.terminate()
         if hasattr(self, 'scope'):
             self.scope.closeConnection()
@@ -725,6 +723,7 @@ class scopeThread(QtCore.QThread):
                 self.dataReady.emit(data)
 
         # return control to scope
+        self.scope.setSweeps(self.avgSweeps, False)
         self.scope.dispOn()
         self.scope.trigModeNormal()
         self.scope.closeConnection()
@@ -747,7 +746,7 @@ class WavemeterThread(QtCore.QThread):
         while self.ReadActive:
             UV, IR = self.wvm.getWavelength()
             self.wlReadReady.emit([UV, IR])
-            self.msleep(200)
+            self.msleep(100)
         self.quit()
         return
 
