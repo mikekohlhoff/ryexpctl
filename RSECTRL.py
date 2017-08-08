@@ -91,12 +91,13 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
         self.LabJack.setLJTick(0, 'A')
         #extraction delay
-        self.pulseGen.setDelay(2, float(('{:1.11f}').format(300*1E-6)))
-        self.inp_extractDelay.setValue(300)
+        initdelay = 800
+        self.pulseGen.setDelay(2, float(('{:1.11f}').format(initdelay*1E-6)))
+        self.inp_extractDelay.setValue(initdelay)
         # switch on pulse for surface potential
         self.pulseGen.switchChl(3, True)
-        self.pulseGen.setDelay(3, float(('{:1.11f}').format(300*1E-6)))
-        self.inp_delaySurf.setValue(300)
+        self.pulseGen.setDelay(3, float(('{:1.11f}').format(initdelay*1E-6)))
+        self.inp_delaySurf.setValue(initdelay)
         self.wfGen.setPulse(1, 1E-5, 2)
         self.inp_voltSurf.setValue(2)
         self.inp_widthSurf.setValue(10)
@@ -778,7 +779,7 @@ class PressureThread(QtCore.QThread):
                 MainPress = 'Gauge turned off'
             self.MaxiGauge.gaugeSwitch(4, state)
             ps = self.MaxiGauge.pressureSensor(3)
-            SourcePress = "{:2.2e} mbar".format(ps.pressure)
+            SourcePress = "{:3.2e} mbar".format(ps.pressure)
             self.pressReadReady.emit([SourcePress, MainPress, ps.pressure])
             self.msleep(400)
         self.quit()
@@ -810,9 +811,9 @@ class PressureThreadData(QtCore.QThread):
                 self.pid.setPoint(self.setpoint.value())
             # output for front panel
             ps = self.mg.pressureSensor(3)
-            SourcePress = "{:2.2e} mbar".format(ps.pressure)
+            SourcePress = "{:3.2e} mbar".format(ps.pressure)
             self.pressReadReady.emit([SourcePress, 'Gauge turned off', ps.pressure, self.pid.getError()])
-            mv = self.pid.update(ps.pressure*1E6)
+            mv = self.pid.update(ps.pressure*1E5)
             self.labjack.setLJTick(mv, 'A')
             self.dispincr += 1
         self.quit()
