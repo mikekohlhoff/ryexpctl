@@ -561,17 +561,16 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.PressureThread.start()
         self.pressThread = True
         self.inp_sourceChamber.setEnabled(False)
-        self.chk_readMainGauge.setEnabled(True)
+        #self.chk_readMainGauge.setEnabled(True)
         self.sliderSource.setEnabled(True)
 
     def startPressThreadData(self):
-        self.PressureThreadData = PressureThreadData(True, self.LabJack, self.MaxiGauge, self.inp_sourceChamber)
+        self.PressureThreadData = PressureThreadData(True, self.LabJack, self.MaxiGauge, self.inp_sourceChamber, self.chk_readMainGauge)
         self.PressureThreadData.pressReadReady.connect(self.setPressRead)
         self.PressureThreadData.start()
         self.pressThread = False
         self.inp_sourceChamber.setEnabled(True)
-        self.chk_readMainGauge.setEnabled(False)
-        self.chk_readMainGauge.setCheckState(QtCore.Qt.Unchecked)
+        #self.chk_readMainGauge.setEnabled(False)
         self.sliderSource.setEnabled(False)
 
     def switchPressThread(self):
@@ -589,7 +588,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.startPressThreadData()
         else:
             self.PressureThreadData.ReadActive = False
-            time.sleep(0.2)
+            # ensure thread execution has finished
+            time.sleep(0.6)
             # reset to pressure before PID activated
             val = float(self.sliderSource.value())/100
             self.LabJack.setLJTick(val, 'A')
@@ -598,9 +598,9 @@ class RSEControl(QtGui.QMainWindow, ui_form):
     def setPressRead(self, pressRead):
         self.out_readMainGauge.setText(pressRead[1])
         if not(self.pressThread):
-            if self.PressureThreadData.dispincr%18==0:
+            if self.PressureThreadData.dispincr%1==0:
                 self.out_readSourceGauge.setText(pressRead[0])
-                self.out_piderr.setText('{:3.1f}'.format((abs(pressRead[3])/self.inp_sourceChamber.value())*100))
+                self.out_piderr.setText('{:3.1f}'.format((abs(pressRead[2])/self.inp_sourceChamber.value())*100))
         else:
             self.out_readSourceGauge.setText(pressRead[0])
             if self.chk_PulseValve.isChecked():
@@ -780,18 +780,19 @@ class PressureThread(QtCore.QThread):
             self.MaxiGauge.gaugeSwitch(4, state)
             ps = self.MaxiGauge.pressureSensor(3)
             SourcePress = "{:3.2e} mbar".format(ps.pressure)
-            self.pressReadReady.emit([SourcePress, MainPress, ps.pressure])
+            self.pressReadReady.emit([SourcePress, MainPress, ""])
             self.msleep(400)
         self.quit()
         return
 
 class PressureThreadData(QtCore.QThread):
-    def __init__(self, ReadActive, LabJack, MaxiGauge, refval):
+    def __init__(self, ReadActive, LabJack, MaxiGauge, refval, refmain):
         QtCore.QThread.__init__(self)
         self.ReadActive = ReadActive
         self.labjack = LabJack
         self.mg = MaxiGauge
-        self.mg.gaugeSwitch(4, 'OFF')
+        self.refmain = refmain
+
         # __init__(self, P=2.0, I=0.0, D=1.0, Derivator=0, Integrator=0,
         # Integrator_max=500, Integrator_min=-500):
         self.pid = PIDControl(0.02, 0.02, 0.008, 0, 0, 500, -500)
@@ -806,13 +807,26 @@ class PressureThreadData(QtCore.QThread):
 
     def run(self):
         while self.ReadActive:
-            # check for change in setpoint
+            # main chamber sensor
+            if self.refmain.isChecked():
+                state = 'ON'
+                ps = self.mg.pressureSensor(4)
+                MainPress = "{:2.2e} mbar".format(ps.pressure)
+            else:
+                state = 'OFF'
+                MainPress = 'Gauge turned off'
+            self.mg.gaugeSwitch(4, state)
+
+            self.msleep(100)
+
+            # check for change in setpoint, source sensor
             if self.setpoint.value() != self.pid.getPoint():
                 self.pid.setPoint(self.setpoint.value())
             # output for front panel
             ps = self.mg.pressureSensor(3)
             SourcePress = "{:3.2e} mbar".format(ps.pressure)
-            self.pressReadReady.emit([SourcePress, 'Gauge turned off', ps.pressure, self.pid.getError()])
+
+            self.pressReadReady.emit([SourcePress, MainPress, self.pid.getError()])
             mv = self.pid.update(ps.pressure*1E5)
             self.labjack.setLJTick(mv, 'A')
             self.dispincr += 1
