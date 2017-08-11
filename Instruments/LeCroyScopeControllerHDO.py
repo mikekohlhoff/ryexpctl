@@ -30,7 +30,7 @@ class LeCroyScopeControllerVISA:
             # CORD LO for intel based computers, CORD HI default
             # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
             # SP = sparsing
-            self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CFMT DEF9,BYTE,BIN;CHDR OFF;CORD HI')
+            self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CHDR OFF;CFMT DEF9,WORD,BIN;')
             # clear registers, sweepes and turn of auto cal and leave scope in normal trigger mode
             self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
 
@@ -90,13 +90,13 @@ class LeCroyScopeControllerVISA:
         wfd = self.getWFDescription('C1')
         self.yscaleC1 = wfd.VERTICAL_GAIN
         self.yoffC1 = wfd.VERTICAL_OFFSET
-        numpointsC1 = wfd.WAVE_ARRAY_COUNT
+        self.numpointsC1 = wfd.WAVE_ARRAY_COUNT
         self.timeincrC1 = wfd.HORIZ_INTERVAL
         self.trigOffsetC1 =  wfd.HORIZ_OFFSET
         wfd = self.getWFDescription('C2')
         self.yscaleC2 = wfd.VERTICAL_GAIN
         self.yoffC2 = wfd.VERTICAL_OFFSET
-        numpointsC2 = wfd.WAVE_ARRAY_COUNT
+        self.numpointsC2 = wfd.WAVE_ARRAY_COUNT
         self.timeincrC2 = wfd.HORIZ_INTERVAL
         self.trigOffsetC2 =  wfd.HORIZ_OFFSET
 
@@ -107,14 +107,17 @@ class LeCroyScopeControllerVISA:
         self.__scope.write('ARM;WAIT;')
 
         if acqcnt % avgsweeps == 0:
-            self.__scope.write('F1:WF? DAT1')
+            self.__scope.write('C1:WF? DAT1')
             data1 = self.__scope.read_raw()
-            self.__scope.write('F2:WF? DAT1')
+            self.__scope.write('C2:WF? DAT1')
             data2 = self.__scope.read_raw()
-            self.__scope.write('F1:FRST;F2:FRST')
+            self.clearSweeps()
+            #self.__scope.write('F1:FRST;F2:FRST')
 
-            datC1 = 1.*(np.fromstring(data1[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
-            datC2 = 1.*(np.fromstring(data2[16:-1], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
+            # digit 9 indicates byte count consists of 9 digits, [bytecount, value, bytecount, value, ..]
+            datC1 = 1.*(np.fromstring(data1[17:-1:2], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
+            datC2 = 1.*(np.fromstring(data2[17:-1:2], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
+
         else:
             datC1 = []
             datC2 = []

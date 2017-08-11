@@ -43,6 +43,9 @@ class WavemeterReadController:
             self.__connection.read()
             print 'Wavemeter ouput accessed'
 
+            self.lastValUV = 0
+            self.lastValIR = 0
+
         except OSError:
             self.__connection = WavemeterReadSimulator()
             print 'OSError, enter simulation mode for wavemeter'
@@ -58,9 +61,15 @@ class WavemeterReadController:
         asrl_read = False
         while not asrl_read:
             try:
-                wl1 = self.__connection.read()
-                wl2 = self.__connection.read()
+                wl1 = str(self.__connection.read())
+                wl2 = str(self.__connection.read())
+
+                # replace separator
+                wl1 = wl1.replace(",", ".")
+                wl2 = wl2.replace(",", ".")
+
                 asrl_read = True
+
             except VisaIOError:
                 pass
 
@@ -71,17 +80,17 @@ class WavemeterReadController:
         elif "1_" in wl2 and "2_" in wl1:
             UV = wl2
             IR = wl1
-        else: pass
-            #UV, IR = self.getWavelength()
+        else:
+            UV = self.lastValUV
+            IR = self.lastValIR
 
         # truncate wavelength from prefix on, assume 6 decimals
         if "1_" in UV:
             UV = UV.split("1_")[1][:10]
             IR = IR.split("2_")[1][:10]
 
-        # replace separator
-        UV.replace(",", ".")
-        IR.replace(",", ".")
+        self.lastValUV = UV
+        self.lastValIR = IR
 
         return [UV, IR]
 
@@ -93,7 +102,7 @@ if __name__ == '__main__':
     import time
     import random
     wvm = WavemeterReadController()
-    for i in range(50):
+    for i in range(10):
         UV, IR = wvm.getWavelength()
         print "UV wavlength: {:s}nm".format(UV)
         print "IR wavlength: {:s}nm".format(IR)

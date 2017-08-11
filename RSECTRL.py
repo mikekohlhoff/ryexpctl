@@ -76,8 +76,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
         # defaults
         self.saveFilePath = 'C:\\Users\\rse\\Documents\\Data UCL\\raw data\\2017'
-        self.inp_avgSweeps.setValue(10)
-        self.scope.setSweeps(10, False)
+        self.inp_avgSweeps.setValue(25)
+        self.scope.setSweeps(25, False)
         self.cursorPos = np.array([0,0,0,0])
         # have only scope non-scan related controls activated
         self.enableControlsScan(True)
@@ -91,16 +91,16 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
         self.LabJack.setLJTick(0, 'A')
         #extraction delay
-        initdelay = 800
-        self.pulseGen.setDelay(2, float(('{:1.11f}').format(initdelay*1E-6)))
-        self.inp_extractDelay.setValue(initdelay)
+        #initdelay = 1200
+        #self.pulseGen.setDelay(2, float(('{:1.11f}').format(initdelay*1E-6)))
+        #self.inp_extractDelay.setValue(initdelay)
         # switch on pulse for surface potential
-        self.pulseGen.switchChl(3, True)
-        self.pulseGen.setDelay(3, float(('{:1.11f}').format(initdelay*1E-6)))
-        self.inp_delaySurf.setValue(initdelay)
-        self.wfGen.setPulse(1, 1E-5, 2)
-        self.inp_voltSurf.setValue(2)
-        self.inp_widthSurf.setValue(10)
+        #self.pulseGen.switchChl(3, True)
+        #self.pulseGen.setDelay(3, float(('{:1.11f}').format(initdelay*1E-6)))
+        #self.inp_delaySurf.setValue(initdelay)
+        #self.wfGen.setPulse(1, 1E-5, 2)
+        #self.inp_voltSurf.setValue(2)
+        #self.inp_widthSurf.setValue(10)
 
         # set size of window
         self.setWindowTitle('RSE CONTROL')
@@ -279,9 +279,10 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             self.setOutParam = self.out_WLVoltMon
 
             # activate wavelength read
-            self.chk_connectWavemeter.setCheckState(QtCore.Qt.Checked)
-            self.switchWavemeterThread()
-            time.sleep(0.8)
+            if not(self.chk_connectWavemeter):
+                self.chk_connectWavemeter.setCheckState(QtCore.Qt.Checked)
+                self.switchWavemeterThread()
+                time.sleep(0.8)
             wl = self.out_wlIR.value()
             self.dispParam_wl = wl
             self.beforescanParam = self.startParam
@@ -340,8 +341,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             data1 = data[0] - np.mean(data[0][-3000:-1000])
             data2 = data[1] - np.mean(data[1][-3000:-1000])
         else:
-            data1 = data[0] - np.mean(data[0][0:100])
-            data2 = data[1] - np.mean(data[1][0:100])
+            data1 = data[0] - np.mean(data[0][0:500])
+            data2 = data[1] - np.mean(data[1][0:500])
 
         # invert data
         data1 = data1*-1
@@ -425,7 +426,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
             outVal = self.setParam
             self.setOutParam.setText(str(outVal))
         elif 'Wavelength' in self.scanParam:
-            wl = self.out_wlIR.value()
+            wl = self.IRwl
             self.dispParam_wl = wl
             self.NIAO.setVoltageOut(self.setParam)
             self.setOutParam.setText('{:1.4f}'.format(self.setParam))
@@ -535,8 +536,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
     def switchWavemeterThread(self):
         """Enable/disable wavemeter readout"""
         if self.chk_connectWavemeter.isChecked():
-            self.wvm = WavemeterReadController()
-            self.WavemeterThread = WavemeterThread(self.wvm)
+            self.WavemeterThread = WavemeterThread()
             self.WavemeterThread.wlReadReady.connect(self.setWavemeterRead)
             self.WavemeterThread.start()
         else:
@@ -546,6 +546,9 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         '''Update front panel'''
         self.out_wlUV.setValue(float(wlRead[0]))
         self.out_wlIR.setValue(float(wlRead[1]))
+
+        self.UVwl = float(wlRead[0])
+        self.IRwl = float(wlRead[1])
 
     def startPressThread(self):
         '''create maxi gauge thread and _run() without pid feedback loop'''
@@ -672,7 +675,7 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         if hasattr(self, 'scopeThread'):
             self.scopeThread.scopeRead = False
             # at 50Hz to ensure that acq has finished
-            time.sleep(self.inp_avgSweeps.value()/40.)
+            time.sleep(self.inp_avgSweeps.value()/30.)
             self.scopeThread.terminate()
         if hasattr(self, 'scope'):
             self.scope.closeConnection()
@@ -690,7 +693,6 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.wfGen.closeConnection()
         if hasattr(self, 'WavemeterThread'):
             self.WavemeterThread.ReadActive = False
-            self.wvm.closeConnection()
         self.NIAO.closeDevice()
         self.pulseGen.closeConnection()
 
@@ -702,10 +704,10 @@ class scopeThread(QtCore.QThread):
         self.scope = LeCroyScopeControllerVISA()
         # averages for data eval with single traces data
         # acquisition on scope and averaging on math channels
-        self.scope.setSweeps(avgSweeps, True)
+        self.scope.setSweeps(avgSweeps, False)
         self.avgSweeps = avgSweeps
         self.scope.setScales()
-        self.scope.dispOff()
+        #self.scope.dispOff()
 
     dataReady = QtCore.pyqtSignal(object)
     # override
@@ -721,9 +723,10 @@ class scopeThread(QtCore.QThread):
             data = self.scope.armwaitread(acqcnt, self.avgSweeps)
             if len(data[0]) > 0:
                 self.dataReady.emit(data)
+                print acqcnt
 
         # return control to scope
-        self.scope.setSweeps(self.avgSweeps, False)
+        #self.scope.setSweeps(self.avgSweeps, False)
         self.scope.dispOn()
         self.scope.trigModeNormal()
         self.scope.closeConnection()
@@ -732,9 +735,9 @@ class scopeThread(QtCore.QThread):
 
 class WavemeterThread(QtCore.QThread):
     "Access wavemeter and read wavelengths"
-    def __init__(self, wvm):
+    def __init__(self):
         QtCore.QThread.__init__(self)
-        self.wvm = wvm
+        self.wvm = WavemeterReadController()
         self.ReadActive = True
 
     wlReadReady = QtCore.pyqtSignal(object)
@@ -746,7 +749,8 @@ class WavemeterThread(QtCore.QThread):
         while self.ReadActive:
             UV, IR = self.wvm.getWavelength()
             self.wlReadReady.emit([UV, IR])
-            self.msleep(100)
+            self.msleep(200)
+        self.wvm.closeConnection()
         self.quit()
         return
 
