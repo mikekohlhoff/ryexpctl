@@ -34,9 +34,15 @@ class PyQtGraphWidgetData(QtGui.QGraphicsView):
 
         return intTrace
 
-    def plot(self, dataIn1, dataIn2, setParam, cPosIn, scanParam, ti1, ti2):
+    def plot(self, dataIn1, dataIn2, setParam, cPosIn, scanParam, ti1, ti2, to1, to2):
         # gate1: trace1, gate2: trace2
-        cPos = [round(cPosIn[0]/ti1), round(cPosIn[1]/ti1), round(cPosIn[2]/ti2), round(cPosIn[3]/ti2)]
+        # offset correction of indices
+        vertoff1 = round(to1/ti1)
+        vertoff2 = round(to2/ti2)
+
+        cPos = [round(cPosIn[0]/ti1) - vertoff1, round(cPosIn[1]/ti1) - vertoff1, \
+                round(cPosIn[2]/ti2) - vertoff2, round(cPosIn[3]/ti2) - vertoff2]
+
         data = self.integrator(dataIn1, dataIn2, cPos)
 
         # append data lists point wise

@@ -158,9 +158,12 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         '''create scope thread and _run()'''
         self.scopeMon = self.chk_readScope.isChecked()
         if self.scopeMon:
-            file = open('lastGateTimes.pckl')
-            lastTimes = pickle.load(file)
-            file.close()
+            try:
+                file = open('lastGateTimes.pckl')
+                lastTimes = pickle.load(file)
+                file.close()
+            except KeyError:
+                lastTimes = [0, 0, 0, 0]
             self.inp_gate1Start.setValue(lastTimes[0])
             self.inp_gate1Stop.setValue(lastTimes[1])
             self.inp_gate2Start.setValue(lastTimes[2])
@@ -356,13 +359,14 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
         # scope monitor plotting
         if self.scopeMon and not(self.scanMode):
-            self.ScopeDisplay.plotMon(data1, data2, self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
+            self.ScopeDisplay.plotMon(data1, data2, self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2, \
+                                      self.scopeThread.scope.trigOffsetC1, self.scopeThread.scope.trigOffsetC2, self.scopeThread.scope.trigDelay)
 
         # scan plotting, average monitor and integrated data display
         elif self.scopeMon and self.scanMode:
 
             self.ScopeDisplay.plotDataAcq(data1, data2, self.cursorPos, self.scopeThread.scope.timeincrC1, \
-                                          self.scopeThread.scope.timeincrC2)
+                                          self.scopeThread.scope.timeincrC2, self.scopeThread.scope.trigOffsetC1, self.scopeThread.scope.trigOffsetC2)
 
             # assume matrix scans in order for i in param[0]: for j in param[1]
             if 'Detection' in self.scanParam:
@@ -398,7 +402,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
 
                 # append trace lists through data widget
                 self.DataDisplay.plot(data1, data2, dispParam, self.cursorPos, self.scanParam, \
-                                      self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2)
+                                      self.scopeThread.scope.timeincrC1, self.scopeThread.scope.timeincrC2, \
+                                      self.scopeThread.scope.trigOffsetC1, self.scopeThread.scope.trigOffsetC2)
 
                 # eps for floating point comparison in delay scans, 25ps max resolution for delay generator
                 if abs(self.setParam - self.stopParam) < 25E-11:
@@ -635,9 +640,12 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         # USB analog input/output
         self.analogIO = USB87P4Controller()
         self.analogIO.openDevice()
-        file = open('storeMCPPhos.pckl')
-        lastVal = pickle.load(file)
-        file.close()
+        try:
+            file = open('storeMCPPhos.pckl')
+            lastVal = pickle.load(file)
+            file.close()
+        except KeyError:
+            lastVal = [False, 0, 0]
         lastMCP = lastVal[1]
         lastPhos = lastVal[2]
         if lastMCP != 0 or lastPhos != 0:
@@ -674,8 +682,8 @@ class RSEControl(QtGui.QMainWindow, ui_form):
         self.LabJack.setLJTick(0, 'B')
         if hasattr(self, 'scopeThread'):
             self.scopeThread.scopeRead = False
-            # at 50Hz to ensure that acq has finished
-            time.sleep(self.inp_avgSweeps.value()/30.)
+            # at 50Hz to ensure that acq has finished, blue screen otherwise
+            time.sleep(self.inp_avgSweeps.value()/25.)
             self.scopeThread.terminate()
         if hasattr(self, 'scope'):
             self.scope.closeConnection()
@@ -723,7 +731,6 @@ class scopeThread(QtCore.QThread):
             data = self.scope.armwaitread(acqcnt, self.avgSweeps)
             if len(data[0]) > 0:
                 self.dataReady.emit(data)
-                print acqcnt
 
         # return control to scope
         #self.scope.setSweeps(self.avgSweeps, False)
@@ -747,9 +754,11 @@ class WavemeterThread(QtCore.QThread):
 
     def run(self):
         while self.ReadActive:
-            UV, IR = self.wvm.getWavelength()
+            UV, IR, err = self.wvm.getWavelength()
             self.wlReadReady.emit([UV, IR])
-            self.msleep(200)
+            #self.msleep(200)
+            if err:
+                break
         self.wvm.closeConnection()
         self.quit()
         return

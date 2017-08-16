@@ -28,9 +28,9 @@ class LeCroyScopeControllerVISA:
             ip_addr = "VICP::169.254.201.2::INSTR"
             self.__scope = rm.open_resource(ip_addr, resource_pyclass=MessageBasedResource)
             # CORD LO for intel based computers, CORD HI default
-            # waveform setup, data as block of definite length, binary coding as 8bit integers, BIN vs WORD (16bit)
+            # waveform setup, data as block of definite length, binary coding as 8bit integers, BYTE (8-bit) vs WORD (16bit)
             # SP = sparsing
-            self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CHDR OFF;CFMT DEF9,WORD,BIN;')
+            self.__scope.write('WFSU SP,0,NP,0,FP,0,SN,0;CHDR OFF;CFMT DEF9,WORD,BIN;CORD HI')
             # clear registers, sweepes and turn of auto cal and leave scope in normal trigger mode
             self.__scope.write('*CLS;CLSW;TRMD NORMAL;ACAL OFF')
 
@@ -93,6 +93,7 @@ class LeCroyScopeControllerVISA:
         self.numpointsC1 = wfd.WAVE_ARRAY_COUNT
         self.timeincrC1 = wfd.HORIZ_INTERVAL
         self.trigOffsetC1 =  wfd.HORIZ_OFFSET
+        self.trigDelay = self.__scope.query('TRIG_DELAY?')
         wfd = self.getWFDescription('C2')
         self.yscaleC2 = wfd.VERTICAL_GAIN
         self.yoffC2 = wfd.VERTICAL_OFFSET
@@ -107,22 +108,15 @@ class LeCroyScopeControllerVISA:
         self.__scope.write('ARM;WAIT;')
 
         if acqcnt % avgsweeps == 0:
-            self.__scope.write('C1:WF? DAT1')
-            data1 = self.__scope.read_raw()
-            self.__scope.write('C2:WF? DAT1')
-            data2 = self.__scope.read_raw()
+            # read binary data as 16bit integer ('h', WORD)
+            data1 = (np.asarray(self.__scope.query_binary_values('C1:WF? DAT1', datatype='h', is_big_endian=True)).astype('float'))*self.yscaleC1-self.yoffC1
+            data2 = (np.asarray(self.__scope.query_binary_values('C2:WF? DAT1', datatype='h', is_big_endian=True)).astype('float'))*self.yscaleC2-self.yoffC2
             self.clearSweeps()
-            #self.__scope.write('F1:FRST;F2:FRST')
-
-            # digit 9 indicates byte count consists of 9 digits, [bytecount, value, bytecount, value, ..]
-            datC1 = 1.*(np.fromstring(data1[17:-1:2], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC1-self.yoffC1
-            datC2 = 1.*(np.fromstring(data2[17:-1:2], dtype=np.dtype('>i1')).astype('float'))*self.yscaleC2-self.yoffC2
-
         else:
-            datC1 = []
-            datC2 = []
+            data1 = []
+            data2 = []
 
-        return [datC1, datC2]
+        return [data1, data2]
 
     def readmathchl(self):
         # read internal state change register

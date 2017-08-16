@@ -31,7 +31,7 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
         self.lr1.setMovable(False)
         self.lr2.setMovable(False)
 
-    def plotMon(self, data1, data2, timeincr1, timeincr2):
+    def plotMon(self, data1, data2, timeincr1, timeincr2, vertoff1, vertoff2, trigdelay):
         # reset mobility of cursors after data acquisition
         self.lr1.setMovable(True)
         self.lr2.setMovable(True)
@@ -40,16 +40,16 @@ class PyQtGraphWidgetScope(QtGui.QGraphicsView):
            self.scopeWidget.removeItem(self.scopeWidget.listDataItems()[0])
            self.scopeWidget.removeItem(self.scopeWidget.listDataItems()[0])
 
-        plotTime1 = np.arange(np.size(data1))*timeincr1
-        plotTime2 = np.arange(np.size(data2))*timeincr2
+        plotTime1 = np.arange(np.size(data1))*timeincr1 + vertoff1
+        plotTime2 = np.arange(np.size(data2))*timeincr2 + vertoff2
 
         self.scopeWidget.plot(plotTime1, data1, pen=pg.mkPen('#1C1C1C'))
         self.scopeWidget.plot(plotTime2, data2, pen=pg.mkPen('k'))
 
-    def plotDataAcq(self, data1, data2, cursorPos, timeincr1, timeincr2):
+    def plotDataAcq(self, data1, data2, cursorPos, timeincr1, timeincr2, vertoff1, vertoff2):
         # construct time array
-        plotTime1 = np.arange(np.size(data1))*timeincr1
-        plotTime2 = np.arange(np.size(data2))*timeincr2
+        plotTime1 = np.arange(np.size(data1))*timeincr1 + vertoff1
+        plotTime2 = np.arange(np.size(data2))*timeincr2 + vertoff2
 
         self.scopeWidget.plot(plotTime1, data1, pen=pg.mkPen('#1C1C1C'), clear=True)
         self.scopeWidget.plot(plotTime2, data2, pen=pg.mkPen('k'))

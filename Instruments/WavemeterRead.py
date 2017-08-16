@@ -71,7 +71,7 @@ class WavemeterReadController:
                 asrl_read = True
 
             except VisaIOError:
-                pass
+                return ['0', '0', True]
 
         # treat case when both readings are the same wavelength
         if "1_" in wl1 and "2_" in wl2:
@@ -92,7 +92,7 @@ class WavemeterReadController:
         self.lastValUV = UV
         self.lastValIR = IR
 
-        return [UV, IR]
+        return [UV, IR, False]
 
     def closeConnection(self):
         print 'Wavemeter readout connection closed'

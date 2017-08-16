@@ -938,6 +938,9 @@
     <property name="keyboardTracking">
      <bool>true</bool>
     </property>
+    <property name="minimum">
+     <double>-1000.000000000000000</double>
+    </property>
     <property name="maximum">
      <double>1000.000000000000000</double>
     </property>
@@ -992,6 +995,9 @@
     </property>
     <property name="keyboardTracking">
      <bool>true</bool>
+    </property>
+    <property name="minimum">
+     <double>-1000.000000000000000</double>
     </property>
     <property name="maximum">
      <double>1000.000000000000000</double>
@@ -1082,6 +1088,9 @@
     <property name="keyboardTracking">
      <bool>true</bool>
     </property>
+    <property name="minimum">
+     <double>-1000.000000000000000</double>
+    </property>
     <property name="maximum">
      <double>1000.000000000000000</double>
     </property>
@@ -1136,6 +1145,9 @@
     </property>
     <property name="keyboardTracking">
      <bool>true</bool>
+    </property>
+    <property name="minimum">
+     <double>-1000.000000000000000</double>
     </property>
     <property name="maximum">
      <double>1000.000000000000000</double>
@@ -1480,7 +1492,7 @@ p, li { white-space: pre-wrap; }
     </font>
    </property>
    <property name="currentIndex">
-    <number>3</number>
+    <number>1</number>
    </property>
    <property name="elideMode">
     <enum>Qt::ElideNone</enum>
@@ -2128,7 +2140,7 @@ p, li { white-space: pre-wrap; }
       </font>
      </property>
      <property name="text">
-      <string>Voltage Monitor (nm)</string>
+      <string>Voltage Monitor (V)</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
